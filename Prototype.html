@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Market Model — Stacked Revenues (2029–2048)</title>
+  <title>Market Model — Stacked Net Revenues (2029–2048)</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     :root{--panel-bg:#fafafa;--muted:#666;--card-bg:#fff;--accent:#0b5cff}
     *{box-sizing:border-box}
     body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;display:flex;height:100vh;color:#111}
-    #controls{width:280px;border-right:1px solid #e6e6e6;padding:12px;background:var(--panel-bg);overflow:auto}
+    #controls{width:300px;border-right:1px solid #e6e6e6;padding:12px;background:var(--panel-bg);overflow:auto}
     #graphWrap{flex:1;display:flex;flex-direction:column;padding:12px}
     h2{margin:0 0 10px 0;font-size:18px}
     .card{background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;margin-bottom:12px}
@@ -23,23 +23,32 @@
     .kpi{flex:1;background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;text-align:center}
     .kpi .big{font-size:18px;font-weight:700;margin-top:8px}
     .country-card{margin-bottom:8px;padding:8px;border-radius:6px;background:#fff;border:1px solid #f0f0f0;font-size:13px}
-    .loe-input-row { display: grid; grid-template-columns: 60px 1fr; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .slider-row { margin-bottom: 12px; }
   </style>
 </head>
 <body>
   <div id="controls">
     <h2>Model parameters</h2>
+    
+    <div class="card">
+        <label>Indications</label>
+        <div id="indicationChecks" class="checks"></div>
+    </div>
 
     <div class="card">
       <label>Regions</label>
       <div id="countryChecks" class="checks"></div>
-      <div class="small" style="margin-top:6px">Toggle groups on/off (all selected by default)</div>
+    </div>
+    
+    <div class="card">
+        <label>Peak Market Share Year (by Region)</label>
+        <div id="peakYearSlidersContainer"></div>
     </div>
 
     <div class="card">
-      <label for="peakYearSlider">Peak Market Share Year</label>
-      <input id="peakYearSlider" type="range" min="2034" max="2038" value="2036" step="1" />
-      <div class="small">Fastest (2034) to slowest (2038). Current: <span id="peakYearVal">2036</span></div>
+      <label for="patentExtensionInput">Patent Exclusivity Extension (+ Years)</label>
+      <input id="patentExtensionInput" type="number" min="0" max="10" step="1" value="0" />
+      <div class="small" style="margin-top:6px">Applies to all selected regions.</div>
       
       <div style="height:10px"></div>
       <label for="erosionRate">Post-LoE annual erosion (%)</label>
@@ -48,23 +57,22 @@
     </div>
 
     <div class="card">
-        <label>Loss of Exclusivity (LoE) by Region</label>
-        <div id="loeInputsContainer" class="checks"></div>
-        <div class="small" style="margin-top:6px">Default: US 2037, others 2040.</div>
-    </div>
-
-    <div class="card">
       <label for="treatmentCost">Treatment cost (USD)</label>
       <input id="treatmentCost" type="range" min="50000" max="150000" step="1000" value="100000" />
       <div class="small"><span id="treatmentCostVal">$100,000</span></div>
+    </div>
+    
+    <div class="card">
+        <label>Cost Parameters</label>
+        <label for="variableCostSlider" class="small" style="font-weight:normal;margin-bottom:4px;">Operational Cost Rate (% of Gross Revenue)</label>
+        <input id="variableCostSlider" type="range" min="1" max="10" step="0.1" value="5" />
+        <div class="small">Current rate: <span id="variableCostVal">5.0%</span>/yr</div>
+        <div class="small" style="margin-top:8px;">Note: A flat $50M cost is also applied in 2029.</div>
     </div>
 
     <div class="card">
       <h3 style="margin:0 0 8px 0">Base assumptions (read-only)</h3>
       <div id="countryAssumptions"></div>
-      <div class="small" style="margin-top:8px">
-        Revenue = Addressable Cases × Market Share(t) × Treatment Cost.
-      </div>
     </div>
   </div>
 
@@ -73,13 +81,13 @@
 
     <div class="kpis">
       <div class="kpi">
-        <div class="small">Peak revenue (USD)</div>
+        <div class="small">Peak Net Revenue (USD)</div>
         <div class="big" id="peakSalesVal">$0</div>
         <div class="small" id="peakSalesYear">Year: —</div>
       </div>
 
       <div class="kpi">
-        <div class="small">Cumulative revenue</div>
+        <div class="small">Cumulative Net Revenue</div>
         <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-top:6px">
           <select id="cumStart"></select><div class="small">→</div><select id="cumEnd"></select>
         </div>
@@ -92,257 +100,231 @@
   <script>
   const years = Array.from({length: 20}, (_, i) => 2029 + i);
 
-  const providedCasesSeries = {
-    "EU4+UK": [6992, 7052, 7112, 7172, 7232, 7292, 7352, 7412, 7472, 7532, 7592, 7652, 7712, 7772, 7832, 7892, 7952, 8012, 8072, 8132, 8192],
-    "US": [9793, 9905, 10021, 10134, 10248, 10361, 10475, 10589, 10703, 10816, 10930, 11044, 11158, 11271, 11385, 11499, 11613, 11726, 11840, 11954, 12068],
-    "Japan": [1369, 1370, 1373, 1374, 1376, 1378, 1380, 1382, 1384, 1386, 1388, 1390, 1392, 1394, 1396, 1397, 1399, 1401, 1403, 1407]
+  // --- DATA STRUCTURES ---
+  const glioblastomaCases = {
+      "EU4+UK": [6992, 7052, 7112, 7172, 7232, 7292, 7352, 7412, 7472, 7532, 7592, 7652, 7712, 7772, 7832, 7892, 7952, 8012, 8072, 8132, 8192],
+      "US": [9793, 9905, 10021, 10134, 10248, 10361, 10475, 10589, 10703, 10816, 10930, 11044, 11158, 11271, 11385, 11499, 11613, 11726, 11840, 11954, 12068],
+      "Japan": [1369, 1370, 1373, 1374, 1376, 1378, 1380, 1382, 1384, 1386, 1388, 1390, 1392, 1394, 1396, 1397, 1399, 1401, 1403, 1407]
   };
-
-  const neurosurgeryPct = { "EU4+UK": 0.70, "US": 0.90, "Japan": 0.80 };
+  const allIndicationsData = {
+    "Glioblastoma": { cases: glioblastomaCases, neurosurgeryPct: { "EU4+UK": 0.70, "US": 0.90, "Japan": 0.80 } },
+    "Secondary Tumors": { cases: Object.fromEntries(Object.entries(glioblastomaCases).map(([k, v]) => [k, v.map(n => Math.round(n * 0.5))])), neurosurgeryPct: { "EU4+UK": 0.65, "US": 0.85, "Japan": 0.75 } },
+    "OPBT": { cases: Object.fromEntries(Object.entries(glioblastomaCases).map(([k, v]) => [k, v.map(n => Math.round(n * 0.2))])), neurosurgeryPct: { "EU4+UK": 0.75, "US": 0.95, "Japan": 0.85 } }
+  };
+  const indicationOrder = ["Glioblastoma", "Secondary Tumors", "OPBT"];
   const groupOrder = ["EU4+UK", "US", "Japan"];
   const groupColors = { "EU4+UK": "#2f6df6", "US": "#00b37e", "Japan": "#f59e0b" };
   
-  // State for LoE years, with defaults
-  let loeYearsByGroup = { "EU4+UK": 2040, "US": 2037, "Japan": 2040 };
+  // --- STATE MANAGEMENT ---
+  const baseLoeYears = { "EU4+UK": 2040, "US": 2037, "Japan": 2040 };
+  let peakYearsByGroup = { "EU4+UK": 2036, "US": 2036, "Japan": 2036 };
+  let currentTotalNetRevenues = [];
 
+  // --- DOM ELEMENT REFERENCES ---
+  const indicationChecks = document.getElementById('indicationChecks');
   const countryChecks = document.getElementById('countryChecks');
   const countryAssumptions = document.getElementById('countryAssumptions');
-  const peakYearSlider = document.getElementById('peakYearSlider');
-  const peakYearVal = document.getElementById('peakYearVal');
+  const peakYearSlidersContainer = document.getElementById('peakYearSlidersContainer');
+  const patentExtensionInput = document.getElementById('patentExtensionInput');
   const erosionRate = document.getElementById('erosionRate');
   const erosionRateVal = document.getElementById('erosionRateVal');
   const treatmentCost = document.getElementById('treatmentCost');
   const treatmentCostVal = document.getElementById('treatmentCostVal');
+  const variableCostSlider = document.getElementById('variableCostSlider');
+  const variableCostVal = document.getElementById('variableCostVal');
   const peakSalesVal = document.getElementById('peakSalesVal');
   const peakSalesYear = document.getElementById('peakSalesYear');
   const cumStart = document.getElementById('cumStart');
   const cumEnd = document.getElementById('cumEnd');
   const cumSalesVal = document.getElementById('cumSalesVal');
   const cumSpan = document.getElementById('cumSpan');
-  const loeInputsContainer = document.getElementById('loeInputsContainer');
 
+  // --- UTILITY AND FORMATTING ---
   function fmtShortUSD(n) {
-    if (n >= 1e9) { return '$' + (n / 1e9).toFixed(1).replace(/\.0$/, '') + 'B'; }
-    if (n >= 1e6) { return '$' + (n / 1e6).toFixed(0) + 'M'; }
-    if (n >= 1e3) { return '$' + (n / 1e3).toFixed(0) + 'K'; }
-    return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits: 0});
+    const sign = n < 0 ? "-" : ""; n = Math.abs(n);
+    if (n >= 1e9) return `${sign}$${(n / 1e9).toFixed(1).replace(/\.0$/, '')}B`;
+    if (n >= 1e6) return `${sign}$${(n / 1e6).toFixed(0)}M`;
+    if (n < 1000) return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits: 0});
+    return `${sign}$${(n / 1e3).toFixed(0)}K`;
   }
   function fmtUSD(n) { return n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0}); }
-  function round(n) { return Math.round(n); }
 
-  function populateCountryChecks() {
-    countryChecks.innerHTML = '';
-    groupOrder.forEach(name => {
-      const row = document.createElement('label');
-      row.className = 'check-row';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.checked = true; cb.value = name;
-      cb.addEventListener('change', updatePlot);
-      const span = document.createElement('span'); span.textContent = name;
-      row.appendChild(cb); row.appendChild(span);
-      countryChecks.appendChild(row);
-    });
+  // --- UI RENDERING ---
+  function createCheckboxes(container, items, defaultCheckedIndices, onChangeCallback) {
+      container.innerHTML = '';
+      items.forEach((name, index) => {
+          const row = document.createElement('label'); row.className = 'check-row';
+          const cb = document.createElement('input'); cb.type = 'checkbox';
+          cb.checked = defaultCheckedIndices.includes(index); cb.value = name;
+          cb.addEventListener('change', onChangeCallback);
+          const span = document.createElement('span'); span.textContent = name;
+          row.appendChild(cb); row.appendChild(span); container.appendChild(row);
+      });
   }
-
-  function getSelectedGroups() {
-    return Array.from(countryChecks.querySelectorAll('input[type=checkbox]')).filter(cb => cb.checked).map(cb => cb.value);
-  }
-
-  function buildCasesForGroup(group) {
-    const src = providedCasesSeries[group] || [];
-    return src.slice(1, 1 + years.length).map(v => Number(v) || 0);
-  }
-
-  function computeAddressableByGroup(selectedGroups) {
-    const groupsData = {};
-    selectedGroups.forEach(g => {
-      const casesArr = buildCasesForGroup(g);
-      groupsData[g] = casesArr.map(c => c * (neurosurgeryPct[g] || 0));
-    });
-    return groupsData;
-  }
-  
-  function generateMarketShareCurve(peakShareYear, loeYear, erosionFraction) {
-    const out = new Array(years.length).fill(0);
-    const peakIdx = years.indexOf(peakShareYear);
-    const loeIdx = years.indexOf(loeYear);
-    
-    // Ramp-up to peak year
-    if (peakIdx > 0) {
-        for (let i = 0; i <= peakIdx; i++) {
-            const t = i / peakIdx;
-            out[i] = Math.pow(t, 2); // A power curve for a non-linear ramp
-        }
-    } else { // Handle case where peak is the first year
-        out[0] = 1.0;
-    }
-    
-    // Full market share from peak until LoE
-    const fillUntil = loeIdx !== -1 ? loeIdx : years.length - 1;
-    for (let i = peakIdx + 1; i <= fillUntil; i++) {
-        out[i] = 1.0;
-    }
-
-    // Erosion post-LoE
-    if (loeIdx !== -1) {
-        const shareAtLoE = 1.0;
-        for (let i = loeIdx + 1; i < years.length; i++) {
-            const n = i - loeIdx;
-            out[i] = shareAtLoE * Math.pow(1 - erosionFraction, n);
-        }
-    }
-    
-    return out.map(s => Math.max(0, Math.min(1, s)));
-  }
-
   function fillYearSelectors(sel) {
     sel.innerHTML = '';
     years.forEach((y, i) => { const o = document.createElement('option'); o.value = i; o.textContent = y; sel.appendChild(o); });
   }
+  function getSelected(containerId) {
+    return Array.from(document.querySelectorAll(`#${containerId} input[type=checkbox]`))
+                .filter(cb => cb.checked).map(cb => cb.value);
+  }
+  const getSelectedGroups = () => getSelected('countryChecks');
+  const getSelectedIndications = () => getSelected('indicationChecks');
+  
+  function renderPeakYearSliders() {
+    peakYearSlidersContainer.innerHTML = '';
+    const selectedGroups = getSelectedGroups();
+    selectedGroups.forEach(g => {
+        const row = document.createElement('div'); row.className = 'slider-row';
+        const label = document.createElement('div'); label.className = 'small';
+        label.innerHTML = `<strong>${g}:</strong> <span id="peakYearVal-${g}">${peakYearsByGroup[g]}</span>`;
+        const slider = document.createElement('input'); slider.type = 'range';
+        slider.min = 2034; slider.max = 2040; slider.step = 1;
+        slider.dataset.group = g; slider.value = peakYearsByGroup[g];
+        slider.addEventListener('input', (e) => {
+            const group = e.target.dataset.group;
+            peakYearsByGroup[group] = parseInt(e.target.value, 10);
+            document.getElementById(`peakYearVal-${group}`).textContent = peakYearsByGroup[group];
+            updatePlot();
+        });
+        row.appendChild(label); row.appendChild(slider);
+        peakYearSlidersContainer.appendChild(row);
+    });
+  }
 
+  // --- CALCULATION LOGIC ---
+  function generateMarketShareCurve(peakShareYear, loeYear, erosionFraction) {
+    const out = new Array(years.length).fill(0); const peakIdx = years.indexOf(peakShareYear); const loeIdx = years.indexOf(loeYear);
+    if (peakIdx >= 0) {
+        for (let i = 0; i <= peakIdx; i++) { out[i] = (peakIdx === 0) ? 1 : Math.pow(i / peakIdx, 2); }
+    }
+    const fillUntil = (loeIdx !== -1) ? loeIdx : years.length - 1;
+    for (let i = peakIdx + 1; i <= fillUntil; i++) { out[i] = 1.0; }
+    if (loeIdx !== -1) {
+        for (let i = loeIdx + 1; i < years.length; i++) { out[i] = Math.pow(1 - erosionFraction, i - loeIdx); }
+    }
+    return out.map(s => Math.max(0, Math.min(1, s)));
+  }
+
+  // --- KPI & ASSUMPTIONS ---
+  function updateCumKPI() {
+    if (!currentTotalNetRevenues || currentTotalNetRevenues.length === 0) return;
+    const si = +cumStart.value; const ei = +cumEnd.value;
+    const s = Math.min(si, ei); const e = Math.max(si, ei);
+    const sum = currentTotalNetRevenues.slice(s, e + 1).reduce((a, b) => a + b, 0);
+    cumSalesVal.textContent = fmtShortUSD(sum);
+    cumSpan.textContent = `${years[s]} → ${years[e]} (${e - s + 1} yrs)`;
+  }
   function renderCountryAssumptions() {
-    countryAssumptions.innerHTML = '';
-    const selected = getSelectedGroups();
-    selected.forEach(g => {
-      const casesArr = buildCasesForGroup(g);
-      const avgCases = round(casesArr.reduce((a,b)=>a+b,0) / casesArr.length);
-      const avgAddressable = round(avgCases * neurosurgeryPct[g]);
-      
-      const node = document.createElement('div');
-      node.className = 'country-card';
-      node.innerHTML = `<strong>${g}</strong>
-        <div class="small">Cases (avg/yr): ${avgCases.toLocaleString()}</div>
-        <div class="small">Addressable (avg/yr): ${avgAddressable.toLocaleString()}</div>`;
+    countryAssumptions.innerHTML = ''; const selectedGroups = getSelectedGroups(); const selectedIndications = getSelectedIndications();
+    selectedGroups.forEach(g => {
+      let totalAvgAddressable = 0;
+      selectedIndications.forEach(indName => {
+        const indData = allIndicationsData[indName];
+        if (!indData || !indData.cases[g]) return;
+        const casesArr = indData.cases[g].slice(1, 1 + years.length);
+        const avgCases = casesArr.length > 0 ? casesArr.reduce((a, b) => a + b, 0) / casesArr.length : 0;
+        totalAvgAddressable += avgCases * (indData.neurosurgeryPct[g] || 0);
+      });
+      const node = document.createElement('div'); node.className = 'country-card';
+      node.innerHTML = `<strong>${g}</strong><div class="small">Total Addressable (avg/yr): ${Math.round(totalAvgAddressable).toLocaleString()}</div>`;
       countryAssumptions.appendChild(node);
     });
   }
 
-  function renderLoeInputs(){
-    loeInputsContainer.innerHTML = '';
-    const selected = getSelectedGroups();
-    selected.forEach(g => {
-        const row = document.createElement('div');
-        row.className = 'loe-input-row';
-
-        const label = document.createElement('label');
-        label.textContent = g;
-        
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.dataset.group = g;
-        input.value = loeYearsByGroup[g] || years[years.length - 1];
-
-        row.appendChild(label);
-        row.appendChild(input);
-        loeInputsContainer.appendChild(row);
-    });
-  }
-
-  function updateCumKPI(revenues) {
-    const si = +cumStart.value; const ei = +cumEnd.value;
-    const s = Math.min(si, ei); const e = Math.max(si, ei);
-    const sum = revenues.slice(s, e + 1).reduce((a, b) => a + b, 0);
-    cumSalesVal.textContent = fmtShortUSD(sum);
-    cumSpan.textContent = `${years[s]} → ${years[e]} (${e - s + 1} yrs)`;
-  }
-
+  // --- MAIN PLOT FUNCTION ---
   function updatePlot() {
-    const selected = getSelectedGroups();
-    renderLoeInputs(); // Render LoE inputs based on selection
-    const groupsData = computeAddressableByGroup(selected);
-    const peakShareYear = +peakYearSlider.value;
+    const selectedGroups = getSelectedGroups(); const selectedIndications = getSelectedIndications();
+    const patentExtension = +patentExtensionInput.value || 0;
     const erosion = +erosionRate.value / 100;
     const price = +treatmentCost.value;
+    const variableCostRate = +variableCostSlider.value / 100;
+    const traces = []; const totalsGrossRevenueByYear = years.map(() => 0); const regionalGrossRevenueByYear = {};
 
-    const traces = [];
-    const totalsRevenue = years.map(() => 0);
-
-    selected.forEach(g => {
-      const loeYearForGroup = loeYearsByGroup[g] || years[years.length - 1];
-      const shares = generateMarketShareCurve(peakShareYear, loeYearForGroup, erosion);
-
-      const addr = groupsData[g];
-      const treated = addr.map((a, idx) => a * shares[idx]);
-      const revenue = treated.map(r => r * price);
-      revenue.forEach((val, i) => { totalsRevenue[i] += val; });
-
-      const trace = {
-        x: years,
-        y: revenue,
-        type: 'bar',
-        name: g,
-        marker: { color: groupColors[g] || undefined },
-        hovertemplate: `<b>${g}</b><br>%{x}<br>Revenue: %{y:$,.0f}<br>Treated: %{meta:,.0f}<extra></extra>`,
-        meta: treated
-      };
-      traces.push(trace);
+    selectedGroups.forEach(g => {
+      const peakShareYear = peakYearsByGroup[g];
+      const finalLoeYear = (baseLoeYears[g] || 2040) + patentExtension;
+      const shares = generateMarketShareCurve(peakShareYear, finalLoeYear, erosion);
+      const totalAddressable = years.map((_, i) => selectedIndications.reduce((sum, ind) => {
+          const d = allIndicationsData[ind]; return sum + ((d.cases[g]?.[i + 1] || 0) * (d.neurosurgeryPct[g] || 0));
+      }, 0));
+      const grossRevenue = totalAddressable.map((a, idx) => a * shares[idx] * price);
+      regionalGrossRevenueByYear[g] = grossRevenue;
+      grossRevenue.forEach((val, i) => { totalsGrossRevenueByYear[i] += val; });
     });
 
-    if (traces.length === 0) {
-      traces.push({ x: years, y: Array(years.length).fill(0), type: 'bar', name: '(no regions selected)', marker: { color: '#eee' } });
-    }
+    const totalCostsByYear = totalsGrossRevenueByYear.map(gross => gross * variableCostRate);
+    totalCostsByYear[0] += 50000000;
+    const totalsNetRevenueByYear = totalsGrossRevenueByYear.map((gross, i) => gross - totalCostsByYear[i]);
+    
+    selectedGroups.forEach(g => {
+        const netRevenueForRegion = years.map((_, i) => {
+            const grossRegion = regionalGrossRevenueByYear[g][i]; const grossTotal = totalsGrossRevenueByYear[i];
+            const costShare = (grossTotal > 0) ? (grossRegion / grossTotal) : (1 / selectedGroups.length);
+            const costForRegion = totalCostsByYear[i] * costShare;
+            return grossRegion - costForRegion;
+        });
+        traces.push({
+            x: years, y: netRevenueForRegion, type: 'bar', name: g, marker: { color: groupColors[g] },
+            hovertemplate: `<b>${g} Net</b><br>%{x}<br>Net Revenue: %{y:$,.0f}<extra></extra>`
+        });
+    });
 
-    const annotations = totalsRevenue.map((t, i) => ({
-      x: years[i],
-      y: t,
-      text: t > 1000000 ? fmtShortUSD(t) : '', // Only show annotation for > 1M
-      xanchor: 'center',
-      yanchor: 'bottom',
-      showarrow: false,
-      font: { size: 11 }
+    traces.push({
+        x: years, y: totalCostsByYear, type: 'scatter', mode: 'lines', name: 'Total Costs',
+        line: { color: 'rgba(239, 83, 80, 0.8)', width: 2.5 },
+        hovertemplate: `<b>Costs</b><br>%{x}<br>Total Cost: %{y:$,.0f}<extra></extra>`
+    });
+
+    const annotations = totalsNetRevenueByYear.map((t, i) => ({
+      x: years[i], y: t, text: (t > 1000000 || t < -1000000) ? fmtShortUSD(t) : '',
+      xanchor: 'center', yanchor: (t >= 0 ? 'bottom' : 'top'), showarrow: false, font: { size: 11, color: '#333' }
     }));
 
-    const layout = {
-      barmode: 'stack',
-      margin: { t: 36, r: 20, l: 70, b: 70 },
-      xaxis: { title: 'Year', tickmode: 'array', tickvals: years, ticktext: years.map(y => `'${y.toString().slice(2)}`) },
-      yaxis: { title: 'Revenue (USD)', range: [0, 2500000000], automargin: true },
-      annotations: annotations,
-      showlegend: traces.length > 1
-    };
+    Plotly.newPlot('plot', traces, {
+      barmode: 'relative', margin: { t: 36, r: 20, l: 70, b: 70 },
+      xaxis: { title: 'Year', tickmode: 'array', tickvals: years, ticktext: years.map(y => `'${String(y).slice(2)}`) },
+      yaxis: { title: 'Net Revenue / Cost (USD)', automargin: true, autorange: true, zeroline: true, zerolinewidth: 2 },
+      annotations: annotations, showlegend: true, legend: { x: 0.01, y: 0.98 }
+    }, { responsive: true, displaylogo: false });
 
-    Plotly.newPlot('plot', traces, layout, { responsive: true, displaylogo: false });
-
-    const maxRev = Math.max(...totalsRevenue);
-    const maxRevIndex = totalsRevenue.indexOf(maxRev);
-    peakSalesVal.textContent = fmtShortUSD(maxRev || 0);
-    peakSalesYear.textContent = maxRev > 0 ? 'Year: ' + years[maxRevIndex] : 'Year: —';
-
-    updateCumKPI(totalsRevenue);
+    const maxNetRev = Math.max(...totalsNetRevenueByYear); const maxRevIndex = totalsNetRevenueByYear.indexOf(maxNetRev);
+    peakSalesVal.textContent = fmtShortUSD(maxNetRev);
+    peakSalesYear.textContent = 'Year: ' + years[maxRevIndex];
+    currentTotalNetRevenues = totalsNetRevenueByYear;
+    updateCumKPI();
     
-    // Update labels
-    peakYearVal.textContent = peakShareYear;
     erosionRateVal.textContent = (+erosionRate.value).toFixed(1) + '%';
     treatmentCostVal.textContent = fmtUSD(price);
-
+    variableCostVal.textContent = (+variableCostSlider.value).toFixed(1) + '%';
     renderCountryAssumptions();
   }
 
+  // --- INITIALIZATION ---
   function init() {
-    populateCountryChecks();
-
+    // 1. Create UI elements
+    createCheckboxes(indicationChecks, indicationOrder, [0], updatePlot);
+    createCheckboxes(countryChecks, groupOrder, [0, 1, 2], () => {
+        renderPeakYearSliders(); // Redraw sliders only when regions change
+        updatePlot();
+    });
     fillYearSelectors(cumStart);
     fillYearSelectors(cumEnd);
     cumStart.selectedIndex = 0;
     cumEnd.selectedIndex = years.length - 1;
 
-    document.querySelectorAll('#controls input, #controls select').forEach(el => {
+    // 2. Set up all event listeners
+    document.querySelectorAll('#controls input[type=range], #patentExtensionInput').forEach(el => {
       el.addEventListener('input', updatePlot);
-      el.addEventListener('change', updatePlot);
     });
+    cumStart.addEventListener('change', updateCumKPI);
+    cumEnd.addEventListener('change', updateCumKPI);
     
-    // Event delegation for dynamically created LoE inputs
-    loeInputsContainer.addEventListener('change', (e) => {
-        if(e.target.type === 'number' && e.target.dataset.group){
-            const group = e.target.dataset.group;
-            const year = parseInt(e.target.value, 10);
-            if(year >= years[0] && year <= years[years.length-1] + 10){ // Basic validation
-                loeYearsByGroup[group] = year;
-                updatePlot();
-            }
-        }
-    });
-
+    // 3. Initial draw of dynamic UI parts
+    renderPeakYearSliders();
+    
+    // 4. Final step: Render the plot with default values
     updatePlot();
   }
 

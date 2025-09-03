@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Market Model — Stacked Net Revenues (2029–2048)</title>
+  <title>Market Model — Stacked Revenue (2028–2047)</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
     :root{--panel-bg:#fafafa;--muted:#666;--card-bg:#fff;--accent:#0b5cff}
@@ -18,7 +18,8 @@
     select, input[type="number"]{width:100%;padding:6px;border:1px solid #ddd;border-radius:6px}
     .checks{display:grid;gap:6px}
     .check-row{display:flex;align-items:center;gap:8px;font-size:13px}
-    #plot{height:64vh}
+    #plot{height:64vh; position: relative;} /* will host overlay */
+    #arrowOverlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
     .kpis{display:flex;gap:12px;margin-top:12px}
     .kpi{flex:1;background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;text-align:center}
     .kpi .big{font-size:18px;font-weight:700;margin-top:8px}
@@ -67,7 +68,7 @@
         <label for="variableCostSlider" class="small" style="font-weight:normal;margin-bottom:4px;">Operational Cost Rate (% of Gross Revenue)</label>
         <input id="variableCostSlider" type="range" min="1" max="10" step="0.1" value="5" />
         <div class="small">Current rate: <span id="variableCostVal">5.0%</span>/yr</div>
-        <div class="small" style="margin-top:8px;">Note: A flat $50M cost is also applied in 2029.</div>
+        <div class="small" style="margin-top:8px;">Note: A flat $50M cost is also applied in 2028.</div>
     </div>
 
     <div class="card">
@@ -77,7 +78,9 @@
   </div>
 
   <div id="graphWrap">
-    <div id="plot"></div>
+    <div id="plot">
+      <svg id="arrowOverlay" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
 
     <div class="kpis">
       <div class="kpi">
@@ -98,12 +101,17 @@
   </div>
 
   <script>
-  const years = Array.from({length: 20}, (_, i) => 2029 + i);
+  // --- MODEL YEARS: START AT 2028 ---
+  const years = Array.from({length: 20}, (_, i) => 2028 + i);
+
+  // Launch and model anchors
+  const launchYear = 2030;
+  const launchIdx = Math.max(0, years.indexOf(launchYear)); // should exist in this configuration
 
   // --- DATA STRUCTURES ---
   const glioblastomaCases = {
-      "EU4+UK": [6992, 7052, 7112, 7172, 7232, 7292, 7352, 7412, 7472, 7532, 7592, 7652, 7712, 7772, 7832, 7892, 7952, 8012, 8072, 8132, 8192],
-      "US": [9793, 9905, 10021, 10134, 10248, 10361, 10475, 10589, 10703, 10816, 10930, 11044, 11158, 11271, 11385, 11499, 11613, 11726, 11840, 11954, 12068],
+      "EU4+UK": [6992, 7052, 7112, 7172, 7232, 7292, 7352, 7412, 7472, 7532, 7592, 7652, 7712, 7772, 7832, 7892, 7952, 8012, 8072, 8132],
+      "US": [9793, 9905, 10021, 10134, 10248, 10361, 10475, 10589, 10703, 10816, 10930, 11044, 11158, 11271, 11385, 11499, 11613, 11726, 11840, 11954],
       "Japan": [1369, 1370, 1373, 1374, 1376, 1378, 1380, 1382, 1384, 1386, 1388, 1390, 1392, 1394, 1396, 1397, 1399, 1401, 1403, 1407]
   };
   const allIndicationsData = {
@@ -119,6 +127,14 @@
   const baseLoeYears = { "EU4+UK": 2040, "US": 2037, "Japan": 2040 };
   let peakYearsByGroup = { "EU4+UK": 2036, "US": 2036, "Japan": 2036 };
   let currentTotalNetRevenues = [];
+
+  // Keep a deterministic order of indications as they are selected (Glioblastoma always first)
+  let indicationSelectionOrder = ["Glioblastoma"]; // always contains Glioblastoma at index 0
+
+  // Config for additional-indication behavior
+  const additionalDelayYears = 3; // the "3 year delay" before revenue starts AFTER cost (anchored from launch)
+  const additionalRampYears = 4;  // fast ramp to full after delay (independent of peak share slider)
+  const additionalStartCost = -25000000; // -25M$ per additional indication applied at cost start year (see below)
 
   // --- DOM ELEMENT REFERENCES ---
   const indicationChecks = document.getElementById('indicationChecks');
@@ -138,6 +154,8 @@
   const cumEnd = document.getElementById('cumEnd');
   const cumSalesVal = document.getElementById('cumSalesVal');
   const cumSpan = document.getElementById('cumSpan');
+  const arrowOverlay = document.getElementById('arrowOverlay');
+  const plotDiv = document.getElementById('plot');
 
   // --- UTILITY AND FORMATTING ---
   function fmtShortUSD(n) {
@@ -155,8 +173,23 @@
       items.forEach((name, index) => {
           const row = document.createElement('label'); row.className = 'check-row';
           const cb = document.createElement('input'); cb.type = 'checkbox';
-          cb.checked = defaultCheckedIndices.includes(index); cb.value = name;
-          cb.addEventListener('change', onChangeCallback);
+          // Glioblastoma: always checked and not uncheckable
+          if (name === 'Glioblastoma') { cb.checked = true; cb.disabled = true; }
+          else { cb.checked = defaultCheckedIndices.includes(index); }
+          cb.value = name;
+          cb.addEventListener('change', (e) => {
+              // maintain selection order for indications
+              if (container.id === 'indicationChecks') {
+                  const ind = e.target.value;
+                  if (e.target.checked) {
+                      if (!indicationSelectionOrder.includes(ind)) indicationSelectionOrder.push(ind);
+                  } else {
+                      indicationSelectionOrder = indicationSelectionOrder.filter(x => x !== ind && x !== undefined);
+                      if (!indicationSelectionOrder.includes('Glioblastoma')) indicationSelectionOrder.unshift('Glioblastoma');
+                  }
+              }
+              onChangeCallback(e);
+          });
           const span = document.createElement('span'); span.textContent = name;
           row.appendChild(cb); row.appendChild(span); container.appendChild(row);
       });
@@ -194,17 +227,130 @@
   }
 
   // --- CALCULATION LOGIC ---
-  function generateMarketShareCurve(peakShareYear, loeYear, erosionFraction) {
-    const out = new Array(years.length).fill(0); const peakIdx = years.indexOf(peakShareYear); const loeIdx = years.indexOf(loeYear);
-    if (peakIdx >= 0) {
-        for (let i = 0; i <= peakIdx; i++) { out[i] = (peakIdx === 0) ? 1 : Math.pow(i / peakIdx, 2); }
+  // Revised ramp to give non-zero adoption at launch: inclusive ramp with denom = (riseSpan + 1)
+  function generateMarketShareCurve(peakShareYear, loeYear, erosionFraction, launchYearAnchor = launchYear) {
+    const out = new Array(years.length).fill(0);
+    const peakIdx = years.indexOf(peakShareYear);
+    const loeIdx = years.indexOf(loeYear);
+    const launchI = Math.max(0, years.indexOf(launchYearAnchor));
+    const effectivePeak = (peakIdx >= launchI) ? peakIdx : launchI;
+    const riseSpan = Math.max(0, effectivePeak - launchI); // can be 0
+    const denom = riseSpan + 1;
+    for (let i = 0; i < years.length; i++) {
+      if (i < launchI) {
+        out[i] = 0;
+      } else if (i <= effectivePeak) {
+        const rel = (i - launchI + 1) / denom; // ensures >0 at launch
+        out[i] = Math.pow(rel, 2);
+      } else {
+        out[i] = 1.0;
+      }
     }
-    const fillUntil = (loeIdx !== -1) ? loeIdx : years.length - 1;
-    for (let i = peakIdx + 1; i <= fillUntil; i++) { out[i] = 1.0; }
     if (loeIdx !== -1) {
-        for (let i = loeIdx + 1; i < years.length; i++) { out[i] = Math.pow(1 - erosionFraction, i - loeIdx); }
+      for (let i = loeIdx + 1; i < years.length; i++) {
+        out[i] = Math.pow(1 - erosionFraction, i - loeIdx);
+      }
     }
     return out.map(s => Math.max(0, Math.min(1, s)));
+  }
+
+  function buildAdditionalIndAdoptionCurvesAndCostYears() {
+    const out = { curves: {}, costYears: {} };
+    const extras = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
+    extras.forEach((ind, j) => {
+      const costStartIdx = launchIdx + 3 * j;
+      const revenueStartIdx = costStartIdx + additionalDelayYears; // revenue begins after the delay period
+      const curve = new Array(years.length).fill(0);
+      for (let t = 0; t < years.length; t++) {
+        if (t < revenueStartIdx) curve[t] = 0;
+        else {
+          const rampPos = t - revenueStartIdx; // 0..
+          if (rampPos >= additionalRampYears) curve[t] = 1.0;
+          else curve[t] = Math.min(1, (rampPos + 1) / additionalRampYears);
+        }
+      }
+      out.curves[ind] = curve;
+      out.costYears[ind] = costStartIdx;
+    });
+    return out;
+  }
+
+  // --- ARROW OVERLAY RENDERER (SVG) ---
+  function renderArrowOverlay(timelineEvents) {
+    const tickTextElems = plotDiv.querySelectorAll('.xtick text');
+    const axisPath = plotDiv.querySelector('.xaxislayer-above .domain, .xaxislayer-below .domain, .xaxislayer .domain');
+
+    if (!tickTextElems || tickTextElems.length === 0 || !axisPath) {
+      setTimeout(() => renderArrowOverlay(timelineEvents), 50);
+      return;
+    }
+
+    const plotBox = plotDiv.getBoundingClientRect();
+    arrowOverlay.setAttribute('width', plotBox.width);
+    arrowOverlay.setAttribute('height', plotBox.height);
+    arrowOverlay.style.width = plotBox.width + 'px';
+    arrowOverlay.style.height = plotBox.height + 'px';
+    while (arrowOverlay.firstChild) arrowOverlay.removeChild(arrowOverlay.firstChild);
+
+    const tickCenters = {};
+    tickTextElems.forEach(el => {
+      const t = (el.textContent || '').trim();
+      const b = el.getBoundingClientRect();
+      const centerX = (b.left + b.right) / 2 - plotBox.left;
+      tickCenters[t] = centerX;
+    });
+
+    const axisBBox = axisPath.getBoundingClientRect();
+    const axisY = axisBBox.top - plotBox.top + axisBBox.height / 2;
+
+    const usedSlots = {};
+    timelineEvents.sort((a,b) => (a.year - b.year) || a.label.localeCompare(b.label));
+    timelineEvents.forEach((ev, idx) => {
+      const tickLabel = `'${String(ev.year).slice(2)}`;
+      const cx = tickCenters[tickLabel];
+      if (typeof cx === 'undefined') return;
+
+      usedSlots[ev.year] = (usedSlots[ev.year] || 0);
+      const slotIdx = usedSlots[ev.year];
+
+      const baseShaft = 26;
+      const longMultiplier = (idx % 2 === 0) ? 1.9 : 1.0;
+      const slotSpacing = 18;
+      const shaftLen = Math.round(baseShaft * longMultiplier + slotIdx * slotSpacing);
+      const horizDirection = (idx % 2 === 0) ? -1 : 1;
+      const horizNudge = horizDirection * Math.min(24, 6 + Math.floor(slotIdx / 2) * 8);
+
+      const ns = "http://www.w3.org/2000/svg";
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', cx + horizNudge);
+      line.setAttribute('x2', cx + horizNudge);
+      line.setAttribute('y1', axisY + 6);
+      line.setAttribute('y2', axisY + 6 + shaftLen - 8);
+      line.setAttribute('stroke', ev.color || '#333');
+      line.setAttribute('stroke-width', 2);
+      line.setAttribute('stroke-linecap', 'round');
+      arrowOverlay.appendChild(line);
+
+      const tri = document.createElementNS(ns, 'polygon');
+      const tipW = 8;
+      const tipH = 8;
+      const px = cx + horizNudge;
+      const triPoints = `${px - tipW},${axisY + tipH} ${px + tipW},${axisY + tipH} ${px},${axisY}`;
+      tri.setAttribute('points', triPoints);
+      tri.setAttribute('fill', ev.color || '#333');
+      arrowOverlay.appendChild(tri);
+
+      const text = document.createElementNS(ns, 'text');
+      text.setAttribute('x', cx + horizNudge);
+      text.setAttribute('y', axisY + 6 + shaftLen + 6);
+      text.setAttribute('font-size', '11');
+      text.setAttribute('fill', ev.color || '#111');
+      text.setAttribute('text-anchor', 'middle');
+      text.textContent = ev.label;
+      arrowOverlay.appendChild(text);
+
+      usedSlots[ev.year] += 1;
+    });
   }
 
   // --- KPI & ASSUMPTIONS ---
@@ -223,7 +369,7 @@
       selectedIndications.forEach(indName => {
         const indData = allIndicationsData[indName];
         if (!indData || !indData.cases[g]) return;
-        const casesArr = indData.cases[g].slice(1, 1 + years.length);
+        const casesArr = indData.cases[g].slice(0, years.length);
         const avgCases = casesArr.length > 0 ? casesArr.reduce((a, b) => a + b, 0) / casesArr.length : 0;
         totalAvgAddressable += avgCases * (indData.neurosurgeryPct[g] || 0);
       });
@@ -240,56 +386,211 @@
     const erosion = +erosionRate.value / 100;
     const price = +treatmentCost.value;
     const variableCostRate = +variableCostSlider.value / 100;
-    const traces = []; const totalsGrossRevenueByYear = years.map(() => 0); const regionalGrossRevenueByYear = {};
+    const traces = []; const totalsGrossRevenueByYear = years.map(() => 0);
+    const regionalGrossRevenueByYear = {};
+    const regionalPotentialByYear = {}; // potential (adoption = 1) per region per year
 
+    const additionalData = buildAdditionalIndAdoptionCurvesAndCostYears();
+    const additionalAdoptionCurves = additionalData.curves;
+
+    // Compute gross revenue and potential (adoption=1) per region
     selectedGroups.forEach(g => {
       const peakShareYear = peakYearsByGroup[g];
       const finalLoeYear = (baseLoeYears[g] || 2040) + patentExtension;
-      const shares = generateMarketShareCurve(peakShareYear, finalLoeYear, erosion);
-      const totalAddressable = years.map((_, i) => selectedIndications.reduce((sum, ind) => {
-          const d = allIndicationsData[ind]; return sum + ((d.cases[g]?.[i + 1] || 0) * (d.neurosurgeryPct[g] || 0));
-      }, 0));
-      const grossRevenue = totalAddressable.map((a, idx) => a * shares[idx] * price);
+      const shares = generateMarketShareCurve(peakShareYear, finalLoeYear, erosion, launchYear);
+      const grossRevenue = years.map((_, i) => 0);
+      const potential = years.map((_, i) => 0);
+
+      selectedIndications.forEach(ind => {
+        const indData = allIndicationsData[ind];
+        if (!indData || !indData.cases[g]) return;
+        const casesArr = indData.cases[g].slice(0, years.length);
+        for (let i = 0; i < years.length; i++) {
+          const cases = casesArr[i] || 0;
+          const neuPct = indData.neurosurgeryPct[g] || 0;
+          // potential assumes full adoption (1.0)
+          potential[i] += cases * neuPct * price;
+          let adoption = 0;
+          if (ind === 'Glioblastoma') adoption = shares[i];
+          else {
+            adoption = (additionalAdoptionCurves[ind] || new Array(years.length).fill(0))[i] || 0;
+          }
+          grossRevenue[i] += cases * neuPct * adoption * price;
+        }
+      });
+
       regionalGrossRevenueByYear[g] = grossRevenue;
+      regionalPotentialByYear[g] = potential;
       grossRevenue.forEach((val, i) => { totalsGrossRevenueByYear[i] += val; });
     });
 
+    // --- COSTS: variable + fixed ---
     const totalCostsByYear = totalsGrossRevenueByYear.map(gross => gross * variableCostRate);
+    // Flat $50M applied at model start (2028)
     totalCostsByYear[0] += 50000000;
-    const totalsNetRevenueByYear = totalsGrossRevenueByYear.map((gross, i) => gross - totalCostsByYear[i]);
-    
+
+    const extras = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
+    extras.forEach((ind, k) => {
+      const costStartIdx = launchIdx + 3 * k;
+      if (costStartIdx >= 0 && costStartIdx < years.length) {
+        totalCostsByYear[costStartIdx] += Math.abs(additionalStartCost);
+      }
+    });
+
+    // Totals net revenue
+    const totalsNetRevenueByYear = []; // compute after allocation
+    const potentialTotalsByYear = years.map((_, i) => {
+      return selectedGroups.reduce((s, g) => s + (regionalPotentialByYear[g]?.[i] || 0), 0);
+    });
+
+    // For each region build net arrays and push bar traces (clipped visually)
     selectedGroups.forEach(g => {
-        const netRevenueForRegion = years.map((_, i) => {
-            const grossRegion = regionalGrossRevenueByYear[g][i]; const grossTotal = totalsGrossRevenueByYear[i];
-            const costShare = (grossTotal > 0) ? (grossRegion / grossTotal) : (1 / selectedGroups.length);
-            const costForRegion = totalCostsByYear[i] * costShare;
-            return grossRegion - costForRegion;
-        });
-        traces.push({
-            x: years, y: netRevenueForRegion, type: 'bar', name: g, marker: { color: groupColors[g] },
-            hovertemplate: `<b>${g} Net</b><br>%{x}<br>Net Revenue: %{y:$,.0f}<extra></extra>`
-        });
+      const regionNetFull = [];
+      const regionNetClipped = [];
+      const hoverText = []; // build per-point hover text so we can suppress negative revenue display
+      for (let i = 0; i < years.length; i++) {
+        const grossRegion = regionalGrossRevenueByYear[g][i] || 0;
+        const grossTotal = totalsGrossRevenueByYear[i] || 0;
+        let costShare = 1 / selectedGroups.length;
+        if (grossTotal > 0) {
+          costShare = grossRegion / grossTotal;
+        } else {
+          const potTotal = potentialTotalsByYear[i];
+          if (potTotal > 0) {
+            costShare = (regionalPotentialByYear[g]?.[i] || 0) / potTotal;
+          } else {
+            costShare = 1 / selectedGroups.length;
+          }
+        }
+        const costForRegion = totalCostsByYear[i] * costShare;
+        const netFull = grossRegion - costForRegion;
+        regionNetFull.push(netFull);
+        regionNetClipped.push(Math.max(0, netFull));
+
+        // Build hover text: show "Revenue" and only show positive values; otherwise show $0
+        const revenueToShow = netFull > 0 ? fmtUSD(Math.round(netFull)) : fmtUSD(0);
+        const hoverLines = [`Revenue: ${revenueToShow}`];
+        hoverText.push(hoverLines.join('<br>'));
+      }
+
+      traces.push({
+        x: years,
+        y: regionNetClipped,
+        type: 'bar',
+        name: g,
+        marker: { color: groupColors[g] },
+        text: hoverText,
+        hovertemplate: `<b>${g} Revenue</b><br>%{x}<br>%{text}<extra></extra>`,
+        customdata: regionNetFull // keep customdata for other uses if needed
+      });
     });
 
+    // Costs trace (unchanged): always shows actual cost
     traces.push({
-        x: years, y: totalCostsByYear, type: 'scatter', mode: 'lines', name: 'Total Costs',
-        line: { color: 'rgba(239, 83, 80, 0.8)', width: 2.5 },
-        hovertemplate: `<b>Costs</b><br>%{x}<br>Total Cost: %{y:$,.0f}<extra></extra>`
+      x: years, y: totalCostsByYear, type: 'scatter', mode: 'lines', name: 'Total Costs',
+      line: { color: 'rgba(239, 83, 80, 0.8)', width: 2.5 },
+      hovertemplate: `<b>Costs</b><br>%{x}<br>Total Cost: %{y:$,.0f}<extra></extra>`
     });
 
-    const annotations = totalsNetRevenueByYear.map((t, i) => ({
-      x: years[i], y: t, text: (t > 1000000 || t < -1000000) ? fmtShortUSD(t) : '',
-      xanchor: 'center', yanchor: (t >= 0 ? 'bottom' : 'top'), showarrow: false, font: { size: 11, color: '#333' }
-    }));
+    // Compute totalsNetRevenueByYear used for KPIs
+    for (let i = 0; i < years.length; i++) {
+      totalsNetRevenueByYear[i] = totalsGrossRevenueByYear[i] - totalCostsByYear[i];
+    }
 
-    Plotly.newPlot('plot', traces, {
-      barmode: 'relative', margin: { t: 36, r: 20, l: 70, b: 70 },
-      xaxis: { title: 'Year', tickmode: 'array', tickvals: years, ticktext: years.map(y => `'${String(y).slice(2)}`) },
-      yaxis: { title: 'Net Revenue / Cost (USD)', automargin: true, autorange: true, zeroline: true, zerolinewidth: 2 },
-      annotations: annotations, showlegend: true, legend: { x: 0.01, y: 0.98 }
-    }, { responsive: true, displaylogo: false });
+    // Numeric annotations only for positive totals
+    const annotations = [];
+    totalsNetRevenueByYear.forEach((t, i) => {
+      if (t > 1_000_000) {
+        annotations.push({
+          x: years[i], y: t, text: fmtShortUSD(t),
+          xanchor: 'center', yanchor: 'bottom', showarrow: false, font: { size: 11, color: '#333' }
+        });
+      }
+    });
 
-    const maxNetRev = Math.max(...totalsNetRevenueByYear); const maxRevIndex = totalsNetRevenueByYear.indexOf(maxNetRev);
+    // Ensure 0 is included and position x-axis at y=0
+    const dataMin = Math.min(...totalsNetRevenueByYear, ...totalCostsByYear, 0);
+    const dataMax = Math.max(...totalsNetRevenueByYear, ...totalCostsByYear, 0);
+    const pad = (dataMax - dataMin) * 0.08 || Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
+    const yMin = dataMin - pad;
+    const yMax = dataMax + pad;
+    const xaxisPositionNormalized = (0 - yMin) / (yMax - yMin);
+
+    const layout = {
+      barmode: 'relative',
+      margin: { t: 50, r: 20, l: 70, b: 60 },
+      xaxis: {
+        title: 'Year',
+        tickmode: 'array',
+        tickvals: years,
+        ticktext: years.map(y => `'${String(y).slice(2)}`),
+        automargin: true,
+        position: xaxisPositionNormalized
+      },
+      yaxis: {
+        title: 'Net Revenue / Cost (USD)',
+        automargin: true,
+        autorange: false,
+        range: [yMin, yMax],
+        zeroline: true,
+        zerolinewidth: 2
+      },
+      annotations: annotations,
+      showlegend: true,
+      legend: { x: 0.01, y: 0.98 }
+    };
+
+    Plotly.newPlot('plot', traces, layout, { responsive: true, displaylogo: false }).then(() => {
+      // Build timeline events and render overlay
+      const timelineEvents = [
+        { year: 2028, label: 'Phase II end', color: '#333' },
+        { year: 2030, label: 'Launch', color: '#0b5cff' }
+      ];
+      extras.forEach((ind, k) => {
+        const costStartIdx = launchIdx + 3 * k;
+        const revenueStartIdx = costStartIdx + additionalDelayYears;
+        if (costStartIdx >= 0 && costStartIdx < years.length) timelineEvents.push({ year: years[costStartIdx], label: `${ind} added (cost)`, color: '#881111' });
+        if (revenueStartIdx >= 0 && revenueStartIdx < years.length) timelineEvents.push({ year: years[revenueStartIdx], label: `${ind} revenue begins`, color: '#116688' });
+      });
+      setTimeout(() => renderArrowOverlay(timelineEvents), 40);
+    });
+
+    // Re-render overlay on relayout/resize
+    const p = document.getElementById('plot');
+    if (p && p.on) {
+      p.on('plotly_relayout', () => {
+        const timelineEvents = [
+          { year: 2028, label: 'Phase II end', color: '#333' },
+          { year: 2030, label: 'Launch', color: '#0b5cff' }
+        ];
+        const extrasLocal = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
+        extrasLocal.forEach((ind, k) => {
+          const costStartIdx = launchIdx + 3 * k;
+          const revenueStartIdx = costStartIdx + additionalDelayYears;
+          if (costStartIdx >= 0 && costStartIdx < years.length) timelineEvents.push({ year: years[costStartIdx], label: `${ind} added (cost)`, color: '#881111' });
+          if (revenueStartIdx >= 0 && revenueStartIdx < years.length) timelineEvents.push({ year: years[revenueStartIdx], label: `${ind} revenue begins`, color: '#116688' });
+        });
+        renderArrowOverlay(timelineEvents);
+      });
+    }
+    window.addEventListener('resize', () => {
+      const timelineEvents = [
+        { year: 2028, label: 'Phase II end', color: '#333' },
+        { year: 2030, label: 'Launch', color: '#0b5cff' }
+      ];
+      const extrasLocal = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
+      extrasLocal.forEach((ind, k) => {
+        const costStartIdx = launchIdx + 3 * k;
+        const revenueStartIdx = costStartIdx + additionalDelayYears;
+        if (costStartIdx >= 0 && costStartIdx < years.length) timelineEvents.push({ year: years[costStartIdx], label: `${ind} added (cost)`, color: '#881111' });
+        if (revenueStartIdx >= 0 && revenueStartIdx < years.length) timelineEvents.push({ year: years[revenueStartIdx], label: `${ind} revenue begins`, color: '#116688' });
+      });
+      setTimeout(() => renderArrowOverlay(timelineEvents), 40);
+    });
+
+    // KPIs (peak uses actual totalsNetRevenueByYear)
+    const maxNetRev = Math.max(...totalsNetRevenueByYear);
+    const maxRevIndex = totalsNetRevenueByYear.indexOf(maxNetRev);
     peakSalesVal.textContent = fmtShortUSD(maxNetRev);
     peakSalesYear.textContent = 'Year: ' + years[maxRevIndex];
     currentTotalNetRevenues = totalsNetRevenueByYear;
@@ -313,6 +614,9 @@
     fillYearSelectors(cumEnd);
     cumStart.selectedIndex = 0;
     cumEnd.selectedIndex = years.length - 1;
+
+    // Ensure Glioblastoma is first in the selection order
+    if (!indicationSelectionOrder.includes('Glioblastoma')) indicationSelectionOrder.unshift('Glioblastoma');
 
     // 2. Set up all event listeners
     document.querySelectorAll('#controls input[type=range], #patentExtensionInput').forEach(el => {

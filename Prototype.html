@@ -68,7 +68,7 @@
         <label for="variableCostSlider" class="small" style="font-weight:normal;margin-bottom:4px;">Operational Cost Rate (% of Gross Revenue)</label>
         <input id="variableCostSlider" type="range" min="1" max="10" step="0.1" value="5" />
         <div class="small">Current rate: <span id="variableCostVal">5.0%</span>/yr</div>
-        <div class="small" style="margin-top:8px;">Note: A flat $50M cost is also applied in 2028.</div>
+        <div class="small" style="margin-top:8px;">Note: A flat $30M cost for the Phase II trial is also applied in 2028.</div>
     </div>
 
     <div class="card">
@@ -427,7 +427,7 @@
     // --- COSTS: variable + fixed ---
     const totalCostsByYear = totalsGrossRevenueByYear.map(gross => gross * variableCostRate);
     // Flat $50M applied at model start (2028)
-    totalCostsByYear[0] += 50000000;
+    totalCostsByYear[0] += 30000000;
 
     const extras = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
     extras.forEach((ind, k) => {

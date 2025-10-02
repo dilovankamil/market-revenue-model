@@ -67,6 +67,34 @@ input[type="range"]::-moz-range-thumb {
   .country-card{margin-bottom:8px;padding:8px;border-radius:6px;background:#fff;border:1px solid #f0f0f0;font-size:13px}
   .slider-row { margin-bottom: 12px; }
   .ref { font-size:11px;color:#666;margin-top:8px; line-height:1.35;}
+
+.card > label:first-child, 
+.card > h3:first-child {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #222;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+/* Neutral sliders (erosion, cost rate) */
+input[type="range"].neutral {
+  --fill-color: #bbb;
+  background: linear-gradient(to right, var(--fill-color) var(--percent), #eee var(--percent));
+}
+.india-pop-card {
+  background: #fafafa;
+  border: 1px solid #eee;
+  padding: 6px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+.india-pop-card label {
+  font-size: 12px;
+  font-weight: 500;
+  margin-bottom: 2px;
+  display: block;
+}
 </style>
 </head>
 <body>
@@ -376,50 +404,41 @@ function renderPeakYearSliders() {
   });
 }
 function ensureIndiaCheckboxInput(cb) {
+  // Only for the India checkbox
   if (!cb || cb.value !== 'India') return;
 
-  // Remove existing inline input if we uncheck
-  const existing = cb.parentNode.querySelector('#indiaPopulationInputInlineWrapper');
+  // Find/remove if unchecked
+  let wrapper = cb.parentNode.querySelector('#indiaPopulationInputInlineWrapper');
   if (!cb.checked) {
-    if (existing) existing.remove();
+    if (wrapper) wrapper.remove();
     return;
   }
 
   // Create once if missing
-  if (!existing) {
-    const wrapper = document.createElement('div');
-    wrapper.id = 'indiaPopulationInputInlineWrapper';
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'column';
-    wrapper.style.marginLeft = '8px';
+  if (!wrapper) {
+    wrapper = document.createElement('div');
+    wrapper.id = 'indiaPopulationInputInlineWrapper';   // <-- so we can find/remove it
+    wrapper.className = 'india-pop-card';
 
     const label = document.createElement('label');
-    label.className = 'small';
-    label.textContent = 'Population (millions)';
+    label.htmlFor = 'indiaPopulationInputInline';
+    label.textContent = 'Addressable population (millions)';
 
     const input = document.createElement('input');
     input.type = 'number';
     input.id = 'indiaPopulationInputInline';
     input.min = '1';
     input.step = '1';
-input.value = 300; // default to 300M
-    input.style.width = '120px';
-    input.title = "Enter India's population in millions (e.g. 1400 = 1.4B)";
+    input.value = 300; // default shown when India is first checked
+    input.style.width = '90px';
+    input.title = "Enter India's population in millions";
 
     const onChange = () => {
-      const millions = +input.value || INDIA_BASE_POP / 1e6;
-      const fullPop = millions * 1e6;
-      indiaPopulation = fullPop;
-
-      // Update model arrays
-      Object.keys(baselineIndiaCases).forEach(ind => {
-        const base = baselineIndiaCases[ind];
-        const factor = fullPop / INDIA_BASE_POP;
-        allIndicationsData[ind].cases['India'] =
-          Array(years.length).fill(Math.round(base * factor));
-      });
-
-      updatePlot();
+      const millions = +input.value || 300;
+      const fullPop = millions * 1_000_000;
+      setIndiaPopulation(fullPop);     // updates indiaPopulation + India case arrays
+      renderCountryAssumptions();      // refresh the assumptions panel text
+      updatePlot();                    // refresh the chart & KPIs
     };
 
     input.addEventListener('input', onChange);
@@ -429,7 +448,7 @@ input.value = 300; // default to 300M
     wrapper.appendChild(input);
     cb.parentNode.appendChild(wrapper);
 
-    // 🔑 Trigger once immediately so the graph updates on first check
+    // Trigger once so the graph updates immediately when India is first checked
     onChange();
   }
 }
@@ -818,15 +837,15 @@ inds.forEach(ind => {
     const yMax = dataMax + pad;
     const xaxisPositionNormalized = (0 - yMin) / (yMax - yMin);
 
-       const layout = {
-      barmode: 'relative',
-      margin: { t: 42, r: 18, l: 70, b: 60 },
-      xaxis: { title:'Year', tickmode:'array', tickvals: years, ticktext: years.map(y => `'${String(y).slice(2)}`), automargin:true, position: xaxisPositionNormalized },
-      yaxis: { title:'Revenue / Cost (USD)', automargin:true, autorange:false, range:[yMin,yMax], zeroline:true, zerolinewidth:2 },
-      annotations: annotations,
-      showlegend: true,
-      legend: { x: 0.01, y: 0.98 }
-    };
+const layout = {
+  barmode: 'relative',
+  margin: { t: 42, r: 18, l: 70, b: 60 },
+  xaxis: { title:'Year', tickmode:'array', tickvals: years, ticktext: years.map(y => `'${String(y).slice(2)}`), automargin:true, position: xaxisPositionNormalized, gridcolor:'#f3f3f3' },
+  yaxis: { title:'Revenue / Cost (USD)', automargin:true, autorange:false, range:[yMin,yMax], zeroline:true, zerolinewidth:2, gridcolor:'#f3f3f3' },
+  annotations: annotations,
+  showlegend: true,
+  legend: { x: 0.01, y: 0.98, font:{ size:12 } }
+};
 
     // build timelineEvents first
     const timelineEvents = [
@@ -883,13 +902,19 @@ inds.forEach(ind => {
       });
       setTimeout(() => renderArrowOverlay(timelineEvents), 60);
     });
+const maxNetRev = Math.max(...totalsNetRevenueByYear);
+const maxRevIndex = totalsNetRevenueByYear.indexOf(maxNetRev);
+peakSalesVal.textContent = fmtShortUSD(maxNetRev);
+peakSalesYear.textContent = 'Year: ' + years[maxRevIndex];
+currentTotalNetRevenues = totalsNetRevenueByYear;
+updateCumKPI();
 
-    const maxNetRev = Math.max(...totalsNetRevenueByYear);
-    const maxRevIndex = totalsNetRevenueByYear.indexOf(maxNetRev);
-    peakSalesVal.textContent = fmtShortUSD(maxNetRev);
-    peakSalesYear.textContent = 'Year: ' + years[maxRevIndex];
-    currentTotalNetRevenues = totalsNetRevenueByYear;
-    updateCumKPI();
+// Color KPI depending on threshold
+if (maxNetRev >= 1e9) {
+  peakSalesVal.style.color = "#00a65a"; // green if > $1B
+} else {
+  peakSalesVal.style.color = "#d9534f"; // red otherwise
+}
 
     erosionRateVal.textContent = (+erosionRate.value).toFixed(1) + '%';
     variableCostVal.textContent = (+variableCostSlider.value).toFixed(1) + '%';

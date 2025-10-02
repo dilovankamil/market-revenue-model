@@ -4,34 +4,70 @@
   <meta charset="utf-8" />
   <title>Market Model — Revenues (2028–2047)</title>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-  <style>
-    :root{--panel-bg:#e6f0ef;--muted:#666;--card-bg:#fff;--accent:#0b5cff}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;display:flex;height:100vh;color:#111}
-    #controls{width:320px;border-right:1px solid #e6e6e6;padding:14px;background:var(--panel-bg);overflow:auto}
-    #graphWrap{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  padding:12px;
-  background:#e6f0ef; /* new background, same muted color */
+<style>
+  :root{--panel-bg:#e6f0ef;--muted:#666;--card-bg:#fff;--accent:#0b5cff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;display:flex;height:100vh;color:#111}
+  #controls{width:320px;border-right:1px solid #e6e6e6;padding:14px;background:var(--panel-bg);overflow:auto}
+  #graphWrap{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    padding:12px;
+    background:#e6f0ef; /* new background, same muted color */
+  }
+
+/* Generic track baseline */
+input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  border: 1px solid #ddd;
+  background: #eee; /* default neutral track */
+  background-image: linear-gradient(to right, var(--fill-color, #888) var(--percent,0%), #eee var(--percent,0%));
 }
-    .card{background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;margin-bottom:12px}
-    label{display:block;font-weight:600;margin-bottom:6px;font-size:13px}
-    .small{font-size:12px;color:var(--muted)}
-    input[type="range"]{width:100%}
-    select, input[type="number"]{width:100%;padding:6px;border:1px solid #ddd;border-radius:6px}
-    .checks{display:grid;gap:6px}
-    .check-row{display:flex;align-items:center;gap:8px;font-size:13px}
-    #plot{height:64vh; position: relative;} /* overlay sits inside */
-    #arrowOverlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
-    .kpis{display:flex;gap:12px;margin-top:12px}
-    .kpi{flex:1;background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;text-align:center}
-    .kpi .big{font-size:18px;font-weight:700;margin-top:8px}
-    .country-card{margin-bottom:8px;padding:8px;border-radius:6px;background:#fff;border:1px solid #f0f0f0;font-size:13px}
-    .slider-row { margin-bottom: 12px; }
-    .ref { font-size:11px;color:#666;margin-top:8px; line-height:1.35;}
-  </style>
+
+/* Thumb */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fill-color, #888);
+  cursor: pointer;
+  border: 1px solid #333;
+  position: relative;
+  z-index: 2;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--fill-color, #888);
+  cursor: pointer;
+  border: 1px solid #333;
+}
+
+
+  .card{background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;margin-bottom:12px}
+  label{display:block;font-weight:600;margin-bottom:6px;font-size:13px}
+  .small{font-size:12px;color:var(--muted)}
+  select, input[type="number"]{width:100%;padding:6px;border:1px solid #ddd;border-radius:6px}
+  .checks{display:grid;gap:6px}
+  .check-row{display:flex;align-items:center;gap:8px;font-size:13px}
+  #plot{height:64vh; position: relative;} /* overlay sits inside */
+  #arrowOverlay { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none; }
+  .kpis{display:flex;gap:12px;margin-top:12px}
+  .kpi{flex:1;background:var(--card-bg);border:1px solid #e9e9e9;border-radius:8px;padding:10px;text-align:center}
+  .kpi .big{font-size:18px;font-weight:700;margin-top:8px}
+  .country-card{margin-bottom:8px;padding:8px;border-radius:6px;background:#fff;border:1px solid #f0f0f0;font-size:13px}
+  .slider-row { margin-bottom: 12px; }
+  .ref { font-size:11px;color:#666;margin-top:8px; line-height:1.35;}
+</style>
 </head>
 <body>
   <div id="controls">
@@ -64,17 +100,16 @@
     </div>
 
     <div class="card">
-      <label for="treatmentCost">Treatment cost (USD)</label>
-      <input id="treatmentCost" type="range" min="50000" max="150000" step="1000" value="100000" />
-      <div class="small"><span id="treatmentCostVal">$100,000</span></div>
-    </div>
+  	<label>Treatment cost (USD, by region)</label>
+  	<div id="treatmentCostSliders"></div>
+	</div>
     
     <div class="card">
         <label>Cost Parameters</label>
         <label for="variableCostSlider" class="small" style="font-weight:normal;margin-bottom:4px;">Operational Cost Rate (% of Gross Revenue)</label>
-        <input id="variableCostSlider" type="range" min="1" max="10" step="0.1" value="5" />
+        <input id="variableCostSlider" type="range" min="1" max="30" step="0.1" value="5" />
         <div class="small">Current rate: <span id="variableCostVal">5.0%</span>/yr</div>
-        <div class="small" style="margin-top:8px;">Note: A flat $30M cost for the Phase II trial is applied in 2028 (moved to Base assumptions text).</div>
+        <div class="small" style="margin-top:8px;">Note: A flat $30M cost for the Phase II trial is applied in 2028.</div>
     </div>
 
     <div class="card">
@@ -134,9 +169,15 @@
   const years = Array.from({length: 20}, (_, i) => 2028 + i); // 2028..2047
   const launchYear = 2030;
   const launchIdx = Math.max(0, years.indexOf(launchYear));
+  const baseTreatmentCosts = {
+  "EU4+UK": 70000,
+  "US": 70000,
+  "Japan": 70000,
+  "India": 25000
+};
 
   // -------------------------------
-  // Epidemiology data (UPDATED per your request)
+  // Epidemiology data 
   // -------------------------------
   // Flat yearly incidence arrays using the exact numbers you provided
   const allIndicationsData = {
@@ -144,43 +185,67 @@
       cases: {
         "EU4+UK": Array(years.length).fill(11298),
         "US":     Array(years.length).fill(10879),
-        "Japan":  Array(years.length).fill(1387)
+        "Japan":  Array(years.length).fill(1387),
+	"India":  Array(years.length).fill(12600)
       },
-      neurosurgeryPct: { "EU4+UK": 0.70, "US": 0.73, "Japan": 0.70 }
+      neurosurgeryPct: { "EU4+UK": 0.70, "US": 0.73, "Japan": 0.70, "India": 0.50 }
     },
     "Brain Metastasis": {
       cases: {
         "EU4+UK": Array(years.length).fill(45903),
         "US":     Array(years.length).fill(49964),
-        "Japan":  Array(years.length).fill(16616)
+        "Japan":  Array(years.length).fill(16616),
+	"India":  Array(years.length).fill(111300)
       },
-      neurosurgeryPct: { "EU4+UK": 0.25, "US": 0.25, "Japan": 0.25 }
+      neurosurgeryPct: { "EU4+UK": 0.25, "US": 0.25, "Japan": 0.25, "India": 0.15 }
     },
     "OPBT": {
       cases: {
         "EU4+UK": Array(years.length).fill(2445),
         "US":     Array(years.length).fill(3344),
-        "Japan":  Array(years.length).fill(453)
+        "Japan":  Array(years.length).fill(453),
+	"India": Array(years.length).fill(2445)
       },
-      neurosurgeryPct: { "EU4+UK": 0.33, "US": 0.33, "Japan": 0.33 }
+      neurosurgeryPct: { "EU4+UK": 0.33, "US": 0.33, "Japan": 0.33, "India": 0.33 }
     }
   };
 
   const indicationOrder = ["Glioblastoma", "Brain Metastasis", "OPBT"];
-  const groupOrder = ["EU4+UK", "US", "Japan"];
-  const groupColors = { "EU4+UK": "#2f6df6", "US": "#00b37e", "Japan": "#f59e0b" };
+  const groupOrder = ["EU4+UK", "US", "Japan", "India"];
+  const groupColors = { "EU4+UK": "#2f6df6", "US": "#00b37e", "Japan": "#f59e0b", "India": "#fc0000" };
 
   // -------------------------------
   // Parameters & state
   // -------------------------------
-  const baseLoeYears = { "EU4+UK": 2040, "US": 2037, "Japan": 2040 };
-  let peakYearsByGroup = { "EU4+UK": 2036, "US": 2036, "Japan": 2036 };
+  const baseLoeYears = { "EU4+UK": 2040, "US": 2037, "Japan": 2040, "India": 2040 };
+  let peakYearsByGroup = { "EU4+UK": 2036, "US": 2036, "Japan": 2036, "India": 2036 };
   let currentTotalNetRevenues = [];
+let currentTreatmentCosts = { ...baseTreatmentCosts };
+// -------------------------------
+// India population scaling (immutable baselines)
+// -------------------------------
+const INDIA_BASE_POP = 1400000000;
+let indiaPopulation = INDIA_BASE_POP; // single source of truth
+const baselineIndiaCases = {
+  "Glioblastoma": 12600,
+  "Brain Metastasis": 111300,
+  "OPBT": 2445
+};
+
+function setIndiaPopulation(newPop) {
+  const val = +newPop || INDIA_BASE_POP;
+  indiaPopulation = val;   // <--- this was missing!
+  const factor = val / INDIA_BASE_POP;
+  Object.keys(baselineIndiaCases).forEach(ind => {
+    const base = baselineIndiaCases[ind];
+    allIndicationsData[ind].cases['India'] = Array(years.length).fill(Math.round(base * factor));
+  });
+}
 
   const additionalDelayYears = 3;   // revenue starts after delay from cost-start
   const additionalRampYears = 4;
   const additionalStartCostValue = 25000000; // $25M per extra indication
-  const startupCostValue = 30000000; // $30M Phase II cost applied in 2028 (per your text)
+  const startupCostValue = 30000000; // $30M Phase II cost applied in 2028
 
   // Selection order (ensures order of added indications is kept)
   let indicationSelectionOrder = ["Glioblastoma"];
@@ -195,8 +260,6 @@
   const patentExtensionInput = document.getElementById('patentExtensionInput');
   const erosionRate = document.getElementById('erosionRate');
   const erosionRateVal = document.getElementById('erosionRateVal');
-  const treatmentCost = document.getElementById('treatmentCost');
-  const treatmentCostVal = document.getElementById('treatmentCostVal');
   const variableCostSlider = document.getElementById('variableCostSlider');
   const variableCostVal = document.getElementById('variableCostVal');
   const peakSalesVal = document.getElementById('peakSalesVal');
@@ -231,18 +294,31 @@
       cb.checked = defaultCheckedIndices.includes(index);
       cb.value = name;
       if (name === 'Glioblastoma') { cb.checked = true; cb.disabled = true; }
-      cb.addEventListener('change', (e) => {
-        if (container.id === 'indicationChecks') {
-          const ind = e.target.value;
-          if (e.target.checked) {
-            if (!indicationSelectionOrder.includes(ind)) indicationSelectionOrder.push(ind);
-          } else {
-            indicationSelectionOrder = indicationSelectionOrder.filter(x => x !== ind);
-            if (!indicationSelectionOrder.includes('Glioblastoma')) indicationSelectionOrder.unshift('Glioblastoma');
-          }
-        }
-        onChangeCallback(e);
-      });
+cb.addEventListener('change', (e) => {
+  if (container.id === 'indicationChecks') {
+    const ind = e.target.value;
+    if (e.target.checked) {
+      if (!indicationSelectionOrder.includes(ind)) indicationSelectionOrder.push(ind);
+    } else {
+      indicationSelectionOrder = indicationSelectionOrder.filter(x => x !== ind);
+      if (!indicationSelectionOrder.includes('Glioblastoma')) indicationSelectionOrder.unshift('Glioblastoma');
+    }
+  } else if (container.id === 'countryChecks') {
+    // When toggling regions, ensure India input appears
+    ensureIndiaCheckboxInput(e.target);
+
+    // If India is just checked, refresh assumptions immediately
+    renderCountryAssumptions();
+
+    // If the inline input exists and has a value, keep arrays in sync
+    const inline = e.target.parentNode.querySelector('#indiaPopulationInputInline');
+    if (inline) setIndiaPopulation(inline.value * 1e6);
+  }
+
+  onChangeCallback(e);
+});
+
+
       const span = document.createElement('span'); span.textContent = name;
       row.appendChild(cb); row.appendChild(span); container.appendChild(row);
     });
@@ -259,26 +335,159 @@
   const getSelectedGroups = () => getSelected('countryChecks');
   const getSelectedIndications = () => getSelected('indicationChecks');
 
-  function renderPeakYearSliders() {
-    peakYearSlidersContainer.innerHTML = '';
-    const selectedGroups = getSelectedGroups();
-    selectedGroups.forEach(g => {
-      const row = document.createElement('div'); row.className = 'slider-row';
-      const label = document.createElement('div'); label.className = 'small';
-      label.innerHTML = `<strong>${g}:</strong> <span id="peakYearVal-${g}">${peakYearsByGroup[g]}</span>`;
-      const slider = document.createElement('input'); slider.type = 'range';
-      slider.min = 2034; slider.max = 2040; slider.step = 1;
-      slider.dataset.group = g; slider.value = peakYearsByGroup[g];
-      slider.addEventListener('input', (e) => {
-        const group = e.target.dataset.group;
-        peakYearsByGroup[group] = parseInt(e.target.value, 10);
-        document.getElementById(`peakYearVal-${group}`).textContent = peakYearsByGroup[group];
-        updatePlot();
-      });
-      row.appendChild(label); row.appendChild(slider);
-      peakYearSlidersContainer.appendChild(row);
+function renderPeakYearSliders() {
+  peakYearSlidersContainer.innerHTML = '';
+  const selectedGroups = getSelectedGroups();
+  selectedGroups.forEach(g => {
+    const row = document.createElement('div'); 
+    row.className = 'slider-row';
+
+    const label = document.createElement('div'); 
+    label.className = 'small';
+    label.innerHTML = `<strong style="color:${groupColors[g]}">${g}:</strong> 
+                       <span id="peakYearVal-${g}">${peakYearsByGroup[g]}</span>`;
+
+    const slider = document.createElement('input'); 
+    slider.type = 'range';
+    slider.min = 2034; 
+    slider.max = 2040; 
+    slider.step = 1;
+    slider.dataset.group = g; 
+    slider.value = peakYearsByGroup[g];
+    slider.style.width = '100%';
+
+    // Gradient fill for region color
+    const updateTrack = () => {
+      const percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+      slider.style.background = `linear-gradient(to right, ${groupColors[g]} ${percent}%, #e0e0e0 ${percent}%)`;
+    };
+    updateTrack();
+    slider.addEventListener('input', (e) => {
+      const group = e.target.dataset.group;
+      peakYearsByGroup[group] = parseInt(e.target.value, 10);
+      document.getElementById(`peakYearVal-${group}`).textContent = peakYearsByGroup[group];
+      updateTrack();
+      updatePlot();
     });
+
+    row.appendChild(label); 
+    row.appendChild(slider);
+    peakYearSlidersContainer.appendChild(row);
+  });
+}
+function ensureIndiaCheckboxInput(cb) {
+  if (!cb || cb.value !== 'India') return;
+
+  // Remove existing inline input if we uncheck
+  const existing = cb.parentNode.querySelector('#indiaPopulationInputInlineWrapper');
+  if (!cb.checked) {
+    if (existing) existing.remove();
+    return;
   }
+
+  // Create once if missing
+  if (!existing) {
+    const wrapper = document.createElement('div');
+    wrapper.id = 'indiaPopulationInputInlineWrapper';
+    wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
+    wrapper.style.marginLeft = '8px';
+
+    const label = document.createElement('label');
+    label.className = 'small';
+    label.textContent = 'Population (millions)';
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.id = 'indiaPopulationInputInline';
+    input.min = '1';
+    input.step = '1';
+input.value = 300; // default to 300M
+    input.style.width = '120px';
+    input.title = "Enter India's population in millions (e.g. 1400 = 1.4B)";
+
+    const onChange = () => {
+      const millions = +input.value || INDIA_BASE_POP / 1e6;
+      const fullPop = millions * 1e6;
+      indiaPopulation = fullPop;
+
+      // Update model arrays
+      Object.keys(baselineIndiaCases).forEach(ind => {
+        const base = baselineIndiaCases[ind];
+        const factor = fullPop / INDIA_BASE_POP;
+        allIndicationsData[ind].cases['India'] =
+          Array(years.length).fill(Math.round(base * factor));
+      });
+
+      updatePlot();
+    };
+
+    input.addEventListener('input', onChange);
+    input.addEventListener('change', onChange);
+
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    cb.parentNode.appendChild(wrapper);
+
+    // 🔑 Trigger once immediately so the graph updates on first check
+    onChange();
+  }
+}
+
+// -------------------------------
+// Treatment cost sliders (NEW)
+// -------------------------------
+function renderTreatmentCostSliders() {
+  const container = document.getElementById('treatmentCostSliders');
+  if (!container) return; // defensive
+  container.innerHTML = '';
+  const selectedGroups = getSelectedGroups();
+
+  // if no group selected, show nothing
+  if (!selectedGroups || selectedGroups.length === 0) return;
+
+  selectedGroups.forEach(g => {
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '8px';
+
+    const label = document.createElement('div');
+    label.className = 'small';
+    label.style.color = groupColors[g] || '#111';
+    label.innerHTML = `<strong>${g}</strong>: <span id="treatmentCostVal-${g}">${fmtUSD(currentTreatmentCosts[g] || baseTreatmentCosts[g])}</span>`;
+    wrapper.appendChild(label);
+
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = 5000;
+    slider.max = 150000;
+    slider.step = 1000;
+    slider.value = currentTreatmentCosts[g] || baseTreatmentCosts[g];
+    slider.style.width = '100%';
+
+    // assign thumb color
+    try { slider.style.accentColor = groupColors[g]; } catch(e){}
+
+    // update gradient fill
+ const updateTrack = () => {
+  const percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+  slider.style.setProperty('--percent', percent + '%');
+  slider.style.setProperty('--fill-color', groupColors[g]); // region color
+};
+    updateTrack();
+    slider.addEventListener('input', updateTrack);
+
+    // update cost value + replot
+    slider.addEventListener('input', (e) => {
+      currentTreatmentCosts[g] = +e.target.value;
+      const span = document.getElementById(`treatmentCostVal-${g}`);
+      if (span) span.textContent = fmtUSD(currentTreatmentCosts[g]);
+      updatePlot();
+    });
+
+    wrapper.appendChild(slider);
+    container.appendChild(wrapper);
+  });
+}
 
   // -------------------------------
   // Market share / adoption curves
@@ -404,36 +613,56 @@
     });
   }
 
-  // -------------------------------
-  // Base assumptions rendering (per-region)
-  // -------------------------------
-  function renderCountryAssumptions() {
-    countryAssumptions.innerHTML = '';
-    const selectedGroups = getSelectedGroups();
-    const selectedIndications = getSelectedIndications();
+// -------------------------------
+// Base assumptions rendering (per-region)
+// -------------------------------
+function renderCountryAssumptions() {
+  countryAssumptions.innerHTML = '';
+  const selectedGroups = getSelectedGroups();
+  const selectedIndications = getSelectedIndications();
 
-    // If nothing selected (edge), default to all regions
-    const groupsToShow = (selectedGroups && selectedGroups.length > 0) ? selectedGroups : Object.keys(allIndicationsData.Glioblastoma.cases);
+  // If nothing selected (edge), default to all regions
+  const groupsToShow = (selectedGroups && selectedGroups.length > 0) 
+    ? selectedGroups 
+    : Object.keys(allIndicationsData.Glioblastoma.cases);
 
-    groupsToShow.forEach(g => {
-      const node = document.createElement('div'); node.className = 'country-card';
-      let html = `<strong>${g}</strong>`;
+  groupsToShow.forEach(g => {
+    const node = document.createElement('div');
+    node.className = 'country-card';
+    let html = `<strong>${g}</strong>`;
 
-      // Show each indication exactly as it is in the model (average across years)
-      const inds = (selectedIndications && selectedIndications.length > 0) ? selectedIndications : Object.keys(allIndicationsData);
-      inds.forEach(indName => {
-        const indData = allIndicationsData[indName];
-        if (!indData || !indData.cases[g]) return;
+    // Show each indication
+    const inds = (selectedIndications && selectedIndications.length > 0) 
+      ? selectedIndications 
+      : Object.keys(allIndicationsData);
+
+    inds.forEach(indName => {
+      const indData = allIndicationsData[indName];
+      if (!indData || !indData.cases[g]) return;
+
+      let avgCases;
+      if (g === 'India') {
+        // India: calculate from population and incidence assumptions
+        if (indName === 'Glioblastoma' || indName === 'OPBT') {
+          avgCases = Math.round(indiaPopulation * (3 / 100000) * indData.neurosurgeryPct[g]);
+        } else if (indName === 'Brain Metastasis') {
+          avgCases = Math.round(indiaPopulation * (53.7 / 100000) * indData.neurosurgeryPct[g]);
+        }
+      } else {
+        // Non-India: keep using model cases
         const casesArr = indData.cases[g].slice(0, years.length);
-        const avgCases = Math.round(casesArr.reduce((a,b) => a + (b||0), 0) / (casesArr.length || 1));
-        const neuPct = indData.neurosurgeryPct[g] || 0;
-        html += `<div class="small">${indName}: ~${avgCases.toLocaleString()} pts/yr (neurosurg: ${Math.round(neuPct*100)}%)</div>`;
-      });
+        avgCases = Math.round(casesArr.reduce((a,b) => a + (b||0), 0) / (casesArr.length || 1));
+      }
 
-      node.innerHTML = html;
-      countryAssumptions.appendChild(node);
+      const neuPct = indData.neurosurgeryPct[g] || 0;
+      html += `<div class="small">${indName}: ~${avgCases.toLocaleString()} pts/yr (neurosurg: ${Math.round(neuPct*100)}%)</div>`;
     });
-  }
+
+    node.innerHTML = html;
+    countryAssumptions.appendChild(node);
+  });
+}
+
 
   // -------------------------------
   // Main plotting logic (unchanged except uses updated data)
@@ -443,7 +672,15 @@
     const selectedIndications = getSelectedIndications();
     const patentExtension = +patentExtensionInput.value || 0;
     const erosion = +erosionRate.value / 100;
-    const price = +treatmentCost.value;
+
+ // region-specific prices (use currentTreatmentCosts if available, else base)
+    const pricesByGroup = {};
+    const selGroups = getSelectedGroups();
+    const priceGroups = (selGroups && selGroups.length > 0) ? selGroups : groupOrder;
+    priceGroups.forEach(g => {
+      pricesByGroup[g] = (currentTreatmentCosts[g] !== undefined) ? currentTreatmentCosts[g] : baseTreatmentCosts[g];
+    });
+
     const variableCostRate = +variableCostSlider.value / 100;
 
     const traces = [];
@@ -463,22 +700,57 @@
       const grossRevenue = years.map(() => 0);
       const potential = years.map(() => 0);
 
+// region-specific price
+      const regionPrice = pricesByGroup[g] || baseTreatmentCosts[g];
+
       const inds = (selectedIndications && selectedIndications.length>0) ? selectedIndications : Object.keys(allIndicationsData);
 
-      inds.forEach(ind => {
-        const indData = allIndicationsData[ind];
-        if (!indData || !indData.cases[g]) return;
-        const casesArr = indData.cases[g].slice(0, years.length);
-        for (let i=0;i<years.length;i++) {
-          const cases = casesArr[i] || 0;
-          const neuPct = indData.neurosurgeryPct[g] || 0;
-          potential[i] += cases * neuPct * price;
-          let adoption = 0;
-          if (ind === 'Glioblastoma') adoption = shares[i];
-          else adoption = (additionalAdoptionCurves[ind] || new Array(years.length).fill(0))[i] || 0;
-          grossRevenue[i] += cases * neuPct * adoption * price;
-        }
-      });
+inds.forEach(ind => {
+  const indData = allIndicationsData[ind];
+  if (!indData || !indData.cases[g]) return;
+
+  let casesArr;
+
+  if (g === 'India') {
+    // --- Dynamically derive cases each year from population & incidence ---
+    let incidencePer100k;
+    if (ind === 'Glioblastoma' || ind === 'OPBT') {
+      incidencePer100k = 3;
+    } else if (ind === 'Brain Metastasis') {
+      incidencePer100k = 53.7;
+    } else {
+      incidencePer100k = 0;
+    }
+
+    const neuPct = indData.neurosurgeryPct[g] || 0;
+    const annualCases = Math.round(indiaPopulation * (incidencePer100k / 100000) * neuPct);
+
+    // Fill the whole array with this value
+    casesArr = Array(years.length).fill(annualCases);
+
+    // NOTE: neuPct is already baked into annualCases here
+    for (let i = 0; i < years.length; i++) {
+      potential[i] += casesArr[i] * regionPrice;
+      let adoption = 0;
+      if (ind === 'Glioblastoma') adoption = shares[i];
+      else adoption = (additionalAdoptionCurves[ind] || new Array(years.length).fill(0))[i] || 0;
+      grossRevenue[i] += casesArr[i] * adoption * regionPrice;
+    }
+
+  } else {
+    // --- Non-India: keep the old logic ---
+    casesArr = indData.cases[g].slice(0, years.length);
+    for (let i = 0; i < years.length; i++) {
+      const cases = casesArr[i] || 0;
+      const neuPct = indData.neurosurgeryPct[g] || 0;
+      potential[i] += cases * neuPct * regionPrice;
+      let adoption = 0;
+      if (ind === 'Glioblastoma') adoption = shares[i];
+      else adoption = (additionalAdoptionCurves[ind] || new Array(years.length).fill(0))[i] || 0;
+      grossRevenue[i] += cases * neuPct * adoption * regionPrice;
+    }
+  }
+});
 
       regionalGrossRevenueByYear[g] = grossRevenue;
       regionalPotentialByYear[g] = potential;
@@ -546,7 +818,7 @@
     const yMax = dataMax + pad;
     const xaxisPositionNormalized = (0 - yMin) / (yMax - yMin);
 
-    const layout = {
+       const layout = {
       barmode: 'relative',
       margin: { t: 42, r: 18, l: 70, b: 60 },
       xaxis: { title:'Year', tickmode:'array', tickvals: years, ticktext: years.map(y => `'${String(y).slice(2)}`), automargin:true, position: xaxisPositionNormalized },
@@ -556,20 +828,29 @@
       legend: { x: 0.01, y: 0.98 }
     };
 
-    Plotly.newPlot('plot', traces, layout, { responsive:true, displaylogo:false }).then(() => {
-      const timelineEvents = [
-        { year: 2028, label: 'Phase II end', color: '#333' },
-        { year: 2030, label: 'Launch', color: '#0b5cff' }
-      ];
-      const extrasLocal = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
-      extrasLocal.forEach((ind,k) => {
-        const costStartIdx = launchIdx + 3 * k;
-        const revenueStartIdx = costStartIdx + additionalDelayYears;
-        if (costStartIdx >=0 && costStartIdx < years.length) timelineEvents.push({ year: years[costStartIdx], label: `${ind} cost`, color:'#881111' });
-        if (revenueStartIdx >=0 && revenueStartIdx < years.length) timelineEvents.push({ year: years[revenueStartIdx], label: `${ind} revenue begins`, color:'#116688' });
-      });
-      setTimeout(() => renderArrowOverlay(timelineEvents), 50);
+    // build timelineEvents first
+    const timelineEvents = [
+      { year: 2028, label: 'Phase II end', color: '#333' },
+      { year: 2030, label: 'Launch', color: '#0b5cff' }
+    ];
+    const extrasLocal = indicationSelectionOrder.filter(x => x !== 'Glioblastoma');
+    extrasLocal.forEach((ind,k) => {
+      const costStartIdx = launchIdx + 3 * k;
+      const revenueStartIdx = costStartIdx + additionalDelayYears;
+      if (costStartIdx >=0 && costStartIdx < years.length) timelineEvents.push({ year: years[costStartIdx], label: `${ind} cost`, color:'#881111' });
+      if (revenueStartIdx >=0 && revenueStartIdx < years.length) timelineEvents.push({ year: years[revenueStartIdx], label: `${ind} revenue begins`, color:'#116688' });
     });
+
+    // use newPlot once, then react
+    if (!window._plotInitialized) {
+      Plotly.newPlot('plot', traces, layout, { responsive:true, displaylogo:false }).then(() => {
+        window._plotInitialized = true;
+        setTimeout(() => renderArrowOverlay(timelineEvents), 50);
+      });
+    } else {
+      Plotly.react('plot', traces, layout, { responsive:true, displaylogo:false });
+      setTimeout(() => renderArrowOverlay(timelineEvents), 50);
+    }
 
     const p = document.getElementById('plot');
     if (p && p.on) {
@@ -611,7 +892,6 @@
     updateCumKPI();
 
     erosionRateVal.textContent = (+erosionRate.value).toFixed(1) + '%';
-    treatmentCostVal.textContent = fmtUSD(price);
     variableCostVal.textContent = (+variableCostSlider.value).toFixed(1) + '%';
     renderCountryAssumptions();
   }
@@ -629,27 +909,59 @@
   }
 
   // -------------------------------
-  // Initialization
-  // -------------------------------
-  function init() {
-    createCheckboxes(indicationChecks, indicationOrder, [0], updatePlot);
-    createCheckboxes(countryChecks, groupOrder, [0,1,2], () => { renderPeakYearSliders(); updatePlot(); });
-    fillYearSelectors(cumStart);
-    fillYearSelectors(cumEnd);
-    cumStart.selectedIndex = 0;
-    cumEnd.selectedIndex = years.length - 1;
+// Initialization
+// -------------------------------
+function init() {
+  createCheckboxes(indicationChecks, indicationOrder, [0], updatePlot);
 
-    if (!indicationSelectionOrder.includes('Glioblastoma')) indicationSelectionOrder.unshift('Glioblastoma');
-
-    document.querySelectorAll('#controls input[type=range], #patentExtensionInput').forEach(el => el.addEventListener('input', updatePlot));
-    cumStart.addEventListener('change', updateCumKPI);
-    cumEnd.addEventListener('change', updateCumKPI);
-
+  // Keep the same default region selection indices ([0,1,2]) but ensure the handler re-renders
+  createCheckboxes(countryChecks, groupOrder, [0,1,2], () => {
     renderPeakYearSliders();
+    renderTreatmentCostSliders();
+    renderCountryAssumptions();  // <-- force re-render of assumptions when regions change
     updatePlot();
+  });
+
+  fillYearSelectors(cumStart);
+  fillYearSelectors(cumEnd);
+  cumStart.selectedIndex = 0;
+  cumEnd.selectedIndex = years.length - 1;
+
+  if (!indicationSelectionOrder.includes('Glioblastoma')) {
+    indicationSelectionOrder.unshift('Glioblastoma');
   }
 
-  init();
-  </script>
+  document.querySelectorAll('#controls input[type=range], #patentExtensionInput')
+    .forEach(el => el.addEventListener('input', updatePlot));
+
+  cumStart.addEventListener('change', updateCumKPI);
+  cumEnd.addEventListener('change', updateCumKPI);
+
+  renderPeakYearSliders();
+  renderTreatmentCostSliders(); // Draw sliders for the initially selected regions
+  updatePlot();
+
+  // -------------------------------
+  // Neutral slider color setup
+  // -------------------------------
+  ['erosionRate','variableCostSlider'].forEach(id => {
+    const s = document.getElementById(id);
+    if (!s) return;
+
+    const updateNeutral = () => {
+      const percent = ((s.value - s.min) / (s.max - s.min)) * 100;
+      s.style.setProperty('--percent', percent + '%');
+      s.style.setProperty('--fill-color', '#888'); // neutral gray
+      s.style.background = `linear-gradient(to right, var(--fill-color) ${percent}%, #e0e0e0 ${percent}%)`;
+    };
+
+    updateNeutral();
+    s.addEventListener('input', updateNeutral);
+  });
+}
+
+init();
+</script>
 </body>
 </html>
+

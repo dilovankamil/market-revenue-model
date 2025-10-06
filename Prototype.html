@@ -112,7 +112,7 @@ input[type="range"].neutral {
     </div>
     
     <div class="card">
-        <label>Peak Market Share Year (by Region)</label>
+        <label>Peak Market Share (%, by Region)</label>
         <div id="peakYearSlidersContainer"></div>
     </div>
 
@@ -142,28 +142,47 @@ input[type="range"].neutral {
 
     <div class="card">
       <h3 style="margin:0 0 8px 0">Base assumptions (read-only)</h3>
+<div id="assumptionMethod" class="small" style="margin:6px 0 10px 0;">
+  <strong>How we compute “Addressable patients (at peak)”</strong><br>
+  For each indication and region: <em>Total cases</em> × <em>Neurosurgery eligibility</em> × <em>Peak Market Share</em> (set with the slider; ramps linearly to peak in 6 years).
+  <div style="margin-top:4px;">
+    Neurosurgery eligibility used for GBM: <strong>~70%</strong>, BM: <strong>~15%</strong>, OPBT: <strong>~33%</strong>.
+  </div>
+</div>
       <div id="countryAssumptions"></div>
 
-      <!-- New explanatory notes -->
-      <div id="assumptionNotes" class="small" style="margin-top:8px; line-height:1.45">
-        <div><strong>Patient figures</strong>: For each region, the counts shown per indication (<strong>Glioblastoma</strong>, <strong>Brain Metastasis</strong>, <strong>OPBT</strong>) are the incidence values used by the model (same years window and neurosurgery filters). If data is insufficient in a specific country or region, assumptions are based on other regions' data.</div>
-        <div style="margin-top:8px;"><strong>Clinical costs</strong>: A flat <strong>$30M</strong> Phase II cost is applied in <strong>2028</strong>. Each additional indication incurs a <strong>$25M</strong> bridging study cost, applied at <strong>Launch (2030)</strong> for the first add-on, and then at <strong>+3 years</strong> for subsequent add-ons.</div>
-        <div style="margin-top:8px;"><strong>Operational cost slider</strong>: Covers <strong>Marketing</strong>, <strong>CMC</strong>, <strong>COGs</strong>, and <strong>FTE</strong> (expressed as % of gross revenue).</div>
+<!-- New explanatory notes -->
+<div id="assumptionNotes" class="small" style="margin-top:8px; line-height:1.45">
+  <div><strong>Patient figures</strong>: For each region, the counts shown per indication (<strong>Glioblastoma</strong>, <strong>Brain Metastasis</strong>, <strong>OPBT</strong>) are the incidence values used by the model (same years window and neurosurgery filters). If data is insufficient in a specific country or region, assumptions are based on other regions' data.</div>
 
-        <div style="margin-top:10px"><strong>Sources</strong>:</div>
-        <div class="ref">
-          https://academic.oup.com/neuro-oncology/article/23/9/1447/6256866<br>
-          https://www.ncbi.nlm.nih.gov/books/NBK470246/<br>
-          https://www.nature.com/articles/s43856-024-00445-7<br>
-          https://www.nejm.org/doi/full/10.1056/NEJM199002223220802<br>
-          https://pmc.ncbi.nlm.nih.gov/articles/PMC9533228<br>
-          https://statistik.incanet.se/CNS/<br>
-          https://www.nature.com/articles/s41598-024-79170-z<br>
-          https://www.worldometers.info/world-population/<br>
-          https://glioblastomafoundation.org/news/glioblastoma-multiforme<br>
-          https://academic.oup.com/nop/article/6/1/37/5001149
-        </div>
-      </div>
+  <div style="margin-top:8px;"><strong>Brain Metastasis eligibility & addressable pool</strong>: Literature places neurosurgery eligibility at <strong>~15%</strong> of all BM cases. In the model the <em>addressable population</em> is defined as <strong>Total BM × (15%)</strong>. Use the <strong>Peak Market Share (%)</strong> slider(s) to set your target capture of this addressable pool by region.</div>
+
+  <div style="margin-top:8px;"><strong>Adoption ramp</strong>: From launch, market share increases linearly to the selected slider value over <strong>6 years</strong>, then remains at that level until loss of exclusivity (LoE). After LoE, revenues erode at the rate set by the <strong>Post-LoE annual erosion</strong> slider.</div>
+
+  <div style="margin-top:8px;"><strong>Clinical costs</strong>: A flat <strong>$30M</strong> Phase II cost is applied in <strong>2028</strong>. Each additional indication incurs a <strong>$25M</strong> bridging study cost, applied at <strong>Launch (2030)</strong> for the first add-on, and then at <strong>+3 years</strong> for subsequent add-ons.</div>
+
+  <div style="margin-top:8px;"><strong>Operational cost slider</strong>: Covers <strong>Marketing</strong>, <strong>CMC</strong>, <strong>COGs</strong>, and <strong>FTE</strong> (expressed as % of gross revenue).</div>
+
+  <div style="margin-top:10px"><strong>Sources</strong>:</div>
+  <div class="ref">
+    https://academic.oup.com/neuro-oncology/article/23/9/1447/6256866<br>
+    https://www.ncbi.nlm.nih.gov/books/NBK470246/<br>
+    https://www.nature.com/articles/s43856-024-00445-7<br>
+    https://www.nejm.org/doi/full/10.1056/NEJM199002223220802<br>
+    https://pmc.ncbi.nlm.nih.gov/articles/PMC9533228<br>
+    https://statistik.incanet.se/CNS/<br>
+    https://www.nature.com/articles/s41598-024-79170-z<br>
+    https://www.worldometers.info/world-population/<br>
+    https://glioblastomafoundation.org/news/glioblastoma-multiforme<br>
+    https://academic.oup.com/nop/article/6/1/37/5001149
+    https://jamanetwork.com/journals/jamanetworkopen/fullarticle/2837792<br>
+    https://www.cns.org/guidelines/treatment-adults-metastatic-brain-tumors/practice-guideline-on-role-of-surgery-in-managemen<br>
+    https://ascopubs.org/doi/10.1200/JCO.21.02314<br>
+    https://pmc.ncbi.nlm.nih.gov/articles/PMC3877503/<br>
+    https://journals.lww.com/indianjcancer/fulltext/2023/60030/incidence_and_clinical_profile_of_brain_metastasis.8.aspx
+  </div>
+</div>
+
     </div>
   </div>
 
@@ -208,35 +227,33 @@ input[type="range"].neutral {
   // Epidemiology data 
   // -------------------------------
   // Flat yearly incidence arrays using the exact numbers you provided
-  const allIndicationsData = {
-    "Glioblastoma": {
-      cases: {
-        "EU4+UK": Array(years.length).fill(11298),
-        "US":     Array(years.length).fill(10879),
-        "Japan":  Array(years.length).fill(1387),
-	"India":  Array(years.length).fill(12600)
-      },
-      neurosurgeryPct: { "EU4+UK": 0.70, "US": 0.73, "Japan": 0.70, "India": 0.50 }
-    },
-    "Brain Metastasis": {
-      cases: {
-        "EU4+UK": Array(years.length).fill(45903),
-        "US":     Array(years.length).fill(49964),
-        "Japan":  Array(years.length).fill(16616),
-	"India":  Array(years.length).fill(111300)
-      },
-      neurosurgeryPct: { "EU4+UK": 0.25, "US": 0.25, "Japan": 0.25, "India": 0.15 }
-    },
-    "OPBT": {
-      cases: {
-        "EU4+UK": Array(years.length).fill(2445),
-        "US":     Array(years.length).fill(3344),
-        "Japan":  Array(years.length).fill(453),
-	"India": Array(years.length).fill(2445)
-      },
-      neurosurgeryPct: { "EU4+UK": 0.33, "US": 0.33, "Japan": 0.33, "India": 0.33 }
-    }
-  };
+// -------------------------------
+// Epidemiology assumptions
+// -------------------------------
+
+// Populations (fixed except India)
+const basePopulation = {
+  "EU4+UK": 325_000_000,
+  "US": 340_000_000,
+  "Japan": 125_000_000,
+  "India": 300_000_000
+};
+let indiaPopulation = basePopulation["India"]; // editable
+
+// Incidence per 100k (yearly)
+const incidencePer100k = {
+  "Glioblastoma": 3.0,
+  "Brain Metastasis": 53.7,
+  "OPBT": 3.0
+};
+
+// Neurosurgery eligibility (% of cases)
+const neurosurgeryPct = {
+  "Glioblastoma": { "EU4+UK": 0.70, "US": 0.73, "Japan": 0.70, "India": 0.50 },
+  "Brain Metastasis": { "EU4+UK": 0.08, "US": 0.08, "Japan": 0.07, "India": 0.07 },
+  "OPBT": { "EU4+UK": 0.33, "US": 0.33, "Japan": 0.33, "India": 0.33 }
+};
+
 
   const indicationOrder = ["Glioblastoma", "Brain Metastasis", "OPBT"];
   const groupOrder = ["EU4+UK", "US", "Japan", "India"];
@@ -268,28 +285,16 @@ const indicationColors = {
   // Parameters & state
   // -------------------------------
   const baseLoeYears = { "EU4+UK": 2040, "US": 2037, "Japan": 2040, "India": 2040 };
-  let peakYearsByGroup = { "EU4+UK": 2036, "US": 2036, "Japan": 2036, "India": 2036 };
+  let peakShareByGroup = { "EU4+UK": 30, "US": 30, "Japan": 30, "India": 30 }; // % target share
   let currentTotalNetRevenues = [];
 let currentTreatmentCosts = { ...baseTreatmentCosts };
+
 // -------------------------------
 // India population scaling (immutable baselines)
 // -------------------------------
-const INDIA_BASE_POP = 1400000000;
-let indiaPopulation = INDIA_BASE_POP; // single source of truth
-const baselineIndiaCases = {
-  "Glioblastoma": 12600,
-  "Brain Metastasis": 111300,
-  "OPBT": 2445
-};
 
 function setIndiaPopulation(newPop) {
-  const val = +newPop || INDIA_BASE_POP;
-  indiaPopulation = val;   // <--- this was missing!
-  const factor = val / INDIA_BASE_POP;
-  Object.keys(baselineIndiaCases).forEach(ind => {
-    const base = baselineIndiaCases[ind];
-    allIndicationsData[ind].cases['India'] = Array(years.length).fill(Math.round(base * factor));
-  });
+  indiaPopulation = +newPop || basePopulation["India"];
 }
 
   const additionalDelayYears = 3;   // revenue starts after delay from cost-start
@@ -333,19 +338,6 @@ function setIndiaPopulation(newPop) {
   }
   function fmtUSD(n) { return (n === 0) ? '$0' : n.toLocaleString('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0}); }
 
-// Helper: slightly different shades of a base hex color
-function shadeVariant(hex, idx, total) {
-  // hex like "#2f6df6"
-  const amt = (idx - (total - 1) / 2) * 40; // spread out shades
-  let c = parseInt(hex.slice(1), 16);
-  let r = (c >> 16) + amt;
-  let g = ((c >> 8) & 0x00FF) + amt;
-  let b = (c & 0x0000FF) + amt;
-  r = Math.max(Math.min(255, r), 0);
-  g = Math.max(Math.min(255, g), 0);
-  b = Math.max(Math.min(255, b), 0);
-  return `rgb(${r},${g},${b})`;
-}
 
   // -------------------------------
   // UI utilities
@@ -399,46 +391,51 @@ cb.addEventListener('change', (e) => {
   const getSelectedGroups = () => getSelected('countryChecks');
   const getSelectedIndications = () => getSelected('indicationChecks');
 
-function renderPeakYearSliders() {
+function renderMarketShareSliders() {
   peakYearSlidersContainer.innerHTML = '';
-  const selectedGroups = getSelectedGroups();
-  selectedGroups.forEach(g => {
-    const row = document.createElement('div'); 
+  const sel = getSelectedGroups();
+  const groups = (sel && sel.length) ? sel : groupOrder; // fallback
+
+  groups.forEach(g => {
+    const row = document.createElement('div');
     row.className = 'slider-row';
 
-    const label = document.createElement('div'); 
+    const label = document.createElement('div');
     label.className = 'small';
     label.innerHTML = `<strong style="color:${groupColors[g]}">${g}:</strong> 
-                       <span id="peakYearVal-${g}">${peakYearsByGroup[g]}</span>`;
+                       <span id="peakShareVal-${g}">${(peakShareByGroup[g] ?? 30)}%</span>`;
 
-    const slider = document.createElement('input'); 
+    const slider = document.createElement('input');
     slider.type = 'range';
-    slider.min = 2034; 
-    slider.max = 2040; 
-    slider.step = 1;
-    slider.dataset.group = g; 
-    slider.value = peakYearsByGroup[g];
+    slider.min = 20; slider.max = 50; slider.step = 1;
+    slider.dataset.group = g;
+    slider.value = (peakShareByGroup[g] ?? 30);
     slider.style.width = '100%';
 
-    // Gradient fill for region color
     const updateTrack = () => {
       const percent = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
       slider.style.background = `linear-gradient(to right, ${groupColors[g]} ${percent}%, #e0e0e0 ${percent}%)`;
+      const valEl = document.getElementById(`peakShareVal-${g}`);
+      if (valEl) valEl.textContent = slider.value + "%";
     };
+
+    peakShareByGroup[g] = +slider.value;
     updateTrack();
-    slider.addEventListener('input', (e) => {
-      const group = e.target.dataset.group;
-      peakYearsByGroup[group] = parseInt(e.target.value, 10);
-      document.getElementById(`peakYearVal-${group}`).textContent = peakYearsByGroup[group];
+
+    slider.addEventListener('input', e => {
+      peakShareByGroup[g] = +e.target.value;
       updateTrack();
       updatePlot();
     });
 
-    row.appendChild(label); 
+    row.appendChild(label);
     row.appendChild(slider);
     peakYearSlidersContainer.appendChild(row);
   });
 }
+
+
+
 function ensureIndiaCheckboxInput(cb) {
   // Only for the India checkbox
   if (!cb || cb.value !== 'India') return;
@@ -547,26 +544,19 @@ function renderTreatmentCostSliders() {
   // -------------------------------
   // Market share / adoption curves
   // -------------------------------
-  function generateMarketShareCurve(peakShareYear, loeYear, erosionFraction, launchYearAnchor = launchYear) {
-    const out = new Array(years.length).fill(0);
-    const peakIdx = years.indexOf(peakShareYear);
-    const loeIdx = years.indexOf(loeYear);
-    const launchI = Math.max(0, years.indexOf(launchYearAnchor));
-    const effectivePeak = (peakIdx >= launchI) ? peakIdx : launchI;
-    const riseSpan = Math.max(0, effectivePeak - launchI);
-    const denom = riseSpan + 1;
-    for (let i = 0; i < years.length; i++) {
-      if (i < launchI) out[i] = 0;
-      else if (i <= effectivePeak) {
-        const rel = (i - launchI + 1) / denom;
-        out[i] = Math.pow(rel, 2);
-      } else out[i] = 1.0;
-    }
-    if (loeIdx !== -1) {
-      for (let i = loeIdx + 1; i < years.length; i++) out[i] = Math.pow(1 - erosionFraction, i - loeIdx);
-    }
-    return out.map(s => Math.max(0, Math.min(1, s)));
+function generateMarketShareRamp(targetPct, yearsArr) {
+  const out = new Array(yearsArr.length).fill(0);
+  const rampYears = 6;
+  const target = targetPct / 100;
+  const launchI = yearsArr.indexOf(launchYear);
+  for (let i = launchI; i < yearsArr.length; i++) {
+    const t = i - launchI;
+    if (t >= rampYears) out[i] = target;
+    else out[i] = target * (t + 1) / rampYears;
   }
+  return out;
+}
+
 
   function buildAdditionalIndAdoptionCurvesAndCostYears() {
     const out = { curves: {}, costYears: {} };
@@ -673,51 +663,55 @@ function renderTreatmentCostSliders() {
 // -------------------------------
 function renderCountryAssumptions() {
   countryAssumptions.innerHTML = '';
-  const selectedGroups = getSelectedGroups();
-  const selectedIndications = getSelectedIndications();
 
-  // If nothing selected (edge), default to all regions
-  const groupsToShow = (selectedGroups && selectedGroups.length > 0) 
-    ? selectedGroups 
-    : Object.keys(allIndicationsData.Glioblastoma.cases);
+  const selectedGroups = getSelectedGroups();
+  const groupsToShow = (selectedGroups && selectedGroups.length) ? selectedGroups : groupOrder;
+
+  const selectedIndications = getSelectedIndications();
+  const inds = (selectedIndications && selectedIndications.length) ? selectedIndications : indicationOrder;
 
   groupsToShow.forEach(g => {
+    const regionPeakShare = (peakShareByGroup[g] ?? 30) / 100;
+
     const node = document.createElement('div');
     node.className = 'country-card';
+
+    // Build compact list: per indication final treated-at-peak + region total
+    let regionTotal = 0;
     let html = `<strong>${g}</strong>`;
 
-    // Show each indication
-    const inds = (selectedIndications && selectedIndications.length > 0) 
-      ? selectedIndications 
-      : Object.keys(allIndicationsData);
+    html += `<div class="small" style="margin-top:4px;color:#444;">Addressable patients (at peak):</div>`;
 
-    inds.forEach(indName => {
-      const indData = allIndicationsData[indName];
-      if (!indData || !indData.cases[g]) return;
+    inds.forEach(ind => {
+      const pop = (g === 'India') ? indiaPopulation : basePopulation[g];
+      const incidence = incidencePer100k[ind];                 // per 100k
+      const totalCases = Math.round(pop * incidence / 100000); // cases/yr
+      const neuPct = neurosurgeryPct[ind][g] || 0;             // eligibility
+      const addressable = totalCases * neuPct;                  // eligible pool
+      const treatedAtPeak = Math.round(addressable * regionPeakShare);
 
-      let avgCases;
-      if (g === 'India') {
-        // India: calculate from population and incidence assumptions
-        if (indName === 'Glioblastoma' || indName === 'OPBT') {
-          avgCases = Math.round(indiaPopulation * (3 / 100000) * indData.neurosurgeryPct[g]);
-        } else if (indName === 'Brain Metastasis') {
-          avgCases = Math.round(indiaPopulation * (53.7 / 100000) * indData.neurosurgeryPct[g]);
-        }
-      } else {
-        // Non-India: keep using model cases
-        const casesArr = indData.cases[g].slice(0, years.length);
-        avgCases = Math.round(casesArr.reduce((a,b) => a + (b||0), 0) / (casesArr.length || 1));
-      }
+      regionTotal += treatedAtPeak;
 
-      const neuPct = indData.neurosurgeryPct[g] || 0;
-      html += `<div class="small">${indName}: ~${avgCases.toLocaleString()} pts/yr (neurosurg: ${Math.round(neuPct*100)}%)</div>`;
+      html += `<div class="small">• ${ind}: <strong>~${treatedAtPeak.toLocaleString()}</strong> /yr</div>`;
     });
+
+    // Show region total only if >1 indication is selected
+if (inds.length > 1) {
+  html += `<div class="small" style="margin-top:6px;border-top:1px dashed #eee;padding-top:6px;">
+             <em>Total (selected indications):</em> <strong>~${regionTotal.toLocaleString()}</strong> /yr
+           </div>`;
+}
+
+// Show neurosurgery rates only for selected indications
+const abbr = { "Glioblastoma":"GBM", "Brain Metastasis":"BM", "OPBT":"OPBT" };
+const neuList = inds.map(ind => `${abbr[ind]||ind}: ~${Math.round((neurosurgeryPct[ind][g]||0)*100)}%`).join(', ');
+html += `<div class="small" style="margin-top:6px;color:#666;">Neurosurgery eligibility used → ${neuList}</div>`;
+
 
     node.innerHTML = html;
     countryAssumptions.appendChild(node);
   });
 }
-
 
 function updatePlot() {
   const selectedGroups = getSelectedGroups();
@@ -736,7 +730,6 @@ function updatePlot() {
   const variableCostRate = +variableCostSlider.value / 100;
 
   const traces = [];
-  const totalsGrossRevenueByYear = years.map(() => 0);
 
   const additionalData = buildAdditionalIndAdoptionCurvesAndCostYears();
   const additionalAdoptionCurves = additionalData.curves;
@@ -748,9 +741,8 @@ function updatePlot() {
     Plotly.react('plot', [], {
       margin: { t: 42, r: 18, l: 70, b: 60 },
       xaxis: { title: 'Year', tickvals: years, ticktext: years.map(y => `'${String(y).slice(2)}`) },
-      yaxis: { title: 'Revenue / Cost (USD)' }
+      yaxis: { title: 'Net Revenue (USD)' }
     });
-
     peakSalesVal.textContent = '$0';
     peakSalesYear.textContent = 'Year: —';
     cumSalesVal.textContent = '$0';
@@ -761,165 +753,187 @@ function updatePlot() {
     return;
   }
 
-  // --- Special case: single region → breakdown by indication ---
+  // Helper to apply LoE erosion
+  const applyErosionAfterLoe = (rev, year, loeYear) => {
+    if (year > loeYear) {
+      const yearsAfter = year - loeYear;
+      return rev * Math.pow(1 - erosion, yearsAfter);
+    }
+    return rev;
+  };
+
+  // Collect per-trace GROSS arrays first
+  const perTraceGross = [];   // [{name, color, y: number[]}]
+
   if (groups.length === 1) {
+    // --- Single region: stack by indication ---
     const g = groups[0];
-    const peakShareYear = peakYearsByGroup[g];
-    const finalLoeYear = (baseLoeYears[g] || 2040) + patentExtension;
-    const shares = generateMarketShareCurve(peakShareYear, finalLoeYear, erosion, launchYear);
+    const targetSharePct = (peakShareByGroup[g] ?? 30);
+    const targetShare = targetSharePct / 100;
+    const shares = generateMarketShareRamp(targetSharePct, years);
     const regionPrice = pricesByGroup[g] || baseTreatmentCosts[g];
 
-    const inds = (selectedIndications.length > 0) ? selectedIndications : Object.keys(allIndicationsData);
-inds.forEach((ind) => {
-  const indData = allIndicationsData[ind];
-  if (!indData || !indData.cases[g]) return;
+    const inds = (selectedIndications.length > 0) ? selectedIndications : indicationOrder;
 
-  const yVals = years.map((_, i) => {
-    const neuPct = indData.neurosurgeryPct[g] || 0;
-    const cases = indData.cases[g][i] || 0;
-    const adoption = (ind === 'Glioblastoma') ? shares[i] : ((additionalAdoptionCurves[ind] || [])[i] || 0);
-    return cases * neuPct * adoption * regionPrice;
-  });
+    inds.forEach(ind => {
+      const pop = (g === 'India') ? indiaPopulation : basePopulation[g];
+      const incidence = incidencePer100k[ind];
+      const neuPct = neurosurgeryPct[ind][g] || 0;
+      const yearlyCases = Math.round(pop * incidence / 100000);
+      const loeYear = (baseLoeYears[g] || 2040) + patentExtension;
 
-  const barColor = (indicationColors[ind] && indicationColors[ind][g])
-    ? indicationColors[ind][g]
-    : groupColors[g];
+      const yGross = years.map((y, i) => {
+        const adoption = (ind === 'Glioblastoma')
+          ? shares[i]
+          : (((additionalAdoptionCurves[ind] || [])[i] || 0) * targetShare);
+        let rev = yearlyCases * neuPct * adoption * regionPrice;
+        return applyErosionAfterLoe(rev, y, loeYear);
+      });
 
-  // Single trace per indication with matching hover color
-  traces.push({
-    x: years,
-    y: yVals,
-    type: 'bar',
-    name: ind,
-    marker: { color: barColor },
-    offsetgroup: g,
-    hoverlabel: { bgcolor: barColor, font: { color: '#fff' } },
-    hovertemplate: `<b>${ind}</b><br>%{x}<br>Revenue: %{y:$,.0f}<extra></extra>`,
-    textposition: 'none'
-  });
+      perTraceGross.push({
+        name: ind,
+        color: (indicationColors[ind] && indicationColors[ind][g]) ? indicationColors[ind][g] : groupColors[g],
+        y: yGross
+      });
+    });
 
-  // accumulate totals
-  yVals.forEach((v, i) => { totalsGrossRevenueByYear[i] += v; });
-});
   } else {
-    // --- Multi-region (original behavior) ---
+    // --- Multi-region: stack by region (sum of selected indications) ---
     groups.forEach(g => {
-      const peakShareYear = peakYearsByGroup[g];
-      const finalLoeYear = (baseLoeYears[g] || 2040) + patentExtension;
-      const shares = generateMarketShareCurve(peakShareYear, finalLoeYear, erosion, launchYear);
-      const grossRevenue = years.map(() => 0);
+      const targetSharePct = (peakShareByGroup[g] ?? 30);
+      const targetShare = targetSharePct / 100;
+      const shares = generateMarketShareRamp(targetSharePct, years);
       const regionPrice = pricesByGroup[g] || baseTreatmentCosts[g];
 
-      const inds = (selectedIndications && selectedIndications.length > 0) ? selectedIndications : Object.keys(allIndicationsData);
+      const inds = (selectedIndications && selectedIndications.length > 0) ? selectedIndications : indicationOrder;
+
+      const yGross = years.map(() => 0);
+      const loeYear = (baseLoeYears[g] || 2040) + patentExtension;
+
       inds.forEach(ind => {
-        const indData = allIndicationsData[ind];
-        if (!indData || !indData.cases[g]) return;
-        const casesArr = indData.cases[g].slice(0, years.length);
+        const pop = (g === 'India') ? indiaPopulation : basePopulation[g];
+        const incidence = incidencePer100k[ind];
+        const neuPct = neurosurgeryPct[ind][g] || 0;
+        const yearlyCases = Math.round(pop * incidence / 100000);
+
         for (let i = 0; i < years.length; i++) {
-          const cases = casesArr[i] || 0;
-          const neuPct = indData.neurosurgeryPct[g] || 0;
-          const adoption = (ind === 'Glioblastoma') ? shares[i] : ((additionalAdoptionCurves[ind] || [])[i] || 0);
-          grossRevenue[i] += cases * neuPct * adoption * regionPrice;
+          const adoption = (ind === 'Glioblastoma')
+            ? shares[i]
+            : (((additionalAdoptionCurves[ind] || [])[i] || 0) * targetShare);
+          let rev = yearlyCases * neuPct * adoption * regionPrice;
+          yGross[i] += applyErosionAfterLoe(rev, years[i], loeYear);
         }
       });
 
-      // accumulate region totals
-      grossRevenue.forEach((val, i) => totalsGrossRevenueByYear[i] += val);
-
-// compute proper midpoints per region bar segment (base + half height)
-if (!window.__stackBaseMulti) window.__stackBaseMulti = {};
-const stackBase = window.__stackBaseMulti[g] || Array(years.length).fill(0);
-const mids = grossRevenue.map((v, i) => stackBase[i] + v / 2);
-
-     const barColor = groupColors[g];
-
-// 1) visible region bar
-traces.push({
-  x: years,
-  y: grossRevenue,
-  type: 'bar',
-  name: g,
-  marker: { color: barColor },
-  offsetgroup: g,
-  hoverlabel: { bgcolor: barColor, font: { color: '#fff' } },
-  hovertemplate: `<b>${g}</b><br>%{x}<br>Revenue: %{y:$,.0f}<extra></extra>`,
-  textposition: 'none'
-});
-
-
-// update stacking base after plotting
-grossRevenue.forEach((v, i) => { stackBase[i] += v; });
-window.__stackBaseMulti[g] = stackBase;
+      perTraceGross.push({
+        name: g,
+        color: groupColors[g],
+        y: yGross
+      });
     });
   }
 
-  // --- Costs, KPIs ---
-  const totalCostsByYear = totalsGrossRevenueByYear.map(gross => gross * variableCostRate);
-  totalCostsByYear[0] += startupCostValue;
-  const totalsNetRevenueByYear = years.map((_, i) => totalsGrossRevenueByYear[i] - totalCostsByYear[i]);
+  // Convert each trace to NET: multiply by (1 - OpEx%)
+  const perTraceNet = perTraceGross.map(t => ({
+    name: t.name,
+    color: t.color,
+    y: t.y.map(v => v * (1 - variableCostRate))
+  }));
 
-  traces.push({
-    x: years,
-    y: totalCostsByYear,
-    type: 'scatter',
-    mode: 'lines',
-    name: 'Total Costs',
-    line: { color: 'rgba(239, 83, 80, 0.8)', width: 2.5 },
-    hovertemplate: `<b>Costs</b><br>%{x}<br>Total Cost: %{y:$,.0f}<extra></extra>`
+
+  // Build Plotly traces (net)
+  perTraceNet.forEach(t => {
+    traces.push({
+      x: years,
+      y: t.y,
+      type: 'bar',
+      name: t.name,
+      marker: { color: t.color },
+      hoverlabel: { bgcolor: t.color, font: { color: '#fff' } },
+      hovertemplate: `<b>${t.name}</b><br>%{x}<br>Net revenue: %{y:$,.0f}<extra></extra>`,
+      textposition: 'none'
+    });
   });
 
-  // bar-top labels placed slightly above each bar
+// Dynamic total costs line (variable OpEx + fixed $30M in 2028)
+const variableCosts = years.map((_, i) =>
+  perTraceGross.reduce((s, t) => s + t.y[i], 0) * variableCostRate
+);
+const costsLine = variableCosts.slice();
+costsLine[0] += startupCostValue;
+
+traces.push({
+  x: years,
+  y: costsLine,
+  type: 'scatter',
+  mode: 'lines',
+  name: 'Total costs',
+  line: { width: 2 },
+  hovertemplate: `<b>Total costs</b><br>%{x}<br>%{y:$,.0f}<extra></extra>`
+});
+
+
+  // Totals & annotations (bars are net of variable OpEx; subtract fixed $30M only in 2028)
+const totalsNetBeforeFixed = years.map((_, i) =>
+  perTraceNet.reduce((s, t) => s + t.y[i], 0)
+);
+const totalsNetRevenueByYear = totalsNetBeforeFixed.map((v, i) =>
+  i === 0 ? (v - startupCostValue) : v
+);
+
+
   const annotations = [];
   totalsNetRevenueByYear.forEach((t, i) => {
     if (t > 1_000_000) {
       annotations.push({
         x: years[i],
-        y: t * 1.06, // 6% above the bar height
+        y: t > 0 ? t * 1.02 : t * 0.94,
         text: fmtShortUSD(t),
         xanchor: 'center',
-        yanchor: 'bottom',
+        yanchor: t > 0 ? 'bottom' : 'top',
         showarrow: false,
         font: { size: 11, color: '#333' }
       });
     }
   });
 
-  const dataMin = Math.min(...totalsNetRevenueByYear, ...totalCostsByYear, 0);
-  const dataMax = Math.max(...totalsNetRevenueByYear, ...totalCostsByYear, 0);
+  // Axis ranges
+  const dataMin = Math.min(...totalsNetRevenueByYear, 0);
+  const dataMax = Math.max(...totalsNetRevenueByYear, 0);
   const pad = (dataMax - dataMin) * 0.08 || Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
   const yMin = dataMin - pad;
   const yMax = dataMax + pad;
   const xaxisPositionNormalized = (0 - yMin) / (yMax - yMin);
 
-const layout = {
-  barmode: 'relative',
-  margin: { t: 42, r: 18, l: 70, b: 60 },
-  xaxis: { 
-    title: 'Year', 
-    tickmode: 'array', 
-    tickvals: years, 
-    ticktext: years.map(y => `'${String(y).slice(2)}`), 
-    automargin: true, 
-    position: xaxisPositionNormalized, 
-    gridcolor: '#f3f3f3' 
-  },
-  yaxis: { 
-    title: 'Revenue / Cost (USD)', 
-    automargin: true, 
-    autorange: false, 
-    range: [yMin, yMax], 
-    zeroline: true, 
-    zerolinewidth: 2, 
-    gridcolor: '#f3f3f3' 
-  },
-  annotations: annotations,
-showlegend: true,
-legend: { x: 0.01, y: 0.98, font: { size: 12 } },
-hovermode: 'x',
-hoverdistance: 50
-};
+  const layout = {
+    barmode: 'relative',
+    margin: { t: 42, r: 18, l: 70, b: 60 },
+    xaxis: { 
+      title: 'Year', 
+      tickmode: 'array', 
+      tickvals: years, 
+      ticktext: years.map(y => `'${String(y).slice(2)}`), 
+      automargin: true, 
+      position: xaxisPositionNormalized, 
+      gridcolor: '#f3f3f3' 
+    },
+    yaxis: { 
+      title: 'Net Revenue (USD)', 
+      automargin: true, 
+      autorange: false, 
+      range: [yMin, yMax], 
+      zeroline: true, 
+      zerolinewidth: 2, 
+      gridcolor: '#f3f3f3' 
+    },
+    annotations: annotations,
+    showlegend: true,
+    legend: { x: 0.01, y: 0.98, font: { size: 12 } },
+    hovermode: 'x',
+    hoverdistance: 50
+  };
 
-  // --- timeline events ---
+  // Timeline arrows
   const timelineEvents = [
     { year: 2028, label: 'Phase II end', color: '#333' },
     { year: 2030, label: 'Launch', color: '#0b5cff' }
@@ -932,7 +946,7 @@ hoverdistance: 50
     if (revenueStartIdx >= 0 && revenueStartIdx < years.length) timelineEvents.push({ year: years[revenueStartIdx], label: `${ind} revenue begins`, color: '#116688' });
   });
 
-  // --- Plotly render ---
+  // Render
   if (!window._plotInitialized) {
     Plotly.newPlot('plot', traces, layout, { responsive: true, displaylogo: false }).then(() => {
       window._plotInitialized = true;
@@ -943,27 +957,54 @@ hoverdistance: 50
     setTimeout(() => renderArrowOverlay(timelineEvents), 50);
   }
 
-  // --- Relayout / resize ---
   const p = document.getElementById('plot');
-  if (p && p.on) {
-    p.on('plotly_relayout', () => renderArrowOverlay(timelineEvents));
-  }
+  if (p && p.on) p.on('plotly_relayout', () => renderArrowOverlay(timelineEvents));
   window.addEventListener('resize', () => setTimeout(() => renderArrowOverlay(timelineEvents), 60));
 
-  // --- KPIs ---
+  // --- KPIs & break-even color logic ---
   const maxNetRev = Math.max(...totalsNetRevenueByYear);
   const maxRevIndex = totalsNetRevenueByYear.indexOf(maxNetRev);
   peakSalesVal.textContent = fmtShortUSD(maxNetRev);
   peakSalesYear.textContent = 'Year: ' + years[maxRevIndex];
   currentTotalNetRevenues = totalsNetRevenueByYear;
-  updateCumKPI();
 
-  peakSalesVal.style.color = (maxNetRev >= 1e9) ? "#00a65a" : "#d9534f";
+  // Break-even: first year where cumulative net ≥ 0
+  let cum = 0, breakevenIndex = -1;
+  for (let i = 0; i < totalsNetRevenueByYear.length; i++) {
+    cum += totalsNetRevenueByYear[i];
+    if (cum >= 0) { breakevenIndex = i; break; }
+  }
+  const isBeforeBreakeven = (breakevenIndex === -1) || (maxRevIndex < breakevenIndex);
+  peakSalesVal.style.color = isBeforeBreakeven ? "#d9534f" : "#00a65a";
+
   erosionRateVal.textContent = (+erosionRate.value).toFixed(1) + '%';
   variableCostVal.textContent = (+variableCostSlider.value).toFixed(1) + '%';
+
   renderCountryAssumptions();
+  updateCumKPI();
 }
 
+
+// -------------------------------
+// Cumulative KPI calculation
+// -------------------------------
+function updateCumKPI() {
+  const startIdx = +cumStart.value;
+  const endIdx = +cumEnd.value;
+
+  if (!currentTotalNetRevenues.length || startIdx >= endIdx) {
+    cumSalesVal.textContent = '$0';
+    cumSpan.textContent = 'Span: —';
+    return;
+  }
+
+  const sum = currentTotalNetRevenues
+    .slice(startIdx, endIdx + 1)
+    .reduce((a, b) => a + b, 0);
+
+  cumSalesVal.textContent = fmtShortUSD(sum);
+  cumSpan.textContent = `Span: ${years[startIdx]}–${years[endIdx]}`;
+}
 
   // -------------------------------
 // Initialization
@@ -973,14 +1014,14 @@ function init() {
 
   // Keep the same default region selection indices ([0,1,2]) but ensure the handler re-renders
   createCheckboxes(countryChecks, groupOrder, [0,1,2], () => {
-    renderPeakYearSliders();
+    renderMarketShareSliders();
     renderTreatmentCostSliders();
     renderCountryAssumptions();  // <-- force re-render of assumptions when regions change
     updatePlot();
   });
 
 // Manually trigger initial rendering for default region checkboxes
-renderPeakYearSliders();
+renderMarketShareSliders();
 renderTreatmentCostSliders();
 renderCountryAssumptions();
 updatePlot();
@@ -999,9 +1040,6 @@ updatePlot();
 
   cumStart.addEventListener('change', updateCumKPI);
   cumEnd.addEventListener('change', updateCumKPI);
-
-renderPeakYearSliders();
-renderTreatmentCostSliders();
 
 // force plot once defaults are set
 setTimeout(() => updatePlot(), 0);
@@ -1029,4 +1067,3 @@ init();
 </script>
 </body>
 </html>
-

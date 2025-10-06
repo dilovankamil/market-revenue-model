@@ -146,16 +146,19 @@ input[type="range"].neutral {
   <strong>How we compute “Addressable patients (at peak)”</strong><br>
   For each indication and region: <em>Total cases</em> × <em>Neurosurgery eligibility</em> × <em>Peak Market Share</em> (set with the slider; ramps linearly to peak in 6 years).
   <div style="margin-top:4px;">
-    Neurosurgery eligibility used for GBM: <strong>~70%</strong>, BM: <strong>~15%</strong>, OPBT: <strong>~33%</strong>.
+    <div>Incidence (per 100k) used → GBM: <strong>~3.0</strong>, BM: <strong>~20.0</strong>, OPBT: <strong>~3.0</strong>.</div>
+    <div style="margin-top:2px;">Neurosurgery eligibility used → GBM: <strong>~70%</strong>, BM: <strong>~20%</strong> (<em>India ~15%</em>), OPBT: <strong>~33%</strong>.</div>
   </div>
 </div>
-      <div id="countryAssumptions"></div>
+
+<div id="countryAssumptions"></div>
+
 
 <!-- New explanatory notes -->
 <div id="assumptionNotes" class="small" style="margin-top:8px; line-height:1.45">
   <div><strong>Patient figures</strong>: For each region, the counts shown per indication (<strong>Glioblastoma</strong>, <strong>Brain Metastasis</strong>, <strong>OPBT</strong>) are the incidence values used by the model (same years window and neurosurgery filters). If data is insufficient in a specific country or region, assumptions are based on other regions' data.</div>
 
-  <div style="margin-top:8px;"><strong>Brain Metastasis eligibility & addressable pool</strong>: Literature places neurosurgery eligibility at <strong>~15%</strong> of all BM cases. In the model the <em>addressable population</em> is defined as <strong>Total BM × (15%)</strong>. Use the <strong>Peak Market Share (%)</strong> slider(s) to set your target capture of this addressable pool by region.</div>
+  <div style="margin-top:8px;"><strong>Brain Metastasis eligibility & addressable pool</strong>: Literature places neurosurgery eligibility at <strong>~15-20%</strong> of all BM cases. In the model the <em>addressable population</em> is defined as <strong>Total BM × (15%)</strong>. Use the <strong>Peak Market Share (%)</strong> slider(s) to set your target capture of this addressable pool by region.</div>
 
   <div style="margin-top:8px;"><strong>Adoption ramp</strong>: From launch, market share increases linearly to the selected slider value over <strong>6 years</strong>, then remains at that level until loss of exclusivity (LoE). After LoE, revenues erode at the rate set by the <strong>Post-LoE annual erosion</strong> slider.</div>
 
@@ -243,14 +246,14 @@ let indiaPopulation = basePopulation["India"]; // editable
 // Incidence per 100k (yearly)
 const incidencePer100k = {
   "Glioblastoma": 3.0,
-  "Brain Metastasis": 53.7,
+  "Brain Metastasis": 20.0,
   "OPBT": 3.0
 };
 
 // Neurosurgery eligibility (% of cases)
 const neurosurgeryPct = {
   "Glioblastoma": { "EU4+UK": 0.70, "US": 0.73, "Japan": 0.70, "India": 0.50 },
-  "Brain Metastasis": { "EU4+UK": 0.08, "US": 0.08, "Japan": 0.07, "India": 0.07 },
+  "Brain Metastasis": { "EU4+UK": 0.20, "US": 0.20, "Japan": 0.20, "India": 0.15 },
   "OPBT": { "EU4+UK": 0.33, "US": 0.33, "Japan": 0.33, "India": 0.33 }
 };
 

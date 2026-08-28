@@ -21,6 +21,10 @@ export interface DealResult {
 }
 
 export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult => {
+  const coreClinicalProbability = (model.valuation.clinicalSuccessPctByIndication.gbm ?? 100) / 100;
+  const additionalRiskMultiplier = model.valuation.riskAdjustmentPct / 100;
+  const milestoneRiskFactor = coreClinicalProbability * additionalRiskMultiplier;
+
   if (terms.type === 'self-commercialize') {
     return {
       indicativeValueUsd: model.valuation.riskAdjustedNpvUsd,
@@ -32,12 +36,14 @@ export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult 
     };
   }
 
+  const riskAdjustedMilestonesUsd = terms.milestonesUsd * milestoneRiskFactor;
+
   if (terms.type === 'acquisition') {
     return {
-      indicativeValueUsd: terms.upfrontUsd + terms.milestonesUsd,
+      indicativeValueUsd: terms.upfrontUsd + riskAdjustedMilestonesUsd,
       fundingBurdenUsd: 0,
       upfrontValueUsd: terms.upfrontUsd,
-      riskAdjustedMilestonesUsd: terms.milestonesUsd,
+      riskAdjustedMilestonesUsd,
       royaltyNpvUsd: 0,
       retainedValueUsd: 0,
     };
@@ -45,15 +51,13 @@ export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult 
 
   const startYear = model.years[0]?.year ?? 0;
   const discountRate = model.valuation.discountRatePct / 100;
-  const riskFactor = model.valuation.riskAdjustmentPct / 100;
 
   const royaltyNpvUsd = model.years.reduce((sum, row) => {
     const t = row.year - startYear;
-    const royaltyCash = row.grossRevenueUsd * (terms.royaltyPct / 100) * riskFactor;
+    const royaltyCash = row.riskAdjustedGrossRevenueUsd * (terms.royaltyPct / 100);
     return sum + royaltyCash / Math.pow(1 + discountRate, t);
   }, 0);
 
-  const riskAdjustedMilestonesUsd = terms.milestonesUsd * riskFactor;
   const retainedValueUsd = model.valuation.riskAdjustedNpvUsd * (terms.retainedCommercialPct / 100);
   const fundingBurdenUsd = model.peakFundingRequirementUsd * (1 - terms.partnerDevelopmentFundingPct / 100);
 

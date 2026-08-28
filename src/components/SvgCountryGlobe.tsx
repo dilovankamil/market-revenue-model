@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import * as d3 from 'd3';
+import { regionColor } from '../model/marketRegions';
 import type { CountryAssumption, CountryId } from '../model/types';
 import type { GlobeCountrySelection } from './CountryGlobe';
 
@@ -12,41 +13,15 @@ interface SvgCountryGlobeProps {
   autoRotate?: boolean;
 }
 
-type WorldFeature = {
-  type: 'Feature';
-  id?: string | number;
-  properties?: { name?: string };
-  geometry: unknown;
-};
-
-type WorldData = {
-  type: 'FeatureCollection';
-  features: WorldFeature[];
-};
+type WorldFeature = { type: 'Feature'; id?: string | number; properties?: { name?: string }; geometry: unknown };
+type WorldData = { type: 'FeatureCollection'; features: WorldFeature[] };
 
 const WIDTH = 760;
 const HEIGHT = 760;
-const enabledColor = '#4fd1c5';
-const inactiveColor = '#263746';
 const defaultCountryColor = '#172938';
-
 const worldDataUrl = `${import.meta.env.BASE_URL}world.geojson`;
 
-const metricColor = (value: number, max: number) => {
-  if (value <= 0 || max <= 0) return enabledColor;
-  const fraction = Math.min(1, Math.sqrt(value / max));
-  const lightness = 34 + fraction * 30;
-  return `hsl(174 62% ${lightness}%)`;
-};
-
-export function SvgCountryGlobe({
-  countries,
-  selectedCountryId,
-  onSelectCountry,
-  onInspectCountry,
-  metricByCountry = {},
-  autoRotate = false,
-}: SvgCountryGlobeProps) {
+export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry, onInspectCountry, metricByCountry = {}, autoRotate = false }: SvgCountryGlobeProps) {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [rotation, setRotation] = useState<[number, number]>([-12, -12]);
@@ -55,42 +30,23 @@ export function SvgCountryGlobe({
   useEffect(() => {
     let active = true;
     fetch(worldDataUrl)
-      .then((response) => {
-        if (!response.ok) throw new Error(`World map request failed (${response.status})`);
-        return response.json() as Promise<WorldData>;
-      })
+      .then((response) => { if (!response.ok) throw new Error(`World map request failed (${response.status})`); return response.json() as Promise<WorldData>; })
       .then((data) => { if (active) setWorld(data); })
-      .catch((error) => {
-        console.error('Could not load bundled world geometry', error);
-        if (active) setLoadError(true);
-      });
+      .catch((error) => { console.error('Could not load bundled world geometry', error); if (active) setLoadError(true); });
     return () => { active = false; };
   }, []);
 
   useEffect(() => {
     if (!autoRotate || dragRef.current) return;
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (reducedMotion) return;
-    const timer = window.setInterval(() => {
-      setRotation(([lon, lat]) => [lon + 0.38, lat]);
-    }, 70);
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => setRotation(([lon, lat]) => [lon + 0.38, lat]), 70);
     return () => window.clearInterval(timer);
   }, [autoRotate]);
 
-  const projection = useMemo(
-    () => d3.geoOrthographic()
-      .translate([WIDTH / 2, HEIGHT / 2])
-      .scale(342)
-      .rotate(rotation)
-      .clipAngle(90)
-      .precision(0.35),
-    [rotation],
-  );
-
+  const projection = useMemo(() => d3.geoOrthographic().translate([WIDTH / 2, HEIGHT / 2]).scale(342).rotate(rotation).clipAngle(90).precision(0.35), [rotation]);
   const path = useMemo(() => d3.geoPath(projection), [projection]);
   const spherePath = path({ type: 'Sphere' } as d3.GeoPermissibleObjects) ?? '';
   const graticulePath = path(d3.geoGraticule10()) ?? '';
-  const maxMetric = Math.max(0, ...countries.map((country) => metricByCountry[country.id] ?? 0));
 
   const countryByFeature = (feature: WorldFeature) => {
     const id = String(feature.id ?? '');
@@ -102,13 +58,11 @@ export function SvgCountryGlobe({
     const country = countryByFeature(feature);
     if (!country) return defaultCountryColor;
     const hasTemporalMetric = Object.prototype.hasOwnProperty.call(metricByCountry, country.id);
-    const metric = metricByCountry[country.id] ?? 0;
-    const active = country.enabled && (!hasTemporalMetric || metric > 0);
-    if (!active) return inactiveColor;
-    return metricColor(metric, maxMetric);
+    const revenueActive = !hasTemporalMetric || (metricByCountry[country.id] ?? 0) > 0;
+    return regionColor(country.region, country.enabled && revenueActive);
   };
 
-  const handleFeatureClick = (feature: WorldFeature) => {
+  const selectFeature = (feature: WorldFeature) => {
     const id = String(feature.id ?? '');
     const name = feature.properties?.name ?? id;
     const country = countryByFeature(feature);
@@ -124,67 +78,27 @@ export function SvgCountryGlobe({
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { x: event.clientX, y: event.clientY, rotation };
   };
-
   const pointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const drag = dragRef.current;
     if (!drag) return;
     const dx = event.clientX - drag.x;
     const dy = event.clientY - drag.y;
-    setRotation([
-      drag.rotation[0] + dx * 0.28,
-      Math.max(-70, Math.min(70, drag.rotation[1] - dy * 0.22)),
-    ]);
+    setRotation([drag.rotation[0] + dx * 0.28, Math.max(-70, Math.min(70, drag.rotation[1] - dy * 0.22))]);
   };
-
   const pointerUp = (event: PointerEvent<SVGSVGElement>) => {
     try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
     dragRef.current = null;
   };
 
-  if (loadError) {
-    return (
-      <div className="country-globe globe-safe-fallback" aria-label="SI-053 global market view">
-        <div className="globe-fallback" role="status">
-          <strong>World map data unavailable</strong>
-          <span>The commercial model remains available, but the bundled country geometry could not be loaded.</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!world) {
-    return (
-      <div className="country-globe globe-safe-fallback" aria-label="SI-053 global market view">
-        <div className="globe-fallback globe-loading" role="status">
-          <div className="globe-loading-orb" aria-hidden="true" />
-          <strong>Loading global opportunity…</strong>
-        </div>
-      </div>
-    );
-  }
+  if (loadError) return <div className="country-globe globe-safe-fallback"><div className="globe-fallback" role="status"><strong>World map data unavailable</strong><span>The commercial model remains available, but the bundled country geometry could not be loaded.</span></div></div>;
+  if (!world) return <div className="country-globe globe-safe-fallback"><div className="globe-fallback globe-loading" role="status"><div className="globe-loading-orb" aria-hidden="true" /><strong>Loading global opportunity…</strong></div></div>;
 
   return (
     <div className="country-globe svg-globe-shell" aria-label="Interactive SI-053 global opportunity globe">
-      <svg
-        className="svg-country-globe"
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        role="img"
-        aria-label="Rotatable world globe showing SI-053 markets"
-        onPointerDown={pointerDown}
-        onPointerMove={pointerMove}
-        onPointerUp={pointerUp}
-        onPointerCancel={pointerUp}
-      >
+      <svg className="svg-country-globe" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label="Rotatable world globe showing SI-053 markets" onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp}>
         <defs>
-          <radialGradient id="si053-ocean" cx="38%" cy="30%" r="72%">
-            <stop offset="0%" stopColor="#173f57" />
-            <stop offset="56%" stopColor="#0a273a" />
-            <stop offset="100%" stopColor="#04121f" />
-          </radialGradient>
-          <filter id="si053-glow" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="11" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
+          <radialGradient id="si053-ocean" cx="38%" cy="30%" r="72%"><stop offset="0%" stopColor="#173f57" /><stop offset="56%" stopColor="#0a273a" /><stop offset="100%" stopColor="#04121f" /></radialGradient>
+          <filter id="si053-glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="11" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
         </defs>
         <path className="globe-atmosphere" d={spherePath} />
         <path className="globe-ocean" d={spherePath} />
@@ -197,20 +111,19 @@ export function SvgCountryGlobe({
             const selected = country?.id === selectedCountryId;
             return (
               <path
-                key={`${String(feature.id ?? feature.properties?.name ?? index)}`}
+                key={String(feature.id ?? feature.properties?.name ?? index)}
                 d={featurePath}
                 className={`globe-country ${country ? 'configured' : ''} ${selected ? 'selected' : ''}`}
                 fill={fillForFeature(feature)}
-                onClick={(event) => { event.stopPropagation(); handleFeatureClick(feature); }}
-              >
-                <title>{country?.name ?? feature.properties?.name ?? 'Country'}</title>
-              </path>
+                onPointerDown={country ? (event) => { event.stopPropagation(); selectFeature(feature); } : undefined}
+                onClick={!country ? (event) => { event.stopPropagation(); selectFeature(feature); } : undefined}
+              ><title>{country?.name ?? feature.properties?.name ?? 'Country'}</title></path>
             );
           })}
         </g>
         <path className="globe-rim" d={spherePath} />
       </svg>
-      <div className="globe-drag-hint">Drag to rotate · tap a configured country to select</div>
+      <div className="globe-drag-hint">Drag ocean to rotate · tap a market to add/select it</div>
     </div>
   );
 }

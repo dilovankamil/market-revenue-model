@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import type { Map as MapLibreMap, MapLayerMouseEvent } from 'maplibre-gl';
+import type { Map as MapLibreMap, MapMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CountryAssumption, CountryId } from '../model/types';
 
@@ -10,10 +10,17 @@ const enabledColor = '#4fd1c5';
 const inactiveColor = '#263341';
 const namedPatientColor = '#f5b942';
 
+export interface GlobeCountrySelection {
+  id: string;
+  name: string;
+  configured: boolean;
+}
+
 interface CountryGlobeProps {
   countries: CountryAssumption[];
   selectedCountryId: CountryId | null;
   onSelectCountry: (countryId: CountryId) => void;
+  onInspectCountry?: (selection: GlobeCountrySelection) => void;
   metricByCountry?: Partial<Record<CountryId, number>>;
 }
 
@@ -41,16 +48,18 @@ const fillExpression = (countries: CountryAssumption[], metricByCountry: Partial
   return expression;
 };
 
-export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, metricByCountry = {} }: CountryGlobeProps) {
+export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, onInspectCountry, metricByCountry = {} }: CountryGlobeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const countriesRef = useRef(countries);
   const metricRef = useRef(metricByCountry);
   const onSelectRef = useRef(onSelectCountry);
+  const onInspectRef = useRef(onInspectCountry);
 
   useEffect(() => { countriesRef.current = countries; }, [countries]);
   useEffect(() => { metricRef.current = metricByCountry; }, [metricByCountry]);
   useEffect(() => { onSelectRef.current = onSelectCountry; }, [onSelectCountry]);
+  useEffect(() => { onInspectRef.current = onInspectCountry; }, [onInspectCountry]);
 
   const selectedGeoName = useMemo(
     () => countries.find((country) => country.id === selectedCountryId)?.geoName ?? null,
@@ -97,10 +106,19 @@ export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, me
 
       map.on('mousemove', 'si053-countries', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'si053-countries', () => { map.getCanvas().style.cursor = ''; });
-      map.on('click', 'si053-countries', (event: MapLayerMouseEvent) => {
-        const name = event.features?.[0]?.properties?.name as string | undefined;
-        const match = countriesRef.current.find((country) => country.geoName === name);
-        if (match) onSelectRef.current(match.id);
+      map.on('click', 'si053-countries', (event: MapMouseEvent) => {
+        const feature = event.features?.[0];
+        const name = feature?.properties?.name as string | undefined;
+        const id = typeof feature?.id === 'string' ? feature.id : String(feature?.id ?? '');
+        if (!name || !id) return;
+
+        const match = countriesRef.current.find((country) => country.id === id || country.geoName === name);
+        if (match) {
+          onSelectRef.current(match.id);
+          onInspectRef.current?.({ id: match.id, name: match.name, configured: true });
+        } else {
+          onInspectRef.current?.({ id, name, configured: false });
+        }
       });
     });
 

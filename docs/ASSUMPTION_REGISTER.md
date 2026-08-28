@@ -106,14 +106,14 @@ The commercial scenario currently permits launch before the configured programme
 - Forecast horizon: **2026–2047**
 - Discount rate: **10.135%**
 - Corporate tax: **20%**
-- Additional commercial risk multiplier: **70%**
+- Additional risk multiplier: **100% in the base case**
 - Perpetual terminal value: **none**
 
 Stage-adjusted commercial success from the configured GBM stages is currently:
 
 `100% × 70% × 65% = 45.5%`
 
-The additional 70% risk multiplier is then applied to risk-adjusted commercial contribution. This can double-count uncertainty if the 70% was originally intended to represent clinical success. Management should define what this second risk factor is meant to represent (commercial/regulatory/forecast risk) or set it to 100%.
+The stage probabilities now provide the base clinical risk adjustment. The separate global multiplier defaults to 100%, so it does not double-count clinical risk; it remains available only for an intentional additional sensitivity haircut. The conservative preset uses an 85% additional multiplier.
 
 ## Corporate finance
 
@@ -131,7 +131,7 @@ Therefore public/demo “funding requirement” is **not the full DBP corporate 
 1. Define OPBT precisely and replace its incidence placeholder.
 2. Refresh brain-metastasis epidemiology.
 3. Reconcile launch/development/regulatory pathway assumptions.
-4. Decide what stage probabilities and the additional 70% risk multiplier each represent.
+4. Validate stage probabilities and decide whether any additional risk haircut is justified.
 5. Validate country pricing and COGS.
 6. Validate India/China access assumptions.
 7. Load approved aggregate corporate costs/financing privately and reconcile cash runway to the finance workbook.

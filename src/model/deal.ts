@@ -14,6 +14,10 @@ export interface DealTerms {
 export interface DealResult {
   indicativeValueUsd: number;
   fundingBurdenUsd: number;
+  upfrontValueUsd: number;
+  riskAdjustedMilestonesUsd: number;
+  royaltyNpvUsd: number;
+  retainedValueUsd: number;
 }
 
 export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult => {
@@ -21,6 +25,10 @@ export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult 
     return {
       indicativeValueUsd: model.valuation.riskAdjustedNpvUsd,
       fundingBurdenUsd: model.peakFundingRequirementUsd,
+      upfrontValueUsd: 0,
+      riskAdjustedMilestonesUsd: 0,
+      royaltyNpvUsd: 0,
+      retainedValueUsd: model.valuation.riskAdjustedNpvUsd,
     };
   }
 
@@ -28,15 +36,33 @@ export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult 
     return {
       indicativeValueUsd: terms.upfrontUsd + terms.milestonesUsd,
       fundingBurdenUsd: 0,
+      upfrontValueUsd: terms.upfrontUsd,
+      riskAdjustedMilestonesUsd: terms.milestonesUsd,
+      royaltyNpvUsd: 0,
+      retainedValueUsd: 0,
     };
   }
 
-  const royaltyValue = model.cumulativeRevenueUsd * (terms.royaltyPct / 100);
-  const retainedValue = model.valuation.riskAdjustedNpvUsd * (terms.retainedCommercialPct / 100);
+  const startYear = model.years[0]?.year ?? 0;
+  const discountRate = model.valuation.discountRatePct / 100;
+  const riskFactor = model.valuation.riskAdjustmentPct / 100;
+
+  const royaltyNpvUsd = model.years.reduce((sum, row) => {
+    const t = row.year - startYear;
+    const royaltyCash = row.grossRevenueUsd * (terms.royaltyPct / 100) * riskFactor;
+    return sum + royaltyCash / Math.pow(1 + discountRate, t);
+  }, 0);
+
+  const riskAdjustedMilestonesUsd = terms.milestonesUsd * riskFactor;
+  const retainedValueUsd = model.valuation.riskAdjustedNpvUsd * (terms.retainedCommercialPct / 100);
   const fundingBurdenUsd = model.peakFundingRequirementUsd * (1 - terms.partnerDevelopmentFundingPct / 100);
 
   return {
-    indicativeValueUsd: terms.upfrontUsd + terms.milestonesUsd + royaltyValue + retainedValue,
+    indicativeValueUsd: terms.upfrontUsd + riskAdjustedMilestonesUsd + royaltyNpvUsd + retainedValueUsd,
     fundingBurdenUsd,
+    upfrontValueUsd: terms.upfrontUsd,
+    riskAdjustedMilestonesUsd,
+    royaltyNpvUsd,
+    retainedValueUsd,
   };
 };

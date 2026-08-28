@@ -107,6 +107,7 @@ const calculateCountryYear = (
   let grossRevenueUsd = 0;
   let cogsUsd = 0;
   let commercialOpexUsd = 0;
+  const grossRevenueByIndicationUsd = emptyIndicationRecord();
   const contributionByIndicationUsd = emptyIndicationRecord();
 
   const enabledIndications = Object.values(scenario.indications).filter((indication) => indication.enabled);
@@ -134,6 +135,7 @@ const calculateCountryYear = (
     grossRevenueUsd += revenue;
     cogsUsd += indicationCogs;
     commercialOpexUsd += indicationOpex;
+    grossRevenueByIndicationUsd[indication.id] += revenue;
     contributionByIndicationUsd[indication.id] += contribution;
   });
 
@@ -147,6 +149,7 @@ const calculateCountryYear = (
     cogsUsd,
     commercialOpexUsd,
     contributionUsd: grossRevenueUsd - cogsUsd - commercialOpexUsd,
+    grossRevenueByIndicationUsd,
     contributionByIndicationUsd,
   };
 };
@@ -193,6 +196,14 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     const taxUsd = preTaxCashFlow > 0 ? preTaxCashFlow * scenario.financial.corporateTaxPct / 100 : 0;
     const netCashFlowUsd = preTaxCashFlow - taxUsd;
 
+    const riskAdjustedGrossRevenueUsd = indicationIds.reduce((sum, indication) => {
+      const revenue = countryRows.reduce(
+        (countrySum, row) => countrySum + row.grossRevenueByIndicationUsd[indication],
+        0,
+      );
+      return sum + revenue * clinicalSuccess[indication] * additionalRiskMultiplier;
+    }, 0);
+
     const riskAdjustedCommercialContribution = indicationIds.reduce((sum, indication) => {
       const contribution = countryRows.reduce(
         (countrySum, row) => countrySum + row.contributionByIndicationUsd[indication],
@@ -219,6 +230,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     return {
       year,
       grossRevenueUsd,
+      riskAdjustedGrossRevenueUsd,
       cogsUsd,
       commercialOpexUsd,
       developmentCostsUsd,

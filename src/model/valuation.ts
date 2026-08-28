@@ -5,7 +5,7 @@ export const calculateValuation = (
   startYear: number,
   discountRatePct: number,
   riskAdjustmentPct: number,
-  clinicalSuccessPctByIndication: Record<IndicationId, number>,
+  commercializationSuccessPctByIndication: Record<IndicationId, number>,
 ): ValuationResult => {
   const discountRate = discountRatePct / 100;
 
@@ -24,6 +24,6 @@ export const calculateValuation = (
     riskAdjustedNpvUsd,
     discountRatePct,
     riskAdjustmentPct,
-    clinicalSuccessPctByIndication,
+    commercializationSuccessPctByIndication,
   };
 };

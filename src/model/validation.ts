@@ -12,6 +12,7 @@ export interface ValidationIssue {
 const indicationIds: IndicationId[] = ['gbm', 'brainMetastasis', 'opbt'];
 const finite = (value: number) => Number.isFinite(value);
 const inRange = (value: number, min: number, max: number) => finite(value) && value >= min && value <= max;
+const isConfirmatoryStage = (phase: string) => /confirmatory/i.test(phase);
 
 export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
@@ -43,18 +44,6 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
       if (!Number.isInteger(launch)) add('error', 'invalid-launch-year', `${base}.launchYearByIndication.${indication}`, `${country.name}: ${indication} launch year must be an integer.`);
       if (!inRange(eligibility, 0, 1)) add('error', 'invalid-surgery-eligibility', `${base}.surgeryEligibility.${indication}`, `${country.name}: ${indication} surgery eligibility must be between 0 and 1.`);
       if (Number.isInteger(launch) && country.loeYear < launch) add('error', 'loe-before-launch', `${base}.loeYear`, `${country.name}: LoE (${country.loeYear}) occurs before ${indication} launch (${launch}).`);
-    }
-
-    if (country.accessRoute === 'named-patient') {
-      if (!country.namedPatient) {
-        add('error', 'missing-named-patient-config', `${base}.namedPatient`, `${country.name}: named-patient access requires namedPatient assumptions.`);
-      } else {
-        const config = country.namedPatient;
-        if (!Number.isInteger(config.startYear)) add('error', 'invalid-named-patient-start', `${base}.namedPatient.startYear`, `${country.name}: named-patient start year must be an integer.`);
-        if (!finite(config.centres) || config.centres < 0 || !finite(config.maxCentres) || config.maxCentres < config.centres) add('error', 'invalid-centres', `${base}.namedPatient`, `${country.name}: centre counts are invalid.`);
-        if (!inRange(config.conversionPct, 0, 100)) add('error', 'invalid-conversion', `${base}.namedPatient.conversionPct`, `${country.name}: conversion must be between 0% and 100%.`);
-        if (!finite(config.eligiblePatientsPerCentre) || config.eligiblePatientsPerCentre < 0) add('error', 'invalid-centre-throughput', `${base}.namedPatient.eligiblePatientsPerCentre`, `${country.name}: eligible patients per centre cannot be negative.`);
-      }
     }
 
     if (country.assumptionStatus === 'proxy') {
@@ -90,15 +79,18 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
   if (!inRange(scenario.financial.riskAdjustmentPct, 0, 100)) add('error', 'invalid-risk-adjustment', 'financial.riskAdjustmentPct', 'Additional risk multiplier must be between 0% and 100%.');
   if (!finite(scenario.financial.discountRatePct) || scenario.financial.discountRatePct <= -100 || scenario.financial.discountRatePct > 100) add('error', 'invalid-discount-rate', 'financial.discountRatePct', 'Discount rate is outside the supported range (-100%, 100%].');
 
+  // Commercial launch is compared with the last non-confirmatory stage only. A study explicitly
+  // designated "Confirmatory" may overlap the post-launch period without creating a timing warning.
   for (const indication of indicationIds) {
     if (!scenario.indications[indication]?.enabled) continue;
-    const stages = scenario.developmentStages.filter((stage) => stage.indication === indication);
-    if (!stages.length) continue;
-    const latestEndYear = Math.max(...stages.map((stage) => new Date(`${stage.endDate}T00:00:00Z`).getUTCFullYear()));
+    const gateStages = scenario.developmentStages
+      .filter((stage) => stage.indication === indication && !isConfirmatoryStage(stage.phase));
+    if (!gateStages.length) continue;
+    const gateEndYear = Math.max(...gateStages.map((stage) => new Date(`${stage.endDate}T00:00:00Z`).getUTCFullYear()));
     for (const country of countries.filter((item) => item.enabled && item.accessRoute === 'commercial')) {
       const launch = country.launchYearByIndication[indication];
-      if (launch < latestEndYear) {
-        add('warning', 'launch-before-programme-end', `countries.${country.id}.launchYearByIndication.${indication}`, `${country.name}: ${indication} commercial launch (${launch}) precedes the configured development programme end (${latestEndYear}); this implies an early/accelerated route or a timing inconsistency.`);
+      if (launch <= gateEndYear) {
+        add('warning', 'launch-before-commercial-gate', `countries.${country.id}.launchYearByIndication.${indication}`, `${country.name}: ${indication} launch (${launch}) is not after the configured pre-launch programme gate (${gateEndYear}).`);
       }
     }
   }

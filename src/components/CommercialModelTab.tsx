@@ -1,4 +1,4 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { RevenueChart } from './RevenueChart';
 import { cloneScenario } from '../model/assumptions';
 import type { CountryAssumption, ModelResult, RegionId, Scenario } from '../model/types';
@@ -19,7 +19,6 @@ const formatUsd = (value: number) => {
 
 const accessLabel = (route: CountryAssumption['accessRoute']) => ({
   commercial: 'Commercial',
-  'named-patient': 'Named-patient',
   'clinical-trial': 'Clinical trial',
   none: 'Not available',
 }[route]);
@@ -28,6 +27,7 @@ const average = (values: number[]) => values.length ? values.reduce((sum, value)
 
 export function CommercialModelTab({ scenario, result, setScenario }: Props) {
   const [advanced, setAdvanced] = useState(false);
+  const advancedRef = useRef<HTMLElement | null>(null);
 
   const updateCountry = <K extends keyof CountryAssumption>(countryId: string, key: K, value: CountryAssumption[K]) => {
     setScenario((current) => {
@@ -71,6 +71,17 @@ export function CommercialModelTab({ scenario, result, setScenario }: Props) {
     });
   };
 
+  const toggleAdvanced = () => {
+    if (advanced) {
+      setAdvanced(false);
+      return;
+    }
+    setAdvanced(true);
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+      advancedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+  };
+
   return (
     <>
       <section className="panel commercial-simple-panel">
@@ -80,8 +91,8 @@ export function CommercialModelTab({ scenario, result, setScenario }: Props) {
             <h3>Set the big levers first</h3>
             <p className="panel-subcopy">The simple view groups active commercial markets by region. Changes apply to every active commercial country in that region.</p>
           </div>
-          <button className="advanced-toggle" onClick={() => setAdvanced((current) => !current)}>
-            <span>{advanced ? '−' : '+'}</span>{advanced ? 'Hide advanced' : 'Advanced controls'}
+          <button className="advanced-toggle" onClick={toggleAdvanced}>
+            <span>{advanced ? '−' : '+'}</span>{advanced ? 'Hide advanced' : 'Advanced controls ↓'}
           </button>
         </div>
 
@@ -89,8 +100,8 @@ export function CommercialModelTab({ scenario, result, setScenario }: Props) {
           {regionCards.map((card) => (
             <article className={`commercial-region-card ${card.countries.length ? '' : 'empty'}`} key={card.region}>
               <div className="region-card-heading">
-                <div><span>{card.region}</span><strong>{card.countries.length ? card.countries.map((country) => country.name).join(', ') : 'No active commercial markets'}</strong></div>
-                {card.launch && <small>GBM launch {card.launch}</small>}
+                <div><span>{card.region}</span><strong>{card.countries.length ? `${card.countries.length} active market${card.countries.length === 1 ? '' : 's'}` : 'No active commercial markets'}</strong></div>
+                {card.launch && <small>Earliest GBM launch {card.launch}</small>}
               </div>
               {card.countries.length > 0 ? (
                 <>
@@ -113,7 +124,7 @@ export function CommercialModelTab({ scenario, result, setScenario }: Props) {
       </section>
 
       {advanced && (
-        <section className="advanced-commercial-shell">
+        <section className="advanced-commercial-shell" ref={advancedRef}>
           <div className="advanced-section-heading"><span>Advanced commercial model</span><small>Country-level assumptions and portfolio economics</small></div>
           <div className="two-column-layout">
             <div className="panel controls-panel">

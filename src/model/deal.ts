@@ -21,9 +21,9 @@ export interface DealResult {
 }
 
 export const calculateDeal = (model: ModelResult, terms: DealTerms): DealResult => {
-  const coreClinicalProbability = (model.valuation.clinicalSuccessPctByIndication.gbm ?? 100) / 100;
+  const coreCommercializationProbability = (model.valuation.commercializationSuccessPctByIndication.gbm ?? 100) / 100;
   const additionalRiskMultiplier = model.valuation.riskAdjustmentPct / 100;
-  const milestoneRiskFactor = coreClinicalProbability * additionalRiskMultiplier;
+  const milestoneRiskFactor = coreCommercializationProbability * additionalRiskMultiplier;
 
   if (terms.type === 'self-commercialize') {
     return {

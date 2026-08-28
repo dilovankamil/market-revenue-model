@@ -24,11 +24,10 @@ type WorldData = {
   features: WorldFeature[];
 };
 
-const WIDTH = 900;
-const HEIGHT = 520;
+const WIDTH = 760;
+const HEIGHT = 760;
 const enabledColor = '#4fd1c5';
 const inactiveColor = '#263746';
-const namedPatientColor = '#f5b942';
 const defaultCountryColor = '#172938';
 
 const worldDataUrl = `${import.meta.env.BASE_URL}world.geojson`;
@@ -81,7 +80,7 @@ export function SvgCountryGlobe({
   const projection = useMemo(
     () => d3.geoOrthographic()
       .translate([WIDTH / 2, HEIGHT / 2])
-      .scale(238)
+      .scale(342)
       .rotate(rotation)
       .clipAngle(90)
       .precision(0.35),
@@ -106,7 +105,6 @@ export function SvgCountryGlobe({
     const metric = metricByCountry[country.id] ?? 0;
     const active = country.enabled && (!hasTemporalMetric || metric > 0);
     if (!active) return inactiveColor;
-    if (country.accessRoute === 'named-patient') return namedPatientColor;
     return metricColor(metric, maxMetric);
   };
 
@@ -201,9 +199,9 @@ export function SvgCountryGlobe({
               <path
                 key={`${String(feature.id ?? feature.properties?.name ?? index)}`}
                 d={featurePath}
-                className={`globe-country ${selected ? 'selected' : ''}`}
+                className={`globe-country ${country ? 'configured' : ''} ${selected ? 'selected' : ''}`}
                 fill={fillForFeature(feature)}
-                onClick={() => handleFeatureClick(feature)}
+                onClick={(event) => { event.stopPropagation(); handleFeatureClick(feature); }}
               >
                 <title>{country?.name ?? feature.properties?.name ?? 'Country'}</title>
               </path>
@@ -212,7 +210,7 @@ export function SvgCountryGlobe({
         </g>
         <path className="globe-rim" d={spherePath} />
       </svg>
-      <div className="globe-drag-hint">Drag to rotate</div>
+      <div className="globe-drag-hint">Drag to rotate · tap a configured country to select</div>
     </div>
   );
 }

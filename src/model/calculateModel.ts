@@ -39,17 +39,6 @@ const commercialAdoption = (
   return (country.peakSharePct / 100) * Math.min(1, elapsed / indication.defaultRampYears);
 };
 
-const namedPatientTreated = (country: CountryAssumption, year: number) => {
-  const config = country.namedPatient;
-  if (!config || year < config.startYear) return 0;
-  const elapsed = year - config.startYear;
-  const centres = Math.min(
-    config.maxCentres,
-    config.centres * Math.pow(1 + config.annualCentreGrowthPct / 100, elapsed),
-  );
-  return centres * config.eligiblePatientsPerCentre * (config.conversionPct / 100);
-};
-
 const activeDevelopmentCostForYear = (stage: DevelopmentStage, year: number) => {
   const start = new Date(`${stage.startDate}T00:00:00Z`);
   const end = new Date(`${stage.endDate}T00:00:00Z`);
@@ -75,12 +64,28 @@ const stagesForIndication = (scenario: Scenario, indication: IndicationId) =>
     .filter((stage) => stage.indication === indication)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
 
-const clinicalSuccessByIndication = (scenario: Scenario): Record<IndicationId, number> => {
+const earliestCommercialLaunch = (scenario: Scenario, indication: IndicationId) => {
+  const launches = Object.values(scenario.countries)
+    .filter((country) => country.accessRoute === 'commercial')
+    .map((country) => country.launchYearByIndication[indication]);
+  return launches.length ? Math.min(...launches) : scenario.endYear + 1;
+};
+
+/**
+ * Revenue is risk-adjusted only through the stage gate required before the first modeled
+ * commercial launch. A confirmatory study that finishes after launch is therefore not
+ * multiplied into the probability of initial commercialization.
+ */
+const commercializationSuccessByIndication = (scenario: Scenario): Record<IndicationId, number> => {
   const result = emptyIndicationRecord();
   indicationIds.forEach((indication) => {
-    const stages = stagesForIndication(scenario, indication);
-    result[indication] = stages.length
-      ? stages.reduce((probability, stage) => probability * (stage.successProbabilityPct / 100), 1)
+    const launchYear = earliestCommercialLaunch(scenario, indication);
+    const preLaunchStages = stagesForIndication(scenario, indication).filter((stage) => {
+      const endYear = Number(stage.endDate.slice(0, 4));
+      return endYear < launchYear;
+    });
+    result[indication] = preLaunchStages.length
+      ? preLaunchStages.reduce((probability, stage) => probability * (stage.successProbabilityPct / 100), 1)
       : 1;
   });
   return result;
@@ -119,12 +124,9 @@ const calculateCountryYear = (
     const eligible = accessibleCases * country.surgeryEligibility[indication.id];
     eligiblePatients += eligible;
 
-    let treated = 0;
-    if (country.accessRoute === 'commercial') {
-      treated = eligible * commercialAdoption(country, indication, year);
-    } else if (country.accessRoute === 'named-patient' && indication.id === 'gbm') {
-      treated = Math.min(eligible, namedPatientTreated(country, year));
-    }
+    const treated = country.accessRoute === 'commercial'
+      ? eligible * commercialAdoption(country, indication, year)
+      : 0;
 
     const revenue = treated * country.priceUsd * erosionFactor(scenario, country, year);
     const indicationCogs = treated * scenario.financial.cogsPerTreatmentUsd;
@@ -165,7 +167,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     modelYears.map((year) => calculateCountryYear(scenario, country, year)),
   );
 
-  const clinicalSuccess = clinicalSuccessByIndication(scenario);
+  const commercializationSuccess = commercializationSuccessByIndication(scenario);
   const additionalRiskMultiplier = scenario.financial.riskAdjustmentPct / 100;
 
   let cumulativeCashFlowUsd = 0;
@@ -201,7 +203,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
         (countrySum, row) => countrySum + row.grossRevenueByIndicationUsd[indication],
         0,
       );
-      return sum + revenue * clinicalSuccess[indication] * additionalRiskMultiplier;
+      return sum + revenue * commercializationSuccess[indication] * additionalRiskMultiplier;
     }, 0);
 
     const riskAdjustedCommercialContribution = indicationIds.reduce((sum, indication) => {
@@ -209,7 +211,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
         (countrySum, row) => countrySum + row.contributionByIndicationUsd[indication],
         0,
       );
-      return sum + contribution * clinicalSuccess[indication] * additionalRiskMultiplier;
+      return sum + contribution * commercializationSuccess[indication] * additionalRiskMultiplier;
     }, 0);
     const riskAdjustedPreTax = riskAdjustedCommercialContribution - riskAdjustedDevelopmentCostsUsd - corporateCostsUsd;
     const riskAdjustedTaxUsd = riskAdjustedPreTax > 0
@@ -250,8 +252,8 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     years[0],
   );
 
-  const clinicalSuccessPctByIndication = Object.fromEntries(
-    indicationIds.map((id) => [id, clinicalSuccess[id] * 100]),
+  const commercializationSuccessPctByIndication = Object.fromEntries(
+    indicationIds.map((id) => [id, commercializationSuccess[id] * 100]),
   ) as Record<IndicationId, number>;
 
   return {
@@ -271,7 +273,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
       scenario.startYear,
       scenario.financial.discountRatePct,
       scenario.financial.riskAdjustmentPct,
-      clinicalSuccessPctByIndication,
+      commercializationSuccessPctByIndication,
     ),
   };
 };

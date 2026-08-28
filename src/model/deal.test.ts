@@ -5,7 +5,7 @@ import { calculateDeal } from './deal';
 
 describe('calculateDeal', () => {
   const model = calculateModel(baseScenario);
-  const gbmMilestoneRisk = model.valuation.clinicalSuccessPctByIndication.gbm / 100
+  const gbmMilestoneRisk = model.valuation.commercializationSuccessPctByIndication.gbm / 100
     * model.valuation.riskAdjustmentPct / 100;
 
   it('uses rNPV and full funding burden for self-commercialization', () => {

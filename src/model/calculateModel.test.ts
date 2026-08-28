@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { baseScenario, cloneScenario } from './assumptions';
 import { calculateModel } from './calculateModel';
+import { createProxyMarket } from './proxyMarket';
 import { parseScenario, serializeScenario } from './scenarioIO';
 
 const approx = (value: number, target: number, pct = 0.01) =>
@@ -41,6 +42,33 @@ describe('calculateModel', () => {
     const india2027 = result.countryYears.find((row) => row.countryId === 'IND' && row.year === 2027);
     expect(india2027?.treatedPatients ?? 0).toBeGreaterThan(0);
     expect(india2027?.grossRevenueUsd ?? 0).toBeGreaterThan(0);
+  });
+
+  it('uses configured stage probabilities in the clinical success calculation', () => {
+    const result = calculateModel(baseScenario);
+    expect(approx(result.valuation.clinicalSuccessPctByIndication.gbm, 45.5, 0.001)).toBe(true);
+    expect(result.valuation.riskAdjustedNpvUsd).toBeLessThan(result.valuation.npvUsd);
+  });
+
+  it('weights later-stage development cost by probability of reaching that stage', () => {
+    const scenario = cloneScenario(baseScenario);
+    scenario.financial.riskAdjustmentPct = 100;
+    Object.values(scenario.countries).forEach((country) => { country.enabled = false; });
+    const result = calculateModel(scenario);
+    const phase3Year = result.years.find((row) => row.year === 2031);
+    expect(phase3Year?.riskAdjustedNetCashFlowUsd ?? 0).toBeGreaterThan(phase3Year?.netCashFlowUsd ?? 0);
+  });
+
+  it('allows explicitly marked proxy markets without changing the core country type', () => {
+    const scenario = cloneScenario(baseScenario);
+    const proxy = createProxyMarket(
+      { id: 'SWE', name: 'Sweden', population: 10_600_000, populationYear: 2025, source: 'World Bank' },
+      { region: 'Europe', priceUsd: 60_000, peakSharePct: 20, accessiblePopulationPct: 100, launchYear: 2032, loeYear: 2040 },
+    );
+    scenario.countries[proxy.id] = proxy;
+    const result = calculateModel(scenario);
+    expect(scenario.countries.SWE.assumptionStatus).toBe('proxy');
+    expect(result.countryYears.some((row) => row.countryId === 'SWE')).toBe(true);
   });
 
   it('returns finite valuation outputs without a perpetual terminal value', () => {

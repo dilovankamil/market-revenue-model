@@ -9,14 +9,16 @@
   </head>
   <body>
     <div id="root"></div>
-    <footer class="model-disclaimer">
-      Scenario modelling tool. Outputs depend on user-selected assumptions and are not clinical claims, financial guidance, investment advice, or a prediction of commercial performance.
-    </footer>
+    <noscript>
+      <div style="min-height:45vh;display:grid;place-items:center;padding:24px;text-align:center;color:#eef6ff;background:#06111d;font:14px/1.6 system-ui">
+        JavaScript is required to run the SI-053 Strategic Model.
+      </div>
+    </noscript>
     <script>
       window.setTimeout(function () {
         var root = document.getElementById('root');
         if (root && !root.hasChildNodes()) {
-          root.innerHTML = '<div style="min-height:45vh;display:grid;place-items:center;align-content:center;gap:10px;padding:24px;text-align:center;color:#eef6ff;background:#06111d"><strong style="font:600 18px system-ui">The application script did not load.</strong><span style="max-width:560px;color:#9fb1c1;font:12px/1.6 system-ui">Please reload this page. If this message remains, the GitHub Pages asset path is not being served correctly.</span><small style="color:#71879a;font:10px system-ui">Error code: SI053-ASSET-1</small></div>';
+          root.innerHTML = '<div style="min-height:45vh;display:grid;place-items:center;align-content:center;gap:10px;padding:24px;text-align:center;color:#eef6ff;background:#06111d"><strong style="font:600 18px system-ui">The application could not start.</strong><span style="max-width:560px;color:#9fb1c1;font:12px/1.6 system-ui">Reload this page once. If this message remains, the release bundle did not execute correctly.</span><small style="color:#71879a;font:10px system-ui">Error code: SI053-BOOT-2</small></div>';
         }
       }, 5000);
     </script>

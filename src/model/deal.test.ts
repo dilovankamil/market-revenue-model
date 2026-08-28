@@ -5,6 +5,8 @@ import { calculateDeal } from './deal';
 
 describe('calculateDeal', () => {
   const model = calculateModel(baseScenario);
+  const gbmMilestoneRisk = model.valuation.clinicalSuccessPctByIndication.gbm / 100
+    * model.valuation.riskAdjustmentPct / 100;
 
   it('uses rNPV and full funding burden for self-commercialization', () => {
     const result = calculateDeal(model, {
@@ -30,7 +32,7 @@ describe('calculateDeal', () => {
     });
     expect(result.royaltyNpvUsd).toBeGreaterThan(0);
     expect(result.royaltyNpvUsd).toBeLessThan(model.cumulativeRevenueUsd * 0.2);
-    expect(result.riskAdjustedMilestonesUsd).toBeCloseTo(63_700_000, -3);
+    expect(result.riskAdjustedMilestonesUsd).toBeCloseTo(200_000_000 * gbmMilestoneRisk, -3);
     expect(result.fundingBurdenUsd).toBe(0);
   });
 
@@ -43,8 +45,9 @@ describe('calculateDeal', () => {
       retainedCommercialPct: 0,
       partnerDevelopmentFundingPct: 100,
     });
+    const expectedMilestone = 200_000_000 * gbmMilestoneRisk;
     expect(result.upfrontValueUsd).toBe(500_000_000);
-    expect(result.riskAdjustedMilestonesUsd).toBeCloseTo(63_700_000, -3);
-    expect(result.indicativeValueUsd).toBeCloseTo(563_700_000, -3);
+    expect(result.riskAdjustedMilestonesUsd).toBeCloseTo(expectedMilestone, -3);
+    expect(result.indicativeValueUsd).toBeCloseTo(500_000_000 + expectedMilestone, -3);
   });
 });

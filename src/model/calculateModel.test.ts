@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { baseScenario, cloneScenario } from './assumptions';
 import { calculateModel } from './calculateModel';
 import { parseScenario, serializeScenario } from './scenarioIO';
+import { buildScenarioPresets } from './scenarios';
 import { EU27_IDS } from './marketGroups';
 
 const approx = (value: number, target: number, pct = 0.01) =>
@@ -29,6 +30,18 @@ describe('calculateModel', () => {
       .filter((row) => row.year === 2026 && EU27_IDS.includes(row.countryId))
       .reduce((sum, row) => sum + row.population, 0);
     expect(approx(euPopulation, 451_990_300, 0.002)).toBe(true);
+  });
+
+  it('separates the eligible surgical opportunity from treated adoption', () => {
+    const result = calculateModel(baseScenario);
+    expect(result.peakEligiblePatients).toBeGreaterThan(result.peakTreatedPatients);
+    expect(result.peakEligiblePatients).toBeGreaterThan(25_000);
+  });
+
+  it('expansion case can exceed 25,000 annual treated patients without inflating the GBM-only base share', () => {
+    const expansion = buildScenarioPresets().expansion;
+    const result = calculateModel(expansion);
+    expect(result.peakTreatedPatients).toBeGreaterThan(25_000);
   });
 
   it('keeps India at zero before its commercial launch even when enabled', () => {
@@ -76,25 +89,17 @@ describe('calculateModel', () => {
 
   it('supports explicitly marked imported proxy markets without a separate access module', () => {
     const scenario = cloneScenario(baseScenario);
-    scenario.countries.NOR = {
+    scenario.countries.TEST = {
       ...cloneScenario(baseScenario).countries.CAN,
-      id: 'NOR',
-      name: 'Norway',
-      geoName: 'Norway',
-      region: 'Europe',
-      populationBaseYear: 2025,
-      populationBase: 5_600_000,
-      populationGrowthPct: 0.7,
-      enabled: true,
-      priceUsd: 60_000,
-      peakSharePct: 20,
+      id: 'TEST', name: 'Test market', geoName: 'Test market', region: 'Europe',
+      populationBaseYear: 2025, populationBase: 5_600_000, populationGrowthPct: 0.7,
+      enabled: true, priceUsd: 60_000, peakSharePct: 20,
       launchYearByIndication: { gbm: 2032, brainMetastasis: 2034, opbt: 2034 },
-      assumptionStatus: 'proxy',
-      assumptionNote: 'Imported planning proxy.',
+      assumptionStatus: 'proxy', assumptionNote: 'Imported planning proxy.',
     };
     const result = calculateModel(scenario);
-    expect(scenario.countries.NOR.assumptionStatus).toBe('proxy');
-    expect(result.countryYears.some((row) => row.countryId === 'NOR')).toBe(true);
+    expect(scenario.countries.TEST.assumptionStatus).toBe('proxy');
+    expect(result.countryYears.some((row) => row.countryId === 'TEST')).toBe(true);
   });
 
   it('returns finite valuation outputs without a perpetual terminal value', () => {

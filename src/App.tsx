@@ -3,16 +3,18 @@ import { CommercialModelTab } from './components/CommercialModelTab';
 import { CountryGlobe } from './components/CountryGlobe';
 import { DevelopmentTab } from './components/DevelopmentTab';
 import { GlobalOpportunityTab } from './components/GlobalOpportunityTab';
+import { MarketSelector } from './components/MarketSelector';
 import { RevenueChart } from './components/RevenueChart';
+import { ScenarioLabTab } from './components/ScenarioLabTab';
+import { ValuationTab } from './components/ValuationTab';
 import { baseScenario, cloneScenario } from './model/assumptions';
 import { calculateModel } from './model/calculateModel';
 import { calculateDeal, type DealTerms, type DealType } from './model/deal';
 import { parseScenario, serializeScenario } from './model/scenarioIO';
-import { buildScenarioPresets } from './model/scenarios';
 import { methodologySources } from './model/sources';
-import type { CountryAssumption, CountryId, IndicationId, Scenario } from './model/types';
+import type { CountryId, IndicationId, Scenario } from './model/types';
 
-type TabId = 'overview' | 'global' | 'commercial' | 'development' | 'scenario' | 'valuation' | 'access' | 'deal' | 'methodology';
+type TabId = 'overview' | 'global' | 'commercial' | 'development' | 'scenario' | 'valuation' | 'deal' | 'methodology';
 
 const tabs: { id: TabId; label: string; private?: boolean }[] = [
   { id: 'overview', label: 'Overview' },
@@ -21,7 +23,6 @@ const tabs: { id: TabId; label: string; private?: boolean }[] = [
   { id: 'development', label: 'Development & cash' },
   { id: 'scenario', label: 'Scenario lab' },
   { id: 'valuation', label: 'Valuation' },
-  { id: 'access', label: 'Access strategy' },
   { id: 'deal', label: 'Deal explorer', private: true },
   { id: 'methodology', label: 'Methodology' },
 ];
@@ -44,7 +45,6 @@ const sourceStatusLabel = (status: 'literature' | 'workbook' | 'scenario') => ({
 }[status]);
 
 function App() {
-  const presets = useMemo(() => buildScenarioPresets(), []);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [scenario, setScenario] = useState<Scenario>(() => cloneScenario(baseScenario));
   const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -65,7 +65,7 @@ function App() {
   const selectedIndications = Object.values(scenario.indications).filter((indication) => indication.enabled);
   const privateConfigLoaded = scenario.corporateCosts.length > 0 || scenario.financingEvents.length > 0;
   const firstCommercialLaunch = selectedCountries.length
-    ? Math.min(...selectedCountries.map((country) => country.launchYearByIndication.gbm))
+    ? Math.min(...selectedCountries.filter((country) => country.accessRoute === 'commercial').map((country) => country.launchYearByIndication.gbm))
     : null;
 
   const overviewMetric = useMemo(() => {
@@ -74,25 +74,12 @@ function App() {
     return metric;
   }, [result.countryYears]);
 
-  const updateCountry = <K extends keyof CountryAssumption>(countryId: CountryId, key: K, value: CountryAssumption[K]) => {
-    setScenario((current) => {
-      const next = cloneScenario(current);
-      if (!next.countries[countryId]) return current;
-      next.countries[countryId][key] = value;
-      return next;
-    });
-  };
-
   const updateIndication = (id: IndicationId, enabled: boolean) => {
     setScenario((current) => {
       const next = cloneScenario(current);
       next.indications[id].enabled = enabled;
       return next;
     });
-  };
-
-  const updateFinancial = <K extends keyof Scenario['financial']>(key: K, value: Scenario['financial'][K]) => {
-    setScenario((current) => ({ ...current, financial: { ...current.financial, [key]: value } }));
   };
 
   const exportScenarioFile = () => {
@@ -135,11 +122,6 @@ function App() {
     partnerDevelopmentFundingPct: type === 'self-commercialize' ? 0 : 100,
   }));
 
-  const scenarioCards = (Object.entries(presets) as [keyof typeof presets, Scenario][]).map(([id, preset]) => ({
-    id,
-    scenario: preset,
-    result: calculateModel(preset),
-  }));
   const sourceCategories = Array.from(new Set(methodologySources.map((source) => source.category)));
 
   return (
@@ -168,16 +150,7 @@ function App() {
           ))}
         </div>
 
-        <div className="sidebar-section compact-market-list">
-          <div className="section-kicker">Markets</div>
-          {Object.values(scenario.countries).map((country) => (
-            <label className="toggle-row" key={country.id} title={country.assumptionStatus === 'proxy' ? 'Proxy assumptions require validation' : undefined}>
-              <input type="checkbox" checked={country.enabled} onChange={(event) => updateCountry(country.id, 'enabled', event.target.checked)} />
-              <span>{country.name}{country.assumptionStatus === 'proxy' ? ' *' : ''}</span>
-            </label>
-          ))}
-        </div>
-
+        <MarketSelector scenario={scenario} setScenario={setScenario} />
         <button className="secondary-button" onClick={resetBaseCase}>Reset base case</button>
       </aside>
 
@@ -196,14 +169,20 @@ function App() {
         {activeTab === 'overview' && (
           <>
             {privateConfigLoaded && <div className="private-model-banner">Private local configuration loaded · {scenario.corporateCosts.length} corporate cost lines · {scenario.financingEvents.length} financing events. Imported data remains local to the browser.</div>}
-            <section className="hero-grid">
-              <div className="map-panel panel">
-                <div className="panel-heading"><div><span className="section-kicker">Global opportunity</span><h3>Commercial footprint</h3></div><button className="text-button" onClick={() => setActiveTab('global')}>Explore every country →</button></div>
-                <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={overviewCountryId} onSelectCountry={setOverviewCountryId} metricByCountry={overviewMetric} />
+            <section className="hero-grid hero-grid-v5">
+              <div className="map-panel panel overview-globe-panel">
+                <div className="panel-heading"><div><span className="section-kicker">Global opportunity</span><h3>Commercial footprint</h3></div><button className="text-button" onClick={() => setActiveTab('global')}>Explore rollout →</button></div>
+                <CountryGlobe
+                  countries={Object.values(scenario.countries)}
+                  selectedCountryId={overviewCountryId}
+                  onSelectCountry={setOverviewCountryId}
+                  onInspectCountry={(selection) => { if (selection.configured) setOverviewCountryId(selection.id); }}
+                  metricByCountry={overviewMetric}
+                />
               </div>
               <div className="summary-panel panel">
                 <span className="section-kicker">Model snapshot</span><h3>From patients to value</h3>
-                <p className="summary-copy">{selectedIndications.map((item) => item.name).join(', ')} across {selectedCountries.length} active markets. Clinical development, patient access and commercial economics feed one scenario engine.</p>
+                <p className="summary-copy">{selectedIndications.map((item) => item.name).join(', ')} across {selectedCountries.length} active country markets. Clinical development, commercial timing and market economics feed one scenario engine.</p>
                 <div className="summary-list">
                   <div><span>First commercial launch</span><strong>{firstCommercialLaunch ?? '—'}</strong></div>
                   <div><span>Peak funding requirement</span><strong>{formatUsd(result.peakFundingRequirementUsd)}</strong></div>
@@ -226,61 +205,10 @@ function App() {
         )}
 
         {activeTab === 'global' && <GlobalOpportunityTab scenario={scenario} result={result} setScenario={setScenario} />}
-
         {activeTab === 'commercial' && <CommercialModelTab scenario={scenario} result={result} setScenario={setScenario} />}
-
         {activeTab === 'development' && <DevelopmentTab scenario={scenario} result={result} setScenario={setScenario} />}
-
-        {activeTab === 'scenario' && (
-          <section className="scenario-grid">
-            {scenarioCards.map(({ id, scenario: preset, result: presetResult }) => (
-              <article className={`scenario-card ${scenario.name === preset.name ? 'selected' : ''}`} key={id}>
-                <span className="section-kicker">{id}</span><h3>{preset.name}</h3>
-                <div className="scenario-metrics"><div><span>Peak sales</span><b>{formatUsd(presetResult.peakRevenueUsd)}</b></div><div><span>Stage rNPV</span><b>{formatUsd(presetResult.valuation.riskAdjustedNpvUsd)}</b></div><div><span>Funding</span><b>{formatUsd(presetResult.peakFundingRequirementUsd)}</b></div></div>
-                <button className="primary-button" onClick={() => setScenario(cloneScenario(preset))}>Load scenario</button>
-              </article>
-            ))}
-          </section>
-        )}
-
-        {activeTab === 'valuation' && (
-          <section className="two-column-layout">
-            <div className="panel valuation-hero">
-              <span className="section-kicker">Explicit forecast to {scenario.endYear}</span><h3>Asset value</h3>
-              <div className="valuation-number"><span>Stage-adjusted rNPV</span><strong>{formatUsd(result.valuation.riskAdjustedNpvUsd)}</strong></div>
-              <div className="valuation-number secondary"><span>Unrisked NPV</span><strong>{formatUsd(result.valuation.npvUsd)}</strong></div>
-              <div className="clinical-probability-grid">
-                {selectedIndications.map((indication) => <div key={indication.id}><span>{indication.name}</span><strong>{result.valuation.clinicalSuccessPctByIndication[indication.id].toFixed(1)}%</strong><small>cumulative configured clinical success</small></div>)}
-              </div>
-              <p className="model-note">No perpetual terminal value is used. Clinical revenue is weighted by the product of configured stage probabilities; later-stage spend is weighted by probability of reaching that stage.</p>
-            </div>
-            <div className="panel controls-panel">
-              <div className="panel-heading"><div><span className="section-kicker">Valuation assumptions</span><h3>Risk & discounting</h3></div></div>
-              <div className="global-control">
-                <label>Discount rate <b>{scenario.financial.discountRatePct.toFixed(2)}%</b><input type="range" min="5" max="20" step="0.25" value={scenario.financial.discountRatePct} onChange={(event) => updateFinancial('discountRatePct', +event.target.value)} /></label>
-                <label>Additional risk multiplier <b>{scenario.financial.riskAdjustmentPct.toFixed(0)}%</b><input type="range" min="20" max="100" step="1" value={scenario.financial.riskAdjustmentPct} onChange={(event) => updateFinancial('riskAdjustmentPct', +event.target.value)} /></label>
-                <label>Corporate tax <b>{scenario.financial.corporateTaxPct.toFixed(0)}%</b><input type="range" min="0" max="35" step="1" value={scenario.financial.corporateTaxPct} onChange={(event) => updateFinancial('corporateTaxPct', +event.target.value)} /></label>
-              </div>
-              <p className="model-note warning">Stage probabilities are scenario assumptions, not validated industry benchmarks. They must be reviewed before formal valuation use.</p>
-            </div>
-          </section>
-        )}
-
-        {activeTab === 'access' && (
-          <section className="two-column-layout">
-            {(['IND', 'CHN'] as CountryId[]).map((id) => {
-              const country = scenario.countries[id];
-              if (!country) return null;
-              return <div className="panel controls-panel" key={id}>
-                <div className="panel-heading"><div><span className="section-kicker">Early / alternative access</span><h3>{country.name}</h3></div><label className="switch-label"><input type="checkbox" checked={country.enabled} onChange={(event) => updateCountry(id, 'enabled', event.target.checked)} /> In model</label></div>
-                <label className="select-label">Access route<select value={country.accessRoute} onChange={(event) => updateCountry(id, 'accessRoute', event.target.value as CountryAssumption['accessRoute'])}><option value="none">Not available</option><option value="clinical-trial">Clinical trial only</option><option value="named-patient">Named-patient / early access</option><option value="commercial">Commercial</option></select></label>
-                <label>Accessible population <b>{country.accessiblePopulationPct}%</b><input type="range" min="1" max="100" value={country.accessiblePopulationPct} onChange={(event) => updateCountry(id, 'accessiblePopulationPct', +event.target.value)} /></label>
-                {country.accessRoute === 'named-patient' && country.namedPatient && <div className="named-patient-grid"><label>Start year<input type="number" value={country.namedPatient.startYear} onChange={(event) => updateCountry(id, 'namedPatient', { ...country.namedPatient!, startYear: +event.target.value })} /></label><label>Starting centres<input type="number" value={country.namedPatient.centres} onChange={(event) => updateCountry(id, 'namedPatient', { ...country.namedPatient!, centres: +event.target.value })} /></label><label>Eligible / centre / yr<input type="number" value={country.namedPatient.eligiblePatientsPerCentre} onChange={(event) => updateCountry(id, 'namedPatient', { ...country.namedPatient!, eligiblePatientsPerCentre: +event.target.value })} /></label><label>Conversion %<input type="number" value={country.namedPatient.conversionPct} onChange={(event) => updateCountry(id, 'namedPatient', { ...country.namedPatient!, conversionPct: +event.target.value })} /></label></div>}
-                <p className="model-note">Country-specific legal/regulatory availability is not inferred by the calculator and must be verified separately.</p>
-              </div>;
-            })}
-          </section>
-        )}
+        {activeTab === 'scenario' && <ScenarioLabTab scenario={scenario} setScenario={setScenario} />}
+        {activeTab === 'valuation' && <ValuationTab scenario={scenario} result={result} setScenario={setScenario} />}
 
         {showPrivateModules && activeTab === 'deal' && (
           <section className="two-column-layout">
@@ -302,13 +230,13 @@ function App() {
 
         {activeTab === 'methodology' && (
           <section className="methodology-layout">
-            <div className="panel methodology-intro"><span className="section-kicker">Model governance</span><h3>Assumptions are data, not facts</h3><p>The model separates literature/workbook lineage from scenario choices. Any globe-added country is explicitly marked as a proxy until country-specific epidemiology, access, price and timing are validated.</p><div className="method-principles"><div><strong>One engine</strong><span>Patient, revenue, cash and valuation views use the same scenario object.</span></div><div><strong>Finite horizon</strong><span>No perpetual pharmaceutical terminal value.</span></div><div><strong>Local private config</strong><span>Confidential company cost and financing assumptions can stay out of this public repo.</span></div></div></div>
+            <div className="panel methodology-intro"><span className="section-kicker">Model governance</span><h3>Assumptions are data, not facts</h3><p>The model separates literature/workbook lineage from scenario choices. Country-specific pricing, access, incidence and timing assumptions marked as proxies require validation before external quantitative use.</p><div className="method-principles"><div><strong>One engine</strong><span>Patient, revenue, cash and valuation views use the same scenario object.</span></div><div><strong>Finite horizon</strong><span>No perpetual pharmaceutical terminal value.</span></div><div><strong>Local private config</strong><span>Confidential company cost and financing assumptions can stay out of this public repo.</span></div></div></div>
             {sourceCategories.map((category) => <section className="panel source-section" key={category}><div className="panel-heading"><div><span className="section-kicker">Source lineage</span><h3>{category}</h3></div></div><div className="source-list">{methodologySources.filter((source) => source.category === category).map((source) => <article className="source-row" key={source.id}><div><span className={`source-status ${source.status}`}>{sourceStatusLabel(source.status)}</span><strong>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a> : source.label}</strong><small>{source.appliesTo}</small></div><p>{source.note}</p></article>)}</div></section>)}
           </section>
         )}
 
         <footer className="public-disclaimer">
-          <strong>Modelling disclaimer.</strong> Outputs are scenario estimates for strategic planning. They are not clinical claims, regulatory conclusions, commercial forecasts, investment advice, or evidence that a named-patient/early-access route is legally available in any jurisdiction. Source and assumption review is required before external quantitative use.
+          <strong>Modelling disclaimer.</strong> Outputs are scenario estimates for strategic planning. They are not clinical claims, regulatory conclusions, commercial forecasts or investment advice. Source and assumption review is required before external quantitative use.
         </footer>
       </main>
     </div>

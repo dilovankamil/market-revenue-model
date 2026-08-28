@@ -3,11 +3,18 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // This repository is deployed as a GitHub project page, so production assets
-  // must resolve from the project subpath rather than the domain root.
+  // GitHub project page base path.
   base: '/market-revenue-model/',
   build: {
-    // Keep the public model usable on a broader range of current mobile and embedded browsers.
     target: 'es2019',
+    cssCodeSplit: false,
+    rollupOptions: {
+      output: {
+        // Stable filenames prevent cached HTML from pointing at assets removed by a later Pages deployment.
+        entryFileNames: 'assets/app.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: 'assets/[name][extname]',
+      },
+    },
   },
 });

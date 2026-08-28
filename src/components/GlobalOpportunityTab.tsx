@@ -70,6 +70,7 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
   const selectAndEnableCountry = (countryId: CountryId) => {
     setSelectedCountryId(countryId);
     setScenario((current) => {
+      if (current.countries[countryId]?.enabled) return current;
       const next = cloneScenario(current);
       if (next.countries[countryId]) next.countries[countryId].enabled = true;
       return next;
@@ -95,7 +96,6 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
           countries={Object.values(scenario.countries)}
           selectedCountryId={selectedCountryId}
           onSelectCountry={selectAndEnableCountry}
-          onInspectCountry={(selection) => { if (selection.configured) selectAndEnableCountry(selection.id); }}
           metricByCountry={mapMetricByCountry}
           autoRotate={isPlaying}
         />

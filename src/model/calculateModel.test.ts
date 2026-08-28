@@ -44,6 +44,16 @@ describe('calculateModel', () => {
     expect(india2027?.grossRevenueUsd ?? 0).toBeGreaterThan(0);
   });
 
+  it('makes China selection economically active when the market is enabled', () => {
+    const withoutChina = calculateModel(baseScenario);
+    const scenario = cloneScenario(baseScenario);
+    scenario.countries.CHN.enabled = true;
+    const withChina = calculateModel(scenario);
+    expect(scenario.countries.CHN.accessRoute).toBe('commercial');
+    expect(withChina.cumulativeRevenueUsd).toBeGreaterThan(withoutChina.cumulativeRevenueUsd);
+    expect(withChina.countryYears.some((row) => row.countryId === 'CHN' && row.grossRevenueUsd > 0)).toBe(true);
+  });
+
   it('uses configured stage probabilities in the clinical success calculation', () => {
     const result = calculateModel(baseScenario);
     expect(approx(result.valuation.clinicalSuccessPctByIndication.gbm, 45.5, 0.001)).toBe(true);

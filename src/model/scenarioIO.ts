@@ -13,6 +13,9 @@ interface ScenarioFile {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+const cloneScenarioData = (scenario: Scenario): Scenario =>
+  JSON.parse(JSON.stringify(scenario)) as Scenario;
+
 export const serializeScenario = (scenario: Scenario) => JSON.stringify({
   model: 'si053-strategic-model',
   version: MODEL_FILE_VERSION,
@@ -42,7 +45,7 @@ export const parseScenario = (text: string): Scenario => {
     throw new Error('Scenario file is incomplete or malformed.');
   }
 
-  const cloned = structuredClone(scenario);
+  const cloned = cloneScenarioData(scenario);
   const errors = scenarioErrors(cloned);
   if (errors.length) {
     const first = errors[0];

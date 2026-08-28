@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { baseScenario, cloneScenario } from './assumptions';
 import { calculateModel } from './calculateModel';
-import { createProxyMarket } from './proxyMarket';
 import { parseScenario, serializeScenario } from './scenarioIO';
 import { EU27_IDS } from './marketGroups';
 
@@ -75,13 +74,24 @@ describe('calculateModel', () => {
     expect(phase3Year?.riskAdjustedNetCashFlowUsd ?? 0).toBeGreaterThan(phase3Year?.netCashFlowUsd ?? 0);
   });
 
-  it('allows explicitly marked proxy markets without changing the core country type', () => {
+  it('supports explicitly marked imported proxy markets without a separate access module', () => {
     const scenario = cloneScenario(baseScenario);
-    const proxy = createProxyMarket(
-      { id: 'NOR', name: 'Norway', population: 5_600_000, populationYear: 2025, source: 'World Bank' },
-      { region: 'Europe', priceUsd: 60_000, peakSharePct: 20, accessiblePopulationPct: 100, launchYear: 2032, loeYear: 2040 },
-    );
-    scenario.countries[proxy.id] = proxy;
+    scenario.countries.NOR = {
+      ...cloneScenario(baseScenario).countries.CAN,
+      id: 'NOR',
+      name: 'Norway',
+      geoName: 'Norway',
+      region: 'Europe',
+      populationBaseYear: 2025,
+      populationBase: 5_600_000,
+      populationGrowthPct: 0.7,
+      enabled: true,
+      priceUsd: 60_000,
+      peakSharePct: 20,
+      launchYearByIndication: { gbm: 2032, brainMetastasis: 2034, opbt: 2034 },
+      assumptionStatus: 'proxy',
+      assumptionNote: 'Imported planning proxy.',
+    };
     const result = calculateModel(scenario);
     expect(scenario.countries.NOR.assumptionStatus).toBe('proxy');
     expect(result.countryYears.some((row) => row.countryId === 'NOR')).toBe(true);

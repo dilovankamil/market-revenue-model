@@ -4,11 +4,20 @@ import type {
   CountryYearResult,
   DevelopmentStage,
   IndicationAssumption,
+  IndicationId,
   ModelResult,
   Scenario,
   YearResult,
 } from './types';
 import { calculateValuation } from './valuation';
+
+const indicationIds: IndicationId[] = ['gbm', 'brainMetastasis', 'opbt'];
+
+const emptyIndicationRecord = (): Record<IndicationId, number> => ({
+  gbm: 0,
+  brainMetastasis: 0,
+  opbt: 0,
+});
 
 const populationForYear = (country: CountryAssumption, year: number) =>
   country.populationBase * Math.pow(1 + country.populationGrowthPct / 100, year - country.populationBaseYear);
@@ -61,6 +70,32 @@ const corporateCostForYear = (cost: CorporateCostLine, year: number) => {
   return cost.annualCostUsd * Math.pow(1 + cost.annualGrowthPct / 100, elapsed);
 };
 
+const stagesForIndication = (scenario: Scenario, indication: IndicationId) =>
+  scenario.developmentStages
+    .filter((stage) => stage.indication === indication)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
+
+const clinicalSuccessByIndication = (scenario: Scenario): Record<IndicationId, number> => {
+  const result = emptyIndicationRecord();
+  indicationIds.forEach((indication) => {
+    const stages = stagesForIndication(scenario, indication);
+    result[indication] = stages.length
+      ? stages.reduce((probability, stage) => probability * (stage.successProbabilityPct / 100), 1)
+      : 1;
+  });
+  return result;
+};
+
+const stageReachProbability = (scenario: Scenario, target: DevelopmentStage) => {
+  const stages = stagesForIndication(scenario, target.indication);
+  let probability = 1;
+  for (const stage of stages) {
+    if (stage.id === target.id) return probability;
+    probability *= stage.successProbabilityPct / 100;
+  }
+  return probability;
+};
+
 const calculateCountryYear = (
   scenario: Scenario,
   country: CountryAssumption,
@@ -70,6 +105,9 @@ const calculateCountryYear = (
   let eligiblePatients = 0;
   let treatedPatients = 0;
   let grossRevenueUsd = 0;
+  let cogsUsd = 0;
+  let commercialOpexUsd = 0;
+  const contributionByIndicationUsd = emptyIndicationRecord();
 
   const enabledIndications = Object.values(scenario.indications).filter((indication) => indication.enabled);
 
@@ -87,12 +125,17 @@ const calculateCountryYear = (
       treated = Math.min(eligible, namedPatientTreated(country, year));
     }
 
-    treatedPatients += treated;
-    grossRevenueUsd += treated * country.priceUsd * erosionFactor(scenario, country, year);
-  });
+    const revenue = treated * country.priceUsd * erosionFactor(scenario, country, year);
+    const indicationCogs = treated * scenario.financial.cogsPerTreatmentUsd;
+    const indicationOpex = revenue * scenario.financial.commercialOpexPct / 100;
+    const contribution = revenue - indicationCogs - indicationOpex;
 
-  const cogsUsd = treatedPatients * scenario.financial.cogsPerTreatmentUsd;
-  const commercialOpexUsd = grossRevenueUsd * scenario.financial.commercialOpexPct / 100;
+    treatedPatients += treated;
+    grossRevenueUsd += revenue;
+    cogsUsd += indicationCogs;
+    commercialOpexUsd += indicationOpex;
+    contributionByIndicationUsd[indication.id] += contribution;
+  });
 
   return {
     countryId: country.id,
@@ -104,6 +147,7 @@ const calculateCountryYear = (
     cogsUsd,
     commercialOpexUsd,
     contributionUsd: grossRevenueUsd - cogsUsd - commercialOpexUsd,
+    contributionByIndicationUsd,
   };
 };
 
@@ -118,6 +162,9 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     modelYears.map((year) => calculateCountryYear(scenario, country, year)),
   );
 
+  const clinicalSuccess = clinicalSuccessByIndication(scenario);
+  const additionalRiskMultiplier = scenario.financial.riskAdjustmentPct / 100;
+
   let cumulativeCashFlowUsd = 0;
   let cashBalanceUsd = 0;
   let minimumCumulativeCashFlowUsd = 0;
@@ -128,15 +175,37 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     const grossRevenueUsd = countryRows.reduce((sum, row) => sum + row.grossRevenueUsd, 0);
     const cogsUsd = countryRows.reduce((sum, row) => sum + row.cogsUsd, 0);
     const commercialOpexUsd = countryRows.reduce((sum, row) => sum + row.commercialOpexUsd, 0);
-    const developmentCostsUsd = scenario.developmentStages
-      .filter((stage) => scenario.indications[stage.indication].enabled)
+
+    const activeStages = scenario.developmentStages
+      .filter((stage) => scenario.indications[stage.indication].enabled);
+    const developmentCostsUsd = activeStages
       .reduce((sum, stage) => sum + activeDevelopmentCostForYear(stage, year), 0);
+    const riskAdjustedDevelopmentCostsUsd = activeStages
+      .reduce((sum, stage) => {
+        const cost = activeDevelopmentCostForYear(stage, year);
+        return sum + cost * stageReachProbability(scenario, stage);
+      }, 0);
+
     const corporateCostsUsd = scenario.corporateCosts
       .reduce((sum, cost) => sum + corporateCostForYear(cost, year), 0);
 
     const preTaxCashFlow = grossRevenueUsd - cogsUsd - commercialOpexUsd - developmentCostsUsd - corporateCostsUsd;
     const taxUsd = preTaxCashFlow > 0 ? preTaxCashFlow * scenario.financial.corporateTaxPct / 100 : 0;
     const netCashFlowUsd = preTaxCashFlow - taxUsd;
+
+    const riskAdjustedCommercialContribution = indicationIds.reduce((sum, indication) => {
+      const contribution = countryRows.reduce(
+        (countrySum, row) => countrySum + row.contributionByIndicationUsd[indication],
+        0,
+      );
+      return sum + contribution * clinicalSuccess[indication] * additionalRiskMultiplier;
+    }, 0);
+    const riskAdjustedPreTax = riskAdjustedCommercialContribution - riskAdjustedDevelopmentCostsUsd - corporateCostsUsd;
+    const riskAdjustedTaxUsd = riskAdjustedPreTax > 0
+      ? riskAdjustedPreTax * scenario.financial.corporateTaxPct / 100
+      : 0;
+    const riskAdjustedNetCashFlowUsd = riskAdjustedPreTax - riskAdjustedTaxUsd;
+
     const financingCashUsd = scenario.financingEvents
       .filter((event) => event.year === year)
       .reduce((sum, event) => sum + event.amountUsd, 0);
@@ -156,6 +225,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
       corporateCostsUsd,
       taxUsd,
       netCashFlowUsd,
+      riskAdjustedNetCashFlowUsd,
       cumulativeCashFlowUsd,
       financingCashUsd,
       cashBalanceUsd,
@@ -167,6 +237,10 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     (best, row) => row.grossRevenueUsd > best.grossRevenueUsd ? row : best,
     years[0],
   );
+
+  const clinicalSuccessPctByIndication = Object.fromEntries(
+    indicationIds.map((id) => [id, clinicalSuccess[id] * 100]),
+  ) as Record<IndicationId, number>;
 
   return {
     years,
@@ -185,6 +259,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
       scenario.startYear,
       scenario.financial.discountRatePct,
       scenario.financial.riskAdjustmentPct,
+      clinicalSuccessPctByIndication,
     ),
   };
 };

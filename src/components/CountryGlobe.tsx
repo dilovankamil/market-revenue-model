@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import type { Map as MapLibreMap, MapLayerMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -31,12 +31,17 @@ const metricColor = (value: number, max: number) => {
   return `hsl(174 60% ${lightness}%)`;
 };
 
-const fillExpression = (countries: CountryAssumption[], metricByCountry: Partial<Record<CountryId, number>> = {}) => {
+const featureIdExpression = ['to-string', ['id']];
+
+const fillExpression = (
+  countries: CountryAssumption[],
+  metricByCountry: Partial<Record<CountryId, number>> = {},
+) => {
   const maxMetric = Math.max(0, ...countries.map((country) => metricByCountry[country.id] ?? 0));
-  const expression: unknown[] = ['match', ['get', 'name']];
+  const expression: unknown[] = ['match', featureIdExpression];
   countries.forEach((country) => {
     expression.push(
-      country.geoName,
+      country.id,
       country.enabled
         ? country.accessRoute === 'named-patient'
           ? namedPatientColor
@@ -48,7 +53,13 @@ const fillExpression = (countries: CountryAssumption[], metricByCountry: Partial
   return expression;
 };
 
-export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, onInspectCountry, metricByCountry = {} }: CountryGlobeProps) {
+export function CountryGlobe({
+  countries,
+  selectedCountryId,
+  onSelectCountry,
+  onInspectCountry,
+  metricByCountry = {},
+}: CountryGlobeProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const countriesRef = useRef(countries);
@@ -60,11 +71,6 @@ export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, on
   useEffect(() => { metricRef.current = metricByCountry; }, [metricByCountry]);
   useEffect(() => { onSelectRef.current = onSelectCountry; }, [onSelectCountry]);
   useEffect(() => { onInspectRef.current = onInspectCountry; }, [onInspectCountry]);
-
-  const selectedGeoName = useMemo(
-    () => countries.find((country) => country.id === selectedCountryId)?.geoName ?? null,
-    [countries, selectedCountryId],
-  );
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -138,17 +144,15 @@ export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, on
   useEffect(() => {
     const map = mapRef.current;
     if (!map?.getLayer('si053-country-lines')) return;
-    map.setPaintProperty(
-      'si053-country-lines',
-      'line-color',
-      selectedGeoName ? ['case', ['==', ['get', 'name'], selectedGeoName], '#ffffff', '#8090a0'] : '#8090a0',
-    );
-    map.setPaintProperty(
-      'si053-country-lines',
-      'line-width',
-      selectedGeoName ? ['case', ['==', ['get', 'name'], selectedGeoName], 2.4, 0.6] : 0.6,
-    );
-  }, [selectedGeoName]);
+    const selected = selectedCountryId
+      ? ['case', ['==', featureIdExpression, selectedCountryId], '#ffffff', '#8090a0']
+      : '#8090a0';
+    const width = selectedCountryId
+      ? ['case', ['==', featureIdExpression, selectedCountryId], 2.4, 0.6]
+      : 0.6;
+    map.setPaintProperty('si053-country-lines', 'line-color', selected as never);
+    map.setPaintProperty('si053-country-lines', 'line-width', width as never);
+  }, [selectedCountryId]);
 
   return <div ref={containerRef} className="country-globe" aria-label="Interactive SI-053 global opportunity map" />;
 }

@@ -1,0 +1,107 @@
+.app-boot-status,
+.app-boot-error {
+  min-height: 45vh;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 32px;
+  text-align: center;
+  color: #eef6ff;
+}
+
+.app-boot-status strong,
+.app-boot-error strong {
+  font-size: 18px;
+}
+
+.app-boot-error span {
+  max-width: 560px;
+  color: #9fb1c1;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.app-boot-error small {
+  color: #71879a;
+  font-size: 10px;
+}
+
+.country-globe {
+  position: relative;
+}
+
+.country-globe-map {
+  position: absolute;
+  inset: 0;
+}
+
+.globe-safe-fallback,
+.globe-fallback {
+  display: grid;
+  place-items: center;
+}
+
+.globe-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  padding: 24px;
+  align-content: center;
+  gap: 8px;
+  text-align: center;
+  background: radial-gradient(circle at center, rgba(18,47,68,.94), rgba(4,13,22,.97) 72%);
+}
+
+.globe-fallback strong,
+.globe-fallback span {
+  display: block;
+}
+
+.globe-fallback strong {
+  color: #eef6ff;
+  font-size: 15px;
+}
+
+.globe-fallback span {
+  max-width: 430px;
+  color: #91a5b5;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.globe-fallback-markets {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.globe-fallback-markets button {
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,.035);
+  color: #b9cad6;
+  cursor: pointer;
+}
+
+.globe-fallback-markets button.active {
+  border-color: rgba(110,215,255,.45);
+  background: rgba(110,215,255,.1);
+  color: #effbff;
+}
+
+@media (max-width: 760px) {
+  .app-boot-status,
+  .app-boot-error {
+    min-height: 55vh;
+    padding: 24px 16px;
+  }
+
+  .globe-fallback {
+    padding: 18px;
+  }
+}

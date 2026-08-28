@@ -22,3 +22,8 @@ jobs:
           name: si053-web-build
           path: dist
           retention-days: 7
+      - uses: actions/upload-artifact@v6
+        with:
+          name: npm-lockfile
+          path: package-lock.json
+          retention-days: 1

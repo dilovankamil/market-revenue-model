@@ -1,4 +1,5 @@
 import type {
+  CorporateCostLine,
   CountryAssumption,
   CountryYearResult,
   DevelopmentStage,
@@ -52,6 +53,12 @@ const activeDevelopmentCostForYear = (stage: DevelopmentStage, year: number) => 
   const totalDays = Math.max(1, (end.getTime() - start.getTime()) / 86_400_000 + 1);
   const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / 86_400_000 + 1;
   return stage.publicCostUsd * overlapDays / totalDays;
+};
+
+const corporateCostForYear = (cost: CorporateCostLine, year: number) => {
+  if (year < cost.startYear || year > cost.endYear) return 0;
+  const elapsed = year - cost.startYear;
+  return cost.annualCostUsd * Math.pow(1 + cost.annualGrowthPct / 100, elapsed);
 };
 
 const calculateCountryYear = (
@@ -112,6 +119,7 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
   );
 
   let cumulativeCashFlowUsd = 0;
+  let cashBalanceUsd = 0;
   let minimumCumulativeCashFlowUsd = 0;
   let breakEvenYear: number | null = null;
 
@@ -123,11 +131,18 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     const developmentCostsUsd = scenario.developmentStages
       .filter((stage) => scenario.indications[stage.indication].enabled)
       .reduce((sum, stage) => sum + activeDevelopmentCostForYear(stage, year), 0);
+    const corporateCostsUsd = scenario.corporateCosts
+      .reduce((sum, cost) => sum + corporateCostForYear(cost, year), 0);
 
-    const preTaxCashFlow = grossRevenueUsd - cogsUsd - commercialOpexUsd - developmentCostsUsd;
+    const preTaxCashFlow = grossRevenueUsd - cogsUsd - commercialOpexUsd - developmentCostsUsd - corporateCostsUsd;
     const taxUsd = preTaxCashFlow > 0 ? preTaxCashFlow * scenario.financial.corporateTaxPct / 100 : 0;
     const netCashFlowUsd = preTaxCashFlow - taxUsd;
+    const financingCashUsd = scenario.financingEvents
+      .filter((event) => event.year === year)
+      .reduce((sum, event) => sum + event.amountUsd, 0);
+
     cumulativeCashFlowUsd += netCashFlowUsd;
+    cashBalanceUsd += netCashFlowUsd + financingCashUsd;
     minimumCumulativeCashFlowUsd = Math.min(minimumCumulativeCashFlowUsd, cumulativeCashFlowUsd);
 
     if (breakEvenYear === null && grossRevenueUsd > 0 && cumulativeCashFlowUsd >= 0) breakEvenYear = year;
@@ -138,8 +153,12 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
       cogsUsd,
       commercialOpexUsd,
       developmentCostsUsd,
+      corporateCostsUsd,
+      taxUsd,
       netCashFlowUsd,
       cumulativeCashFlowUsd,
+      financingCashUsd,
+      cashBalanceUsd,
       treatedPatients: countryRows.reduce((sum, row) => sum + row.treatedPatients, 0),
     };
   });
@@ -156,6 +175,8 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
     peakRevenueYear: peakRevenue?.year ?? scenario.startYear,
     cumulativeRevenueUsd: years.reduce((sum, row) => sum + row.grossRevenueUsd, 0),
     cumulativeCashFlowUsd,
+    endingCashBalanceUsd: cashBalanceUsd,
+    externalFundingUsd: scenario.financingEvents.reduce((sum, event) => sum + event.amountUsd, 0),
     peakTreatedPatients: Math.max(0, ...years.map((row) => row.treatedPatients)),
     peakFundingRequirementUsd: Math.abs(minimumCumulativeCashFlowUsd),
     breakEvenYear,

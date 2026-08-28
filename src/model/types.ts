@@ -2,6 +2,7 @@ export type IndicationId = 'gbm' | 'brainMetastasis' | 'opbt';
 export type CountryId = 'USA' | 'DEU' | 'FRA' | 'ITA' | 'ESP' | 'GBR' | 'JPN' | 'IND' | 'CHN';
 export type RegionId = 'North America' | 'Europe' | 'Asia-Pacific';
 export type AccessRoute = 'commercial' | 'named-patient' | 'clinical-trial' | 'none';
+export type FinancingType = 'equity' | 'debt' | 'partner' | 'grant';
 
 export interface IndicationAssumption {
   id: IndicationId;
@@ -49,6 +50,23 @@ export interface DevelopmentStage {
   successProbabilityPct: number;
 }
 
+export interface CorporateCostLine {
+  id: string;
+  label: string;
+  startYear: number;
+  endYear: number;
+  annualCostUsd: number;
+  annualGrowthPct: number;
+}
+
+export interface FinancingEvent {
+  id: string;
+  label: string;
+  year: number;
+  amountUsd: number;
+  type: FinancingType;
+}
+
 export interface FinancialAssumptions {
   cogsPerTreatmentUsd: number;
   commercialOpexPct: number;
@@ -66,6 +84,8 @@ export interface Scenario {
   countries: Record<CountryId, CountryAssumption>;
   indications: Record<IndicationId, IndicationAssumption>;
   developmentStages: DevelopmentStage[];
+  corporateCosts: CorporateCostLine[];
+  financingEvents: FinancingEvent[];
   financial: FinancialAssumptions;
 }
 
@@ -87,8 +107,12 @@ export interface YearResult {
   cogsUsd: number;
   commercialOpexUsd: number;
   developmentCostsUsd: number;
+  corporateCostsUsd: number;
+  taxUsd: number;
   netCashFlowUsd: number;
   cumulativeCashFlowUsd: number;
+  financingCashUsd: number;
+  cashBalanceUsd: number;
   treatedPatients: number;
 }
 
@@ -106,6 +130,8 @@ export interface ModelResult {
   peakRevenueYear: number;
   cumulativeRevenueUsd: number;
   cumulativeCashFlowUsd: number;
+  endingCashBalanceUsd: number;
+  externalFundingUsd: number;
   peakTreatedPatients: number;
   peakFundingRequirementUsd: number;
   breakEvenYear: number | null;

@@ -180,6 +180,10 @@ export const baseScenario: Scenario = {
     { id: 'opbt-p2', indication: 'opbt', phase: 'Bridging Phase II', startDate: '2031-03-01', endDate: '2032-05-31', publicCostUsd: 9_700_000, successProbabilityPct: 70 },
     { id: 'opbt-p3', indication: 'opbt', phase: 'Phase III', startDate: '2032-11-01', endDate: '2034-10-31', publicCostUsd: 44_700_000, successProbabilityPct: 65 },
   ],
+  // Deliberately empty in the public repository. Private scenario JSON can populate
+  // detailed company operating costs and financing without committing confidential data.
+  corporateCosts: [],
+  financingEvents: [],
   financial: {
     cogsPerTreatmentUsd: 500,
     commercialOpexPct: 8,

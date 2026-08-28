@@ -189,7 +189,9 @@ export const baseScenario: Scenario = {
     commercialOpexPct: 8,
     discountRatePct: 10.135,
     corporateTaxPct: 20,
-    riskAdjustmentPct: 70,
+    // Stage-specific probabilities already provide the base clinical risk adjustment.
+    // Keep this at 100% unless an additional sensitivity haircut is intentionally applied.
+    riskAdjustmentPct: 100,
   },
 };
 

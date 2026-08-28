@@ -1,0 +1,20 @@
+:root.public-build .nav-button:has(> small) {
+  display: none;
+}
+
+:root.public-build .privacy-chip {
+  user-select: none;
+}
+
+.model-disclaimer {
+  border-top: 1px solid rgba(255,255,255,.08);
+  background: #06111d;
+  color: #71879a;
+  padding: 14px 34px 18px 304px;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+@media (max-width: 1280px) {
+  .model-disclaimer { padding-left: 264px; }
+}

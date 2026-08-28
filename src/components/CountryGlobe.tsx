@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
-import maplibregl, { type Map as MapLibreMap } from 'maplibre-gl';
+import * as maplibregl from 'maplibre-gl';
+import type { Map as MapLibreMap, MapLayerMouseEvent } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CountryAssumption, CountryId } from '../model/types';
 
@@ -96,7 +97,7 @@ export function CountryGlobe({ countries, selectedCountryId, onSelectCountry, me
 
       map.on('mousemove', 'si053-countries', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'si053-countries', () => { map.getCanvas().style.cursor = ''; });
-      map.on('click', 'si053-countries', (event) => {
+      map.on('click', 'si053-countries', (event: MapLayerMouseEvent) => {
         const name = event.features?.[0]?.properties?.name as string | undefined;
         const match = countriesRef.current.find((country) => country.geoName === name);
         if (match) onSelectRef.current(match.id);

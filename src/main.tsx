@@ -1,6 +1,6 @@
 import { StrictMode, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './AppV7';
+import App from './AppV8';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import './styles.css';
 import './enhancements.css';
@@ -10,6 +10,7 @@ import './responsive-v3.css';
 import './runtime-hotfix.css';
 import './model-v5.css';
 import './model-v7.css';
+import './mobile-v8.css';
 
 const privateModulesEnabled = import.meta.env.VITE_SHOW_PRIVATE_MODULES === 'true';
 document.documentElement.classList.toggle('internal-build', privateModulesEnabled);

@@ -43,6 +43,9 @@ const formatUsd = (value: number) => {
 const indicationOrder: IndicationId[] = ['gbm', 'brainMetastasis', 'opbt'];
 const regionOrder: RegionId[] = ['North America', 'Europe', 'Asia-Pacific'];
 
+const animate = <E extends d3.BaseType, D, P extends d3.BaseType, PD>(selection: d3.Selection<E, D, P, PD>) =>
+  selection.transition().duration(650).ease(d3.easeCubicOut);
+
 export function RevenueChart({
   data,
   countryYears = [],
@@ -133,7 +136,6 @@ export function RevenueChart({
       .domain([0, maxRevenue * 1.12 || 1])
       .nice()
       .range([height - margin.bottom, margin.top]);
-    const transition = svg.transition().duration(650).ease(d3.easeCubicOut);
 
     const grid = svg.select<SVGGElement>('.chart-grid-layer');
     const yTicks = y.ticks(5);
@@ -147,13 +149,18 @@ export function RevenueChart({
           .attr('y1', y(0))
           .attr('y2', y(0)),
         (update) => update,
-        (exit) => exit.transition(transition).style('opacity', 0).remove(),
+        (exit) => exit
+          .transition()
+          .duration(450)
+          .ease(d3.easeCubicOut)
+          .style('opacity', 0)
+          .remove(),
       )
-      .transition(transition)
-      .attr('x1', margin.left)
-      .attr('x2', width - margin.right)
-      .attr('y1', (tick) => y(tick))
-      .attr('y2', (tick) => y(tick));
+      .call((selection) => animate(selection)
+        .attr('x1', margin.left)
+        .attr('x2', width - margin.right)
+        .attr('y1', (tick) => y(tick))
+        .attr('y2', (tick) => y(tick)));
 
     const yLabels = svg.select<SVGGElement>('.chart-y-label-layer');
     yLabels.selectAll<SVGTextElement, number>('text')
@@ -166,12 +173,17 @@ export function RevenueChart({
           .attr('y', y(0) + 4)
           .style('opacity', 0),
         (update) => update,
-        (exit) => exit.transition(transition).style('opacity', 0).remove(),
+        (exit) => exit
+          .transition()
+          .duration(450)
+          .ease(d3.easeCubicOut)
+          .style('opacity', 0)
+          .remove(),
       )
       .text((tick) => formatUsd(tick))
-      .transition(transition)
-      .attr('y', (tick) => y(tick) + 4)
-      .style('opacity', 1);
+      .call((selection) => animate(selection)
+        .attr('y', (tick) => y(tick) + 4)
+        .style('opacity', 1));
 
     const bars = svg.select<SVGGElement>('.chart-bar-layer');
     const keyedSegments = segments.filter((segment) => segment.value > 0);
@@ -193,7 +205,7 @@ export function RevenueChart({
 
     const merged = entered.merge(rects);
     merged.select('title').text((segment) => `${segment.year} · ${segment.label}: ${formatUsd(segment.value)}`);
-    merged.transition(transition)
+    animate(merged)
       .attr('x', (segment) => x(segment.year) ?? 0)
       .attr('width', x.bandwidth())
       .attr('y', (segment) => y(segment.y1))
@@ -202,7 +214,9 @@ export function RevenueChart({
       .style('opacity', 0.92);
 
     rects.exit()
-      .transition(transition)
+      .transition()
+      .duration(450)
+      .ease(d3.easeCubicOut)
       .attr('y', y(0))
       .attr('height', 0)
       .style('opacity', 0)

@@ -1,11 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import * as maplibregl from 'maplibre-gl';
-import type { Map as MapLibreMap, MapLayerMouseEvent } from 'maplibre-gl';
+import type { Map as MapLibreMap, MapLayerMouseEvent, StyleSpecification } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { CountryAssumption, CountryId } from '../model/types';
 
-const WORLD_GEOJSON = 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson';
-const GLOBE_STYLE = 'https://demotiles.maplibre.org/globe.json';
+const WORLD_GEOJSON = `${import.meta.env.BASE_URL}world.geojson`;
+const LOCAL_GLOBE_STYLE: StyleSpecification = {
+  version: 8,
+  sources: {},
+  layers: [
+    {
+      id: 'space-background',
+      type: 'background',
+      paint: { 'background-color': '#02070d' },
+    },
+  ],
+};
 
 const enabledColor = '#4fd1c5';
 const inactiveColor = '#263341';
@@ -86,10 +96,15 @@ export function CountryGlobe({
 
     let map: MapLibreMap | null = null;
     let frame = 0;
+    let ready = false;
+    const readinessTimer = window.setTimeout(() => {
+      if (!ready) setMapError(true);
+    }, 8000);
+
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: GLOBE_STYLE,
+        style: LOCAL_GLOBE_STYLE,
         center: [12, 18],
         zoom: 0.95,
         minZoom: 0.55,
@@ -124,6 +139,27 @@ export function CountryGlobe({
       map.on('load', () => {
         if (!map) return;
         try {
+          map.addSource('si053-ocean-source', {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                type: 'Polygon',
+                coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]],
+              },
+            },
+          });
+          map.addLayer({
+            id: 'si053-ocean',
+            type: 'fill',
+            source: 'si053-ocean-source',
+            paint: {
+              'fill-color': '#0a2a3f',
+              'fill-opacity': 1,
+            },
+          });
+
           map.addSource('si053-countries-source', { type: 'geojson', data: WORLD_GEOJSON });
           map.addLayer({
             id: 'si053-countries',
@@ -131,7 +167,7 @@ export function CountryGlobe({
             source: 'si053-countries-source',
             paint: {
               'fill-color': fillExpression(countriesRef.current, metricRef.current) as never,
-              'fill-opacity': 0.72,
+              'fill-opacity': 0.82,
               'fill-color-transition': { duration: 700, delay: 0 },
               'fill-opacity-transition': { duration: 500, delay: 0 },
             },
@@ -142,7 +178,7 @@ export function CountryGlobe({
             source: 'si053-countries-source',
             paint: {
               'line-color': '#9ab0c2',
-              'line-opacity': 0.42,
+              'line-opacity': 0.46,
               'line-width': 0.55,
               'line-color-transition': { duration: 400, delay: 0 },
               'line-width-transition': { duration: 400, delay: 0 },
@@ -165,8 +201,15 @@ export function CountryGlobe({
               onInspectRef.current?.({ id, name, configured: false });
             }
           });
+
+          map.once('idle', () => {
+            ready = true;
+            window.clearTimeout(readinessTimer);
+            setMapError(false);
+          });
         } catch (error) {
           console.warn('Could not add globe data layers', error);
+          setMapError(true);
         }
       });
 
@@ -187,6 +230,7 @@ export function CountryGlobe({
     }
 
     return () => {
+      window.clearTimeout(readinessTimer);
       if (frame) cancelAnimationFrame(frame);
       try { map?.remove(); } catch { /* ignore cleanup failures */ }
       mapRef.current = null;
@@ -226,7 +270,7 @@ export function CountryGlobe({
       {mapError && (
         <div className="globe-fallback" role="status">
           <strong>Interactive globe unavailable</strong>
-          <span>The rest of the model is still available. Try another browser or enable WebGL for the globe.</span>
+          <span>The commercial model remains available. This browser may have WebGL disabled or unavailable.</span>
         </div>
       )}
     </div>

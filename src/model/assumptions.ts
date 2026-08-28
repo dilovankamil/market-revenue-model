@@ -180,8 +180,6 @@ export const baseScenario: Scenario = {
     { id: 'opbt-p2', indication: 'opbt', phase: 'Bridging Phase II', startDate: '2031-03-01', endDate: '2032-05-31', publicCostUsd: 9_700_000, successProbabilityPct: 70 },
     { id: 'opbt-p3', indication: 'opbt', phase: 'Phase III', startDate: '2032-11-01', endDate: '2034-10-31', publicCostUsd: 44_700_000, successProbabilityPct: 65 },
   ],
-  // Deliberately empty in the public repository. Private scenario JSON can populate
-  // detailed company operating costs and financing without committing confidential data.
   corporateCosts: [],
   financingEvents: [],
   financial: {
@@ -189,10 +187,10 @@ export const baseScenario: Scenario = {
     commercialOpexPct: 8,
     discountRatePct: 10.135,
     corporateTaxPct: 20,
-    // Stage-specific probabilities already provide the base clinical risk adjustment.
-    // Keep this at 100% unless an additional sensitivity haircut is intentionally applied.
     riskAdjustmentPct: 100,
   },
 };
 
-export const cloneScenario = (scenario: Scenario): Scenario => structuredClone(scenario);
+// Scenario state is plain JSON data, so a JSON round-trip provides a robust deep clone
+// without relying on structuredClone(), which is unavailable in some mobile/embedded browsers.
+export const cloneScenario = (scenario: Scenario): Scenario => JSON.parse(JSON.stringify(scenario)) as Scenario;

@@ -102,6 +102,7 @@ export interface CountryYearResult {
   cogsUsd: number;
   commercialOpexUsd: number;
   contributionUsd: number;
+  contributionByIndicationUsd: Record<IndicationId, number>;
 }
 
 export interface YearResult {
@@ -113,6 +114,7 @@ export interface YearResult {
   corporateCostsUsd: number;
   taxUsd: number;
   netCashFlowUsd: number;
+  riskAdjustedNetCashFlowUsd: number;
   cumulativeCashFlowUsd: number;
   financingCashUsd: number;
   cashBalanceUsd: number;
@@ -124,6 +126,7 @@ export interface ValuationResult {
   riskAdjustedNpvUsd: number;
   discountRatePct: number;
   riskAdjustmentPct: number;
+  clinicalSuccessPctByIndication: Record<IndicationId, number>;
 }
 
 export interface ModelResult {

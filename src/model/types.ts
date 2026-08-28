@@ -102,12 +102,14 @@ export interface CountryYearResult {
   cogsUsd: number;
   commercialOpexUsd: number;
   contributionUsd: number;
+  grossRevenueByIndicationUsd: Record<IndicationId, number>;
   contributionByIndicationUsd: Record<IndicationId, number>;
 }
 
 export interface YearResult {
   year: number;
   grossRevenueUsd: number;
+  riskAdjustedGrossRevenueUsd: number;
   cogsUsd: number;
   commercialOpexUsd: number;
   developmentCostsUsd: number;

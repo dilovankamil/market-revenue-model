@@ -1,4 +1,4 @@
-import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { CountryGlobe, type GlobeCountrySelection } from './CountryGlobe';
 import { cloneScenario } from '../model/assumptions';
 import { createProxyMarket, type ProxyMarketOptions } from '../model/proxyMarket';
@@ -36,7 +36,8 @@ const erosionFactor = (scenario: Scenario, country: CountryAssumption, year: num
 
 export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
   const [selectedCountryId, setSelectedCountryId] = useState<CountryId>('USA');
-  const [mapYear, setMapYear] = useState(2035);
+  const [mapYear, setMapYear] = useState(scenario.startYear);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [externalProfile, setExternalProfile] = useState<ExternalCountryProfile | null>(null);
   const [externalName, setExternalName] = useState<string | null>(null);
   const [loadingExternal, setLoadingExternal] = useState(false);
@@ -50,18 +51,51 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
     loeYear: 2040,
   });
 
+  useEffect(() => {
+    if (!isPlaying) return;
+    const timer = window.setInterval(() => {
+      setMapYear((current) => {
+        if (current >= scenario.endYear) {
+          setIsPlaying(false);
+          return scenario.endYear;
+        }
+        return current + 1;
+      });
+    }, 950);
+    return () => window.clearInterval(timer);
+  }, [isPlaying, scenario.endYear]);
+
+  useEffect(() => {
+    setMapYear((current) => Math.min(Math.max(current, scenario.startYear), scenario.endYear));
+  }, [scenario.startYear, scenario.endYear]);
+
   const selectedCountry = scenario.countries[selectedCountryId];
   const selectedCountryYear = result.countryYears.find(
     (row) => row.countryId === selectedCountryId && row.year === mapYear,
   );
+  const currentYearResult = result.years.find((row) => row.year === mapYear);
+  const cumulativeRevenue = result.years
+    .filter((row) => row.year <= mapYear)
+    .reduce((sum, row) => sum + row.grossRevenueUsd, 0);
+  const cumulativePatients = result.years
+    .filter((row) => row.year <= mapYear)
+    .reduce((sum, row) => sum + row.treatedPatients, 0);
 
   const mapMetricByCountry = useMemo(() => {
     const metric: Partial<Record<CountryId, number>> = {};
+    Object.values(scenario.countries).forEach((country) => { metric[country.id] = 0; });
     result.countryYears
       .filter((row) => row.year === mapYear)
       .forEach((row) => { metric[row.countryId] = row.grossRevenueUsd; });
     return metric;
-  }, [result.countryYears, mapYear]);
+  }, [result.countryYears, scenario.countries, mapYear]);
+
+  const activeMarkets = Object.values(scenario.countries).filter((country) => {
+    if (!country.enabled) return false;
+    if ((mapMetricByCountry[country.id] ?? 0) > 0) return true;
+    if (country.accessRoute === 'named-patient' && country.namedPatient) return mapYear >= country.namedPatient.startYear;
+    return false;
+  });
 
   const subnational = selectedCountryId === 'IND' || selectedCountryId === 'CHN'
     ? subnationalDatasets[selectedCountryId]
@@ -141,13 +175,18 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
     setSelectedCountryId(fallback);
   };
 
+  const togglePlay = () => {
+    if (!isPlaying && mapYear >= scenario.endYear) setMapYear(scenario.startYear);
+    setIsPlaying((current) => !current);
+  };
+
   return (
     <>
-      <section className="global-layout">
+      <section className="global-layout global-story-layout">
         <div className="panel globe-large-panel">
           <div className="panel-heading">
-            <div><span className="section-kicker">Year {mapYear}</span><h3>Global patient opportunity</h3></div>
-            <div className="map-key"><i className="key-commercial" /> Configured <i className="key-access" /> Named-patient</div>
+            <div><span className="section-kicker">Global rollout · {mapYear}</span><h3>Watch the opportunity come online</h3></div>
+            <div className="map-key"><i className="key-commercial" /> Revenue active <i className="key-access" /> Named-patient</div>
           </div>
           <CountryGlobe
             countries={Object.values(scenario.countries)}
@@ -155,67 +194,94 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
             onSelectCountry={setSelectedCountryId}
             onInspectCountry={inspectCountry}
             metricByCountry={mapMetricByCountry}
+            autoRotate={isPlaying}
           />
-          <label className="year-slider">Model year <b>{mapYear}</b>
-            <input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => setMapYear(+event.target.value)} />
-          </label>
-          <p className="model-note">Click any country. Preconfigured markets show model outputs; other countries load population from the World Bank and stay outside the financial model until explicitly added.</p>
+          <div className="playback-row">
+            <button className={`play-button ${isPlaying ? 'playing' : ''}`} onClick={togglePlay} aria-label={isPlaying ? 'Pause global rollout' : 'Play global rollout'}>
+              <span>{isPlaying ? 'Ⅱ' : '▶'}</span>{isPlaying ? 'Pause' : 'Play'}
+            </button>
+            <label className="year-slider">Model year <b>{mapYear}</b>
+              <input
+                type="range"
+                min={scenario.startYear}
+                max={scenario.endYear}
+                value={mapYear}
+                onChange={(event) => { setIsPlaying(false); setMapYear(+event.target.value); }}
+              />
+            </label>
+          </div>
+          <p className="model-note">During playback the globe rotates slowly and markets brighten as modelled revenue or named-patient access begins. Drag the year slider at any time to inspect a specific year.</p>
         </div>
 
-        <aside className="panel country-detail">
-          {externalName ? (
-            <>
-              <span className="section-kicker">Unconfigured country</span><h3>{externalName}</h3>
-              {loadingExternal && <p className="model-note">Loading World Bank population…</p>}
-              {externalError && <p className="model-note warning">{externalError}</p>}
-              {externalProfile && (
-                <>
-                  <div className="country-stat"><span>Population</span><strong>{formatPopulation(externalProfile.population)}</strong></div>
-                  <div className="country-stat"><span>Population year</span><strong>{externalProfile.populationYear}</strong></div>
-                  <div className="country-stat"><span>Source</span><strong>World Bank</strong></div>
-                  <div className="proxy-market-box">
-                    <span className="section-kicker">Add with explicit proxy assumptions</span>
-                    <label className="select-label">Epidemiology proxy
-                      <select value={proxy.region} onChange={(event) => setProxy((current) => ({ ...current, region: event.target.value as RegionId }))}>
-                        <option value="North America">North America</option>
-                        <option value="Europe">Europe</option>
-                        <option value="Asia-Pacific">Asia-Pacific</option>
-                      </select>
-                    </label>
-                    <label>Price <b>{formatUsd(proxy.priceUsd)}</b><input type="range" min="5000" max="150000" step="5000" value={proxy.priceUsd} onChange={(event) => setProxy((current) => ({ ...current, priceUsd: +event.target.value }))} /></label>
-                    <label>Peak share <b>{proxy.peakSharePct}%</b><input type="range" min="1" max="60" value={proxy.peakSharePct} onChange={(event) => setProxy((current) => ({ ...current, peakSharePct: +event.target.value }))} /></label>
-                    <label>Accessible population <b>{proxy.accessiblePopulationPct}%</b><input type="range" min="1" max="100" value={proxy.accessiblePopulationPct} onChange={(event) => setProxy((current) => ({ ...current, accessiblePopulationPct: +event.target.value }))} /></label>
-                    <div className="proxy-year-grid">
-                      <label>GBM launch<input type="number" value={proxy.launchYear} onChange={(event) => setProxy((current) => ({ ...current, launchYear: +event.target.value }))} /></label>
-                      <label>LoE<input type="number" value={proxy.loeYear} onChange={(event) => setProxy((current) => ({ ...current, loeYear: +event.target.value }))} /></label>
+        <aside className="global-story-aside">
+          <section className="panel cumulative-income-card">
+            <span className="section-kicker">Through {mapYear}</span>
+            <h3>Cumulative revenue</h3>
+            <strong className="cumulative-income-number">{formatUsd(cumulativeRevenue)}</strong>
+            <div className="cumulative-progress"><i style={{ width: `${Math.max(0, Math.min(100, (mapYear - scenario.startYear) / Math.max(1, scenario.endYear - scenario.startYear) * 100))}%` }} /></div>
+            <div className="story-metrics">
+              <div><span>Revenue in {mapYear}</span><b>{formatUsd(currentYearResult?.grossRevenueUsd ?? 0)}</b></div>
+              <div><span>Active markets</span><b>{activeMarkets.length}</b></div>
+              <div><span>Treated in {mapYear}</span><b>{Math.round(currentYearResult?.treatedPatients ?? 0).toLocaleString()}</b></div>
+              <div><span>Cumulative treated</span><b>{Math.round(cumulativePatients).toLocaleString()}</b></div>
+            </div>
+          </section>
+
+          <section className="panel country-detail compact-country-detail">
+            {externalName ? (
+              <>
+                <span className="section-kicker">Unconfigured country</span><h3>{externalName}</h3>
+                {loadingExternal && <p className="model-note">Loading World Bank population…</p>}
+                {externalError && <p className="model-note warning">{externalError}</p>}
+                {externalProfile && (
+                  <>
+                    <div className="country-stat"><span>Population</span><strong>{formatPopulation(externalProfile.population)}</strong></div>
+                    <div className="country-stat"><span>Population year</span><strong>{externalProfile.populationYear}</strong></div>
+                    <div className="country-stat"><span>Source</span><strong>World Bank</strong></div>
+                    <div className="proxy-market-box">
+                      <span className="section-kicker">Add with explicit proxy assumptions</span>
+                      <label className="select-label">Epidemiology proxy
+                        <select value={proxy.region} onChange={(event) => setProxy((current) => ({ ...current, region: event.target.value as RegionId }))}>
+                          <option value="North America">North America</option>
+                          <option value="Europe">Europe</option>
+                          <option value="Asia-Pacific">Asia-Pacific</option>
+                        </select>
+                      </label>
+                      <label>Price <b>{formatUsd(proxy.priceUsd)}</b><input type="range" min="5000" max="150000" step="5000" value={proxy.priceUsd} onChange={(event) => setProxy((current) => ({ ...current, priceUsd: +event.target.value }))} /></label>
+                      <label>Peak share <b>{proxy.peakSharePct}%</b><input type="range" min="1" max="60" value={proxy.peakSharePct} onChange={(event) => setProxy((current) => ({ ...current, peakSharePct: +event.target.value }))} /></label>
+                      <label>Accessible population <b>{proxy.accessiblePopulationPct}%</b><input type="range" min="1" max="100" value={proxy.accessiblePopulationPct} onChange={(event) => setProxy((current) => ({ ...current, accessiblePopulationPct: +event.target.value }))} /></label>
+                      <div className="proxy-year-grid">
+                        <label>GBM launch<input type="number" value={proxy.launchYear} onChange={(event) => setProxy((current) => ({ ...current, launchYear: +event.target.value }))} /></label>
+                        <label>LoE<input type="number" value={proxy.loeYear} onChange={(event) => setProxy((current) => ({ ...current, loeYear: +event.target.value }))} /></label>
+                      </div>
+                      <button className="primary-button" onClick={addProxyMarket}>Add proxy market</button>
+                      <p className="model-note warning">Only population is externally retrieved. All commercial and epidemiology inputs remain proxy assumptions until validated.</p>
                     </div>
-                    <button className="primary-button" onClick={addProxyMarket}>Add proxy market</button>
-                    <p className="model-note warning">Only population is externally retrieved. Epidemiology, surgical eligibility, price, launch, access and LoE remain proxy assumptions until validated for this country.</p>
-                  </div>
-                </>
-              )}
-            </>
-          ) : selectedCountry ? (
-            <>
-              <div className="country-detail-heading">
-                <div><span className="section-kicker">Selected market</span><h3>{selectedCountry.name}</h3></div>
-                {selectedCountry.assumptionStatus === 'proxy' && <button className="danger-button" onClick={removeProxyMarket}>Remove proxy</button>}
-              </div>
-              {selectedCountry.assumptionStatus === 'proxy' && <span className="privacy-chip">PROXY MARKET</span>}
-              <div className="country-stat"><span>Population</span><strong>{formatPopulation(selectedCountryYear?.population ?? selectedCountry.populationBase)}</strong></div>
-              <div className="country-stat"><span>Access route</span><strong>{accessLabel(selectedCountry.accessRoute)}</strong></div>
-              <div className="country-stat"><span>Eligible cases</span><strong>{Math.round(selectedCountryYear?.eligiblePatients ?? 0).toLocaleString()}</strong></div>
-              <div className="country-stat"><span>Treated patients</span><strong>{Math.round(selectedCountryYear?.treatedPatients ?? 0).toLocaleString()}</strong></div>
-              <div className="country-stat"><span>Revenue</span><strong>{formatUsd(selectedCountryYear?.grossRevenueUsd ?? 0)}</strong></div>
-              <div className="patient-funnel">
-                <div><span>Population accessible</span><b>{selectedCountry.accessiblePopulationPct}%</b></div>
-                <div><span>GBM incidence /100k</span><b>{scenario.indications.gbm.incidencePer100kByRegion[selectedCountry.region].toFixed(2)}</b></div>
-                <div><span>Surgery eligible</span><b>{(selectedCountry.surgeryEligibility.gbm * 100).toFixed(1)}%</b></div>
-                <div><span>Peak share</span><b>{selectedCountry.peakSharePct}%</b></div>
-              </div>
-              {selectedCountry.assumptionNote && <p className="model-note warning">{selectedCountry.assumptionNote}</p>}
-            </>
-          ) : null}
+                  </>
+                )}
+              </>
+            ) : selectedCountry ? (
+              <>
+                <div className="country-detail-heading">
+                  <div><span className="section-kicker">Selected market</span><h3>{selectedCountry.name}</h3></div>
+                  {selectedCountry.assumptionStatus === 'proxy' && <button className="danger-button" onClick={removeProxyMarket}>Remove proxy</button>}
+                </div>
+                {selectedCountry.assumptionStatus === 'proxy' && <span className="privacy-chip">PROXY MARKET</span>}
+                <div className="country-stat"><span>Population</span><strong>{formatPopulation(selectedCountryYear?.population ?? selectedCountry.populationBase)}</strong></div>
+                <div className="country-stat"><span>Access route</span><strong>{accessLabel(selectedCountry.accessRoute)}</strong></div>
+                <div className="country-stat"><span>Eligible cases</span><strong>{Math.round(selectedCountryYear?.eligiblePatients ?? 0).toLocaleString()}</strong></div>
+                <div className="country-stat"><span>Treated patients</span><strong>{Math.round(selectedCountryYear?.treatedPatients ?? 0).toLocaleString()}</strong></div>
+                <div className="country-stat"><span>Revenue</span><strong>{formatUsd(selectedCountryYear?.grossRevenueUsd ?? 0)}</strong></div>
+                <div className="patient-funnel">
+                  <div><span>Population accessible</span><b>{selectedCountry.accessiblePopulationPct}%</b></div>
+                  <div><span>GBM incidence /100k</span><b>{scenario.indications.gbm.incidencePer100kByRegion[selectedCountry.region].toFixed(2)}</b></div>
+                  <div><span>Surgery eligible</span><b>{(selectedCountry.surgeryEligibility.gbm * 100).toFixed(1)}%</b></div>
+                  <div><span>Peak share</span><b>{selectedCountry.peakSharePct}%</b></div>
+                </div>
+                {selectedCountry.assumptionNote && <p className="model-note warning">{selectedCountry.assumptionNote}</p>}
+              </>
+            ) : null}
+          </section>
         </aside>
       </section>
 

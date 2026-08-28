@@ -1,32 +1,60 @@
 export type IndicationId = 'gbm' | 'brainMetastasis' | 'opbt';
-export type MarketId = 'US' | 'EU4UK' | 'Japan' | 'India';
+export type CountryId = 'USA' | 'DEU' | 'FRA' | 'ITA' | 'ESP' | 'GBR' | 'JPN' | 'IND' | 'CHN';
+export type RegionId = 'North America' | 'Europe' | 'Asia-Pacific';
+export type AccessRoute = 'commercial' | 'named-patient' | 'clinical-trial' | 'none';
 
 export interface IndicationAssumption {
   id: IndicationId;
   name: string;
-  incidencePer100k: number;
-  launchYear: number;
-  rampYears: number;
+  incidencePer100kByRegion: Record<RegionId, number>;
+  defaultRampYears: number;
   enabled: boolean;
 }
 
-export interface MarketAssumption {
-  id: MarketId;
+export interface NamedPatientAssumption {
+  startYear: number;
+  centres: number;
+  annualCentreGrowthPct: number;
+  maxCentres: number;
+  eligiblePatientsPerCentre: number;
+  conversionPct: number;
+}
+
+export interface CountryAssumption {
+  id: CountryId;
   name: string;
-  population: number;
+  geoName: string;
+  region: RegionId;
+  populationBaseYear: number;
+  populationBase: number;
+  populationGrowthPct: number;
   enabled: boolean;
   priceUsd: number;
   peakSharePct: number;
   loeYear: number;
+  launchYearByIndication: Record<IndicationId, number>;
   surgeryEligibility: Record<IndicationId, number>;
+  accessiblePopulationPct: number;
+  accessRoute: AccessRoute;
+  namedPatient?: NamedPatientAssumption;
 }
 
-export interface DevelopmentCost {
+export interface DevelopmentStage {
   id: string;
-  label: string;
-  year: number;
-  amountUsd: number;
-  indication?: IndicationId;
+  indication: IndicationId;
+  phase: string;
+  startDate: string;
+  endDate: string;
+  publicCostUsd: number;
+  successProbabilityPct: number;
+}
+
+export interface FinancialAssumptions {
+  cogsPerTreatmentUsd: number;
+  commercialOpexPct: number;
+  discountRatePct: number;
+  corporateTaxPct: number;
+  riskAdjustmentPct: number;
 }
 
 export interface Scenario {
@@ -34,40 +62,52 @@ export interface Scenario {
   startYear: number;
   endYear: number;
   erosionPct: number;
-  operatingCostPct: number;
   patentExtensionYears: number;
-  markets: Record<MarketId, MarketAssumption>;
+  countries: Record<CountryId, CountryAssumption>;
   indications: Record<IndicationId, IndicationAssumption>;
-  developmentCosts: DevelopmentCost[];
+  developmentStages: DevelopmentStage[];
+  financial: FinancialAssumptions;
 }
 
-export interface MarketYearResult {
-  marketId: MarketId;
+export interface CountryYearResult {
+  countryId: CountryId;
   year: number;
+  population: number;
   eligiblePatients: number;
   treatedPatients: number;
   grossRevenueUsd: number;
-  operatingCostsUsd: number;
-  developmentCostsUsd: number;
-  netCashFlowUsd: number;
+  cogsUsd: number;
+  commercialOpexUsd: number;
+  contributionUsd: number;
 }
 
 export interface YearResult {
   year: number;
   grossRevenueUsd: number;
-  operatingCostsUsd: number;
+  cogsUsd: number;
+  commercialOpexUsd: number;
   developmentCostsUsd: number;
   netCashFlowUsd: number;
   cumulativeCashFlowUsd: number;
   treatedPatients: number;
 }
 
+export interface ValuationResult {
+  npvUsd: number;
+  riskAdjustedNpvUsd: number;
+  discountRatePct: number;
+  riskAdjustmentPct: number;
+}
+
 export interface ModelResult {
   years: YearResult[];
-  marketYears: MarketYearResult[];
+  countryYears: CountryYearResult[];
   peakRevenueUsd: number;
   peakRevenueYear: number;
   cumulativeRevenueUsd: number;
   cumulativeCashFlowUsd: number;
   peakTreatedPatients: number;
+  peakFundingRequirementUsd: number;
+  breakEvenYear: number | null;
+  valuation: ValuationResult;
 }

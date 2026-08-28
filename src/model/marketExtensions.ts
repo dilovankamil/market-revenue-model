@@ -1,4 +1,3 @@
-import { baseScenario } from './assumptions';
 import type { CountryAssumption, Scenario } from './types';
 
 const menaProxy = (
@@ -56,6 +55,3 @@ export const ensureV8Markets = (scenario: Scenario): Scenario => {
   });
   return scenario;
 };
-
-// Keep scenario presets built from the shared base scenario aware of these markets.
-ensureV8Markets(baseScenario);

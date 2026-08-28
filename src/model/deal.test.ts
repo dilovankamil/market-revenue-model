@@ -19,7 +19,7 @@ describe('calculateDeal', () => {
     expect(result.fundingBurdenUsd).toBe(model.peakFundingRequirementUsd);
   });
 
-  it('discounts and risk-adjusts royalty economics', () => {
+  it('discounts royalties from the same stage-adjusted revenue stream as rNPV', () => {
     const result = calculateDeal(model, {
       type: 'global-license',
       upfrontUsd: 100_000_000,
@@ -30,7 +30,21 @@ describe('calculateDeal', () => {
     });
     expect(result.royaltyNpvUsd).toBeGreaterThan(0);
     expect(result.royaltyNpvUsd).toBeLessThan(model.cumulativeRevenueUsd * 0.2);
-    expect(result.riskAdjustedMilestonesUsd).toBe(140_000_000);
+    expect(result.riskAdjustedMilestonesUsd).toBeCloseTo(63_700_000, -3);
     expect(result.fundingBurdenUsd).toBe(0);
+  });
+
+  it('risk-adjusts contingent acquisition milestones while leaving upfront cash certain', () => {
+    const result = calculateDeal(model, {
+      type: 'acquisition',
+      upfrontUsd: 500_000_000,
+      milestonesUsd: 200_000_000,
+      royaltyPct: 0,
+      retainedCommercialPct: 0,
+      partnerDevelopmentFundingPct: 100,
+    });
+    expect(result.upfrontValueUsd).toBe(500_000_000);
+    expect(result.riskAdjustedMilestonesUsd).toBeCloseTo(63_700_000, -3);
+    expect(result.indicativeValueUsd).toBeCloseTo(563_700_000, -3);
   });
 });

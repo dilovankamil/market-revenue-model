@@ -1,5 +1,6 @@
 import { StrictMode, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import './styles.css';
 import './enhancements.css';
 import './open-country.css';
@@ -21,7 +22,11 @@ import('./App')
   .then(({ default: App }) => {
     rootElement.replaceChildren();
     createRoot(rootElement).render(
-      createElement(StrictMode, null, createElement(App)),
+      createElement(
+        StrictMode,
+        null,
+        createElement(AppErrorBoundary, null, createElement(App)),
+      ),
     );
   })
   .catch((error) => {

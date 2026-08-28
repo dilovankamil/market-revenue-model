@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { CashFlowChart } from './components/CashFlowChart';
 import { CountryGlobe } from './components/CountryGlobe';
+import { DevelopmentTab } from './components/DevelopmentTab';
 import { GlobalOpportunityTab } from './components/GlobalOpportunityTab';
 import { RevenueChart } from './components/RevenueChart';
 import { baseScenario, cloneScenario } from './model/assumptions';
@@ -25,6 +25,9 @@ const tabs: { id: TabId; label: string; private?: boolean }[] = [
   { id: 'methodology', label: 'Methodology' },
 ];
 
+const showPrivateModules = import.meta.env.VITE_SHOW_PRIVATE_MODULES === 'true';
+const visibleTabs = tabs.filter((tab) => !tab.private || showPrivateModules);
+
 const formatUsd = (value: number) => {
   const sign = value < 0 ? '-' : '';
   const abs = Math.abs(value);
@@ -32,10 +35,6 @@ const formatUsd = (value: number) => {
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
   return `${sign}$${Math.round(abs).toLocaleString()}`;
 };
-
-const formatPopulation = (value: number) => value >= 1_000_000_000
-  ? `${(value / 1_000_000_000).toFixed(2)}B`
-  : `${(value / 1_000_000).toFixed(1)}M`;
 
 const accessLabel = (route: CountryAssumption['accessRoute']) => ({
   commercial: 'Commercial',
@@ -158,7 +157,7 @@ function App() {
         </div>
 
         <nav className="nav-list" aria-label="Model sections">
-          {tabs.map((tab) => (
+          {visibleTabs.map((tab) => (
             <button key={tab.id} className={`nav-button ${activeTab === tab.id ? 'active' : ''}`} onClick={() => setActiveTab(tab.id)}>
               <span>{tab.label}</span>{tab.private && <small>PRIVATE</small>}
             </button>
@@ -190,7 +189,7 @@ function App() {
 
       <main className="workspace">
         <header className="topbar">
-          <div><div className="eyebrow">INTERACTIVE COMMERCIAL, DEVELOPMENT & VALUE MODEL</div><h2>{tabs.find((tab) => tab.id === activeTab)?.label}</h2></div>
+          <div><div className="eyebrow">INTERACTIVE COMMERCIAL, DEVELOPMENT & VALUE MODEL</div><h2>{visibleTabs.find((tab) => tab.id === activeTab)?.label ?? 'SI-053 Strategic Model'}</h2></div>
           <div className="topbar-actions">
             {scenarioFileError && <span className="import-error" title={scenarioFileError}>Import error</span>}
             <input ref={fileInputRef} className="hidden-file-input" type="file" accept="application/json,.json" onChange={importScenarioFile} />
@@ -257,21 +256,7 @@ function App() {
           </section>
         )}
 
-        {activeTab === 'development' && (
-          <>
-            <section className="panel development-panel">
-              <div className="panel-heading"><div><span className="section-kicker">Development programme</span><h3>Clinical timeline & stage probabilities</h3></div><span className="privacy-chip">{privateConfigLoaded ? 'PRIVATE CONFIG ACTIVE' : 'PUBLIC / DEMO COST LAYER'}</span></div>
-              <div className="stage-table stage-table-risk">
-                <div className="stage-row stage-head"><span>Indication</span><span>Stage</span><span>Start</span><span>End</span><span>Cost</span><span>P(success)</span></div>
-                {scenario.developmentStages.filter((stage) => scenario.indications[stage.indication].enabled).map((stage) => (
-                  <div className="stage-row" key={stage.id}><span>{scenario.indications[stage.indication].name}</span><strong>{stage.phase}</strong><span>{stage.startDate}</span><span>{stage.endDate}</span><span>{formatUsd(stage.publicCostUsd)}</span><span>{stage.successProbabilityPct}%</span></div>
-                ))}
-              </div>
-              {privateConfigLoaded && <div className="private-config-summary"><div><span>Corporate cost lines</span><strong>{scenario.corporateCosts.length}</strong></div><div><span>Financing events</span><strong>{scenario.financingEvents.length}</strong></div><div><span>External funding</span><strong>{formatUsd(result.externalFundingUsd)}</strong></div><div><span>Ending cash balance</span><strong>{formatUsd(result.endingCashBalanceUsd)}</strong></div></div>}
-            </section>
-            <section className="panel chart-panel"><div className="panel-heading"><div><span className="section-kicker">Funding</span><h3>Cumulative operating cash flow</h3></div><div className="funding-callout">Peak funding requirement <strong>{formatUsd(result.peakFundingRequirementUsd)}</strong></div></div><CashFlowChart data={result.years} /></section>
-          </>
-        )}
+        {activeTab === 'development' && <DevelopmentTab scenario={scenario} result={result} setScenario={setScenario} />}
 
         {activeTab === 'scenario' && (
           <section className="scenario-grid">
@@ -324,7 +309,7 @@ function App() {
           </section>
         )}
 
-        {activeTab === 'deal' && (
+        {showPrivateModules && activeTab === 'deal' && (
           <section className="two-column-layout">
             <div className="panel controls-panel">
               <div className="panel-heading"><div><span className="section-kicker">Private module architecture</span><h3>Transaction structure</h3></div><span className="privacy-chip">DEMO TERMS</span></div>
@@ -348,6 +333,10 @@ function App() {
             {sourceCategories.map((category) => <section className="panel source-section" key={category}><div className="panel-heading"><div><span className="section-kicker">Source lineage</span><h3>{category}</h3></div></div><div className="source-list">{methodologySources.filter((source) => source.category === category).map((source) => <article className="source-row" key={source.id}><div><span className={`source-status ${source.status}`}>{sourceStatusLabel(source.status)}</span><strong>{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{source.label}</a> : source.label}</strong><small>{source.appliesTo}</small></div><p>{source.note}</p></article>)}</div></section>)}
           </section>
         )}
+
+        <footer className="public-disclaimer">
+          <strong>Modelling disclaimer.</strong> Outputs are scenario estimates for strategic planning. They are not clinical claims, regulatory conclusions, commercial forecasts, investment advice, or evidence that a named-patient/early-access route is legally available in any jurisdiction. Source and assumption review is required before external quantitative use.
+        </footer>
       </main>
     </div>
   );

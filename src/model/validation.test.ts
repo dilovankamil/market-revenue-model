@@ -9,6 +9,18 @@ describe('scenario validation', () => {
     expect(errors).toHaveLength(0);
   });
 
+  it('does not warn when confirmatory Phase III overlaps modeled commercial launch', () => {
+    const issues = validateScenario(baseScenario);
+    expect(issues.some((issue) => issue.code === 'launch-before-commercial-gate')).toBe(false);
+  });
+
+  it('warns when commercial launch is not after the pre-launch gate', () => {
+    const scenario = cloneScenario(baseScenario);
+    scenario.countries.USA.launchYearByIndication.gbm = 2031;
+    const issues = validateScenario(scenario);
+    expect(issues.some((issue) => issue.code === 'launch-before-commercial-gate' && issue.level === 'warning')).toBe(true);
+  });
+
   it('flags LoE before launch', () => {
     const scenario = cloneScenario(baseScenario);
     scenario.countries.USA.loeYear = 2028;
@@ -20,11 +32,6 @@ describe('scenario validation', () => {
     const scenario = cloneScenario(baseScenario);
     scenario.countries.USA.accessiblePopulationPct = 120;
     expect(validateScenario(scenario).some((issue) => issue.code === 'invalid-accessible-population')).toBe(true);
-  });
-
-  it('warns when commercial launch precedes the configured programme end', () => {
-    const issues = validateScenario(baseScenario);
-    expect(issues.some((issue) => issue.code === 'launch-before-programme-end' && issue.level === 'warning')).toBe(true);
   });
 
   it('rejects a structurally valid imported scenario with fatal modelling errors', () => {

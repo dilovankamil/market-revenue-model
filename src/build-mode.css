@@ -1,0 +1,7 @@
+:root.public-build .nav-button:has(> small) {
+  display: none;
+}
+
+:root.public-build .privacy-chip {
+  user-select: none;
+}

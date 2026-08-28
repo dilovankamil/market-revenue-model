@@ -2,6 +2,7 @@ import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { CountryGlobe, type GlobeCountrySelection } from './CountryGlobe';
 import { cloneScenario } from '../model/assumptions';
 import { createProxyMarket, type ProxyMarketOptions } from '../model/proxyMarket';
+import { subnationalDatasets } from '../model/subnational';
 import type { CountryAssumption, CountryId, ModelResult, RegionId, Scenario } from '../model/types';
 import { fetchExternalCountryProfile, type ExternalCountryProfile } from '../model/worldBank';
 
@@ -27,6 +28,11 @@ const accessLabel = (route: CountryAssumption['accessRoute']) => ({
   'clinical-trial': 'Clinical trial',
   none: 'Not available',
 }[route]);
+
+const erosionFactor = (scenario: Scenario, country: CountryAssumption, year: number) => {
+  const loe = country.loeYear + scenario.patentExtensionYears;
+  return year <= loe ? 1 : Math.pow(1 - scenario.erosionPct / 100, year - loe);
+};
 
 export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
   const [selectedCountryId, setSelectedCountryId] = useState<CountryId>('USA');
@@ -56,6 +62,35 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
       .forEach((row) => { metric[row.countryId] = row.grossRevenueUsd; });
     return metric;
   }, [result.countryYears, mapYear]);
+
+  const subnational = selectedCountryId === 'IND' || selectedCountryId === 'CHN'
+    ? subnationalDatasets[selectedCountryId]
+    : null;
+
+  const subnationalRows = useMemo(() => {
+    if (!subnational || !selectedCountry) return [];
+    const incidence = scenario.indications.gbm.incidencePer100kByRegion[selectedCountry.region];
+    const launch = selectedCountry.launchYearByIndication.gbm;
+    const ramp = scenario.indications.gbm.defaultRampYears;
+    const share = selectedCountry.accessRoute === 'commercial' && mapYear >= launch
+      ? (selectedCountry.peakSharePct / 100) * Math.min(1, (mapYear - launch + 1) / ramp)
+      : 0;
+
+    return subnational.regions.map((region) => {
+      const population = region.populationBase * Math.pow(
+        1 + selectedCountry.populationGrowthPct / 100,
+        mapYear - region.populationBaseYear,
+      );
+      const eligible = population * incidence / 100_000
+        * (selectedCountry.accessiblePopulationPct / 100)
+        * selectedCountry.surgeryEligibility.gbm;
+      const treated = eligible * share;
+      const revenue = treated * selectedCountry.priceUsd * erosionFactor(scenario, selectedCountry, mapYear);
+      return { ...region, population, eligible, treated, revenue };
+    });
+  }, [subnational, selectedCountry, scenario, mapYear]);
+
+  const maxSubnationalEligible = Math.max(1, ...subnationalRows.map((row) => row.eligible));
 
   const inspectCountry = async (selection: GlobeCountrySelection) => {
     if (selection.configured) {
@@ -93,77 +128,102 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
   };
 
   return (
-    <section className="global-layout">
-      <div className="panel globe-large-panel">
-        <div className="panel-heading">
-          <div><span className="section-kicker">Year {mapYear}</span><h3>Global patient opportunity</h3></div>
-          <div className="map-key"><i className="key-commercial" /> Configured <i className="key-access" /> Named-patient</div>
+    <>
+      <section className="global-layout">
+        <div className="panel globe-large-panel">
+          <div className="panel-heading">
+            <div><span className="section-kicker">Year {mapYear}</span><h3>Global patient opportunity</h3></div>
+            <div className="map-key"><i className="key-commercial" /> Configured <i className="key-access" /> Named-patient</div>
+          </div>
+          <CountryGlobe
+            countries={Object.values(scenario.countries)}
+            selectedCountryId={selectedCountryId}
+            onSelectCountry={setSelectedCountryId}
+            onInspectCountry={inspectCountry}
+            metricByCountry={mapMetricByCountry}
+          />
+          <label className="year-slider">Model year <b>{mapYear}</b>
+            <input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => setMapYear(+event.target.value)} />
+          </label>
+          <p className="model-note">Click any country. Preconfigured markets show model outputs; other countries load population from the World Bank and stay outside the financial model until explicitly added.</p>
         </div>
-        <CountryGlobe
-          countries={Object.values(scenario.countries)}
-          selectedCountryId={selectedCountryId}
-          onSelectCountry={setSelectedCountryId}
-          onInspectCountry={inspectCountry}
-          metricByCountry={mapMetricByCountry}
-        />
-        <label className="year-slider">Model year <b>{mapYear}</b>
-          <input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => setMapYear(+event.target.value)} />
-        </label>
-        <p className="model-note">Click any country. Preconfigured markets show model outputs; other countries load population from the World Bank and stay outside the financial model until explicitly added.</p>
-      </div>
 
-      <aside className="panel country-detail">
-        {externalName ? (
-          <>
-            <span className="section-kicker">Unconfigured country</span><h3>{externalName}</h3>
-            {loadingExternal && <p className="model-note">Loading World Bank population…</p>}
-            {externalError && <p className="model-note warning">{externalError}</p>}
-            {externalProfile && (
-              <>
-                <div className="country-stat"><span>Population</span><strong>{formatPopulation(externalProfile.population)}</strong></div>
-                <div className="country-stat"><span>Population year</span><strong>{externalProfile.populationYear}</strong></div>
-                <div className="country-stat"><span>Source</span><strong>World Bank</strong></div>
-                <div className="proxy-market-box">
-                  <span className="section-kicker">Add with explicit proxy assumptions</span>
-                  <label className="select-label">Epidemiology proxy
-                    <select value={proxy.region} onChange={(event) => setProxy((current) => ({ ...current, region: event.target.value as RegionId }))}>
-                      <option value="North America">North America</option>
-                      <option value="Europe">Europe</option>
-                      <option value="Asia-Pacific">Asia-Pacific</option>
-                    </select>
-                  </label>
-                  <label>Price <b>{formatUsd(proxy.priceUsd)}</b><input type="range" min="5000" max="150000" step="5000" value={proxy.priceUsd} onChange={(event) => setProxy((current) => ({ ...current, priceUsd: +event.target.value }))} /></label>
-                  <label>Peak share <b>{proxy.peakSharePct}%</b><input type="range" min="1" max="60" value={proxy.peakSharePct} onChange={(event) => setProxy((current) => ({ ...current, peakSharePct: +event.target.value }))} /></label>
-                  <label>Accessible population <b>{proxy.accessiblePopulationPct}%</b><input type="range" min="1" max="100" value={proxy.accessiblePopulationPct} onChange={(event) => setProxy((current) => ({ ...current, accessiblePopulationPct: +event.target.value }))} /></label>
-                  <div className="proxy-year-grid">
-                    <label>GBM launch<input type="number" value={proxy.launchYear} onChange={(event) => setProxy((current) => ({ ...current, launchYear: +event.target.value }))} /></label>
-                    <label>LoE<input type="number" value={proxy.loeYear} onChange={(event) => setProxy((current) => ({ ...current, loeYear: +event.target.value }))} /></label>
+        <aside className="panel country-detail">
+          {externalName ? (
+            <>
+              <span className="section-kicker">Unconfigured country</span><h3>{externalName}</h3>
+              {loadingExternal && <p className="model-note">Loading World Bank population…</p>}
+              {externalError && <p className="model-note warning">{externalError}</p>}
+              {externalProfile && (
+                <>
+                  <div className="country-stat"><span>Population</span><strong>{formatPopulation(externalProfile.population)}</strong></div>
+                  <div className="country-stat"><span>Population year</span><strong>{externalProfile.populationYear}</strong></div>
+                  <div className="country-stat"><span>Source</span><strong>World Bank</strong></div>
+                  <div className="proxy-market-box">
+                    <span className="section-kicker">Add with explicit proxy assumptions</span>
+                    <label className="select-label">Epidemiology proxy
+                      <select value={proxy.region} onChange={(event) => setProxy((current) => ({ ...current, region: event.target.value as RegionId }))}>
+                        <option value="North America">North America</option>
+                        <option value="Europe">Europe</option>
+                        <option value="Asia-Pacific">Asia-Pacific</option>
+                      </select>
+                    </label>
+                    <label>Price <b>{formatUsd(proxy.priceUsd)}</b><input type="range" min="5000" max="150000" step="5000" value={proxy.priceUsd} onChange={(event) => setProxy((current) => ({ ...current, priceUsd: +event.target.value }))} /></label>
+                    <label>Peak share <b>{proxy.peakSharePct}%</b><input type="range" min="1" max="60" value={proxy.peakSharePct} onChange={(event) => setProxy((current) => ({ ...current, peakSharePct: +event.target.value }))} /></label>
+                    <label>Accessible population <b>{proxy.accessiblePopulationPct}%</b><input type="range" min="1" max="100" value={proxy.accessiblePopulationPct} onChange={(event) => setProxy((current) => ({ ...current, accessiblePopulationPct: +event.target.value }))} /></label>
+                    <div className="proxy-year-grid">
+                      <label>GBM launch<input type="number" value={proxy.launchYear} onChange={(event) => setProxy((current) => ({ ...current, launchYear: +event.target.value }))} /></label>
+                      <label>LoE<input type="number" value={proxy.loeYear} onChange={(event) => setProxy((current) => ({ ...current, loeYear: +event.target.value }))} /></label>
+                    </div>
+                    <button className="primary-button" onClick={addProxyMarket}>Add proxy market</button>
+                    <p className="model-note warning">Only population is externally retrieved. Epidemiology, surgical eligibility, price, launch, access and LoE remain proxy assumptions until validated for this country.</p>
                   </div>
-                  <button className="primary-button" onClick={addProxyMarket}>Add proxy market</button>
-                  <p className="model-note warning">Only population is externally retrieved. Epidemiology, surgical eligibility, price, launch, access and LoE remain proxy assumptions until validated for this country.</p>
-                </div>
-              </>
-            )}
-          </>
-        ) : selectedCountry ? (
-          <>
-            <span className="section-kicker">Selected market</span><h3>{selectedCountry.name}</h3>
-            {selectedCountry.assumptionStatus === 'proxy' && <span className="privacy-chip">PROXY MARKET</span>}
-            <div className="country-stat"><span>Population</span><strong>{formatPopulation(selectedCountryYear?.population ?? selectedCountry.populationBase)}</strong></div>
-            <div className="country-stat"><span>Access route</span><strong>{accessLabel(selectedCountry.accessRoute)}</strong></div>
-            <div className="country-stat"><span>Eligible cases</span><strong>{Math.round(selectedCountryYear?.eligiblePatients ?? 0).toLocaleString()}</strong></div>
-            <div className="country-stat"><span>Treated patients</span><strong>{Math.round(selectedCountryYear?.treatedPatients ?? 0).toLocaleString()}</strong></div>
-            <div className="country-stat"><span>Revenue</span><strong>{formatUsd(selectedCountryYear?.grossRevenueUsd ?? 0)}</strong></div>
-            <div className="patient-funnel">
-              <div><span>Population accessible</span><b>{selectedCountry.accessiblePopulationPct}%</b></div>
-              <div><span>GBM incidence /100k</span><b>{scenario.indications.gbm.incidencePer100kByRegion[selectedCountry.region].toFixed(2)}</b></div>
-              <div><span>Surgery eligible</span><b>{(selectedCountry.surgeryEligibility.gbm * 100).toFixed(1)}%</b></div>
-              <div><span>Peak share</span><b>{selectedCountry.peakSharePct}%</b></div>
-            </div>
-            {selectedCountry.assumptionNote && <p className="model-note warning">{selectedCountry.assumptionNote}</p>}
-          </>
-        ) : null}
-      </aside>
-    </section>
+                </>
+              )}
+            </>
+          ) : selectedCountry ? (
+            <>
+              <span className="section-kicker">Selected market</span><h3>{selectedCountry.name}</h3>
+              {selectedCountry.assumptionStatus === 'proxy' && <span className="privacy-chip">PROXY MARKET</span>}
+              <div className="country-stat"><span>Population</span><strong>{formatPopulation(selectedCountryYear?.population ?? selectedCountry.populationBase)}</strong></div>
+              <div className="country-stat"><span>Access route</span><strong>{accessLabel(selectedCountry.accessRoute)}</strong></div>
+              <div className="country-stat"><span>Eligible cases</span><strong>{Math.round(selectedCountryYear?.eligiblePatients ?? 0).toLocaleString()}</strong></div>
+              <div className="country-stat"><span>Treated patients</span><strong>{Math.round(selectedCountryYear?.treatedPatients ?? 0).toLocaleString()}</strong></div>
+              <div className="country-stat"><span>Revenue</span><strong>{formatUsd(selectedCountryYear?.grossRevenueUsd ?? 0)}</strong></div>
+              <div className="patient-funnel">
+                <div><span>Population accessible</span><b>{selectedCountry.accessiblePopulationPct}%</b></div>
+                <div><span>GBM incidence /100k</span><b>{scenario.indications.gbm.incidencePer100kByRegion[selectedCountry.region].toFixed(2)}</b></div>
+                <div><span>Surgery eligible</span><b>{(selectedCountry.surgeryEligibility.gbm * 100).toFixed(1)}%</b></div>
+                <div><span>Peak share</span><b>{selectedCountry.peakSharePct}%</b></div>
+              </div>
+              {selectedCountry.assumptionNote && <p className="model-note warning">{selectedCountry.assumptionNote}</p>}
+            </>
+          ) : null}
+        </aside>
+      </section>
+
+      {subnational && selectedCountry && (
+        <section className="panel subnational-panel">
+          <div className="panel-heading">
+            <div><span className="section-kicker">Subnational decomposition · {mapYear}</span><h3>{subnational.title}</h3></div>
+            <span className="privacy-chip">NOT ADDITIVE TO NATIONAL TOTAL</span>
+          </div>
+          <p className="model-note">{subnational.coverageNote}</p>
+          <div className="subnational-list">
+            {subnationalRows.map((row) => (
+              <article className="subnational-row" key={row.id}>
+                <div className="subnational-name"><strong>{row.name}</strong><small>{formatPopulation(row.population)}</small></div>
+                <div className="subnational-bar"><i style={{ width: `${Math.max(2, row.eligible / maxSubnationalEligible * 100)}%` }} /></div>
+                <div><span>Eligible GBM</span><b>{Math.round(row.eligible).toLocaleString()}</b></div>
+                <div><span>{selectedCountry.accessRoute === 'commercial' ? 'Modelled treated' : 'Population-based treated'}</span><b>{selectedCountry.accessRoute === 'commercial' ? Math.round(row.treated).toLocaleString() : '—'}</b></div>
+                <div><span>{selectedCountry.accessRoute === 'commercial' ? 'Revenue' : 'Access model'}</span><b>{selectedCountry.accessRoute === 'commercial' ? formatUsd(row.revenue) : 'Centre-based'}</b></div>
+                <a href={row.sourceUrl} target="_blank" rel="noreferrer">Source</a>
+              </article>
+            ))}
+          </div>
+          {selectedCountry.accessRoute !== 'commercial' && <p className="model-note warning">For named-patient/early access, the national financial model remains centre-based. Subnational population opportunity is shown for planning only and is not converted into revenue here.</p>}
+        </section>
+      )}
+    </>
   );
 }

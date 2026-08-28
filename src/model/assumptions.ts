@@ -168,7 +168,8 @@ export const baseScenario: Scenario = {
       launchYearByIndication: launches(2033, 2035),
       surgeryEligibility: { gbm: 0.55, brainMetastasis: 0.18, opbt: 0.33 },
       accessiblePopulationPct: 30,
-      accessRoute: 'none',
+      accessRoute: 'commercial',
+      assumptionNote: 'Commercial access is a scenario assumption and requires validation before external use.',
     },
   },
   developmentStages: [

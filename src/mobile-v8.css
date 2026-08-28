@@ -1,0 +1,393 @@
+/* Mobile v8: replace the flattened desktop sidebar with a compact command bar + bottom sheet. */
+
+.mobile-command-bar,
+.mobile-sheet-backdrop {
+  display: none;
+}
+
+.scenario-file-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 18px;
+}
+
+.scenario-file-panel h3 {
+  margin: 3px 0 6px;
+}
+
+.scenario-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.scope-control-section {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.scope-indications {
+  display: grid;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+.globe-touch-surface,
+.svg-country-globe {
+  touch-action: none !important;
+  overscroll-behavior: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.svg-country-globe {
+  cursor: grab;
+}
+
+.svg-country-globe:active {
+  cursor: grabbing;
+}
+
+@media (max-width: 900px) {
+  .app-shell-v8 {
+    display: block;
+    min-height: 100dvh;
+  }
+
+  .desktop-sidebar-v8 {
+    display: none !important;
+  }
+
+  .workspace-v8 {
+    width: 100%;
+    max-width: none;
+    padding: 0 12px 34px;
+  }
+
+  .mobile-command-bar {
+    position: sticky;
+    top: 0;
+    z-index: 80;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) auto;
+    align-items: end;
+    gap: 8px;
+    margin: 0 -12px 14px;
+    padding: max(10px, env(safe-area-inset-top)) 12px 10px;
+    background: rgba(4,14,24,.96);
+    border-bottom: 1px solid var(--line);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .mobile-section-select {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .mobile-section-select select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0 36px 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #0a1b2a;
+    color: var(--text);
+    font-size: 15px;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .mobile-controls-button {
+    min-height: 44px;
+    max-width: 145px;
+    padding: 0 12px;
+    border: 1px solid rgba(110,215,255,.35);
+    border-radius: 10px;
+    background: rgba(110,215,255,.08);
+    color: #bdefff;
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .topbar-v8 {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin: 0 0 14px;
+    padding: 0 2px;
+  }
+
+  .topbar-v8 > div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .topbar-v8 .eyebrow {
+    display: none;
+  }
+
+  .topbar-v8 h2 {
+    margin: 0;
+    font-size: clamp(22px,7vw,29px);
+    line-height: 1.05;
+  }
+
+  .topbar-actions-v8 {
+    width: auto !important;
+    display: block !important;
+    flex: 0 0 auto;
+  }
+
+  .topbar-actions-v8 .scenario-pill {
+    min-height: 32px;
+    max-width: 120px;
+    padding: 7px 9px;
+    font-size: 9px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .hero-grid,
+  .global-layout,
+  .global-story-layout,
+  .two-column-layout {
+    grid-template-columns: 1fr !important;
+  }
+
+  .panel {
+    border-radius: 12px;
+  }
+
+  .map-panel,
+  .summary-panel,
+  .chart-panel,
+  .controls-panel,
+  .development-panel,
+  .country-detail,
+  .valuation-hero,
+  .deal-output,
+  .globe-large-panel,
+  .commercial-simple-panel,
+  .source-section,
+  .methodology-intro,
+  .scenario-file-panel {
+    padding: 13px;
+  }
+
+  .overview-globe-panel .country-globe,
+  .globe-large-panel .country-globe {
+    width: 100%;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1;
+    max-height: none !important;
+  }
+
+  .svg-country-globe {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .globe-drag-hint {
+    padding: 7px 9px;
+    font-size: 9px;
+  }
+
+  .kpi-grid,
+  .kpi-grid-v7,
+  .commercial-region-grid,
+  .global-story-aside,
+  .source-grid,
+  .clinical-probability-grid,
+  .method-principles {
+    grid-template-columns: 1fr !important;
+  }
+
+  .kpi-card {
+    min-height: 0;
+    padding: 13px;
+  }
+
+  .kpi-card strong {
+    font-size: 22px;
+  }
+
+  .scenario-file-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .scenario-file-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
+  }
+
+  .scenario-file-actions .toolbar-button {
+    min-height: 44px;
+    width: 100%;
+  }
+
+  .mobile-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: stretch;
+    background: rgba(0,0,0,.58);
+    overscroll-behavior: contain;
+  }
+
+  .mobile-controls-sheet {
+    width: 100%;
+    max-height: min(86dvh,760px);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: 20px 20px 0 0;
+    background: #071522;
+    box-shadow: 0 -22px 70px rgba(0,0,0,.5);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .mobile-sheet-header h3 {
+    margin: 3px 0 0;
+    font-size: 18px;
+  }
+
+  .mobile-sheet-close {
+    width: 42px;
+    height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: rgba(255,255,255,.04);
+    color: var(--text);
+    font-size: 25px;
+    line-height: 1;
+  }
+
+  .mobile-sheet-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 16px 22px;
+  }
+
+  .mobile-controls-sheet .scope-control-section,
+  .mobile-controls-sheet .sidebar-section {
+    display: block !important;
+    overflow: visible !important;
+    max-width: none !important;
+    padding: 14px 0 !important;
+  }
+
+  .mobile-controls-sheet .scope-indications {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .mobile-controls-sheet .toggle-row {
+    width: 100%;
+    min-height: 42px;
+    border-radius: 10px;
+    white-space: normal;
+  }
+
+  .mobile-controls-sheet .market-group-list {
+    display: grid;
+    gap: 7px;
+  }
+
+  .mobile-controls-sheet .market-group {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .mobile-controls-sheet .market-group-row {
+    min-height: 46px;
+    padding: 0 8px;
+  }
+
+  .mobile-controls-sheet .market-group-children {
+    max-height: 34dvh;
+    overflow-y: auto;
+    padding: 7px;
+  }
+
+  .mobile-controls-sheet .secondary-button {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 8px;
+  }
+
+  .chart-panel {
+    overflow: hidden;
+  }
+
+  .revenue-chart-wrap,
+  .stage-table {
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 480px) {
+  .workspace-v8 {
+    padding-inline: 9px;
+  }
+
+  .mobile-command-bar {
+    margin-inline: -9px;
+    padding-inline: 9px;
+  }
+
+  .mobile-controls-button {
+    max-width: 126px;
+    padding-inline: 9px;
+    font-size: 11px;
+  }
+
+  .topbar-v8 h2 {
+    font-size: 24px;
+  }
+
+  .topbar-actions-v8 .scenario-pill {
+    max-width: 92px;
+  }
+
+  .story-metrics,
+  .global-summary-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .scenario-file-actions {
+    grid-template-columns: 1fr;
+  }
+}

@@ -51,46 +51,39 @@ Use separate lines for materially different cost categories if management wants 
 ]
 ```
 
-Supported `type` values are:
-
-- `equity`
-- `debt`
-- `partner`
-- `grant`
-
-Financing affects cash balance/runway but is deliberately excluded from asset NPV.
+Supported `type` values are `equity`, `debt`, `partner`, and `grant`. Financing affects cash balance/runway but is deliberately excluded from asset NPV.
 
 ## Development programme
 
-Private scenarios can replace `scenario.developmentStages` with the currently approved programme. Each stage has:
+Private scenarios can replace `scenario.developmentStages` with the currently approved programme. For example:
 
 ```json
 {
   "id": "gbm-p2",
   "indication": "gbm",
   "phase": "Phase II",
-  "startDate": "2029-01-01",
-  "endDate": "2030-08-31",
+  "startDate": "2030-01-01",
+  "endDate": "2031-08-31",
   "publicCostUsd": 0,
   "successProbabilityPct": 70
 }
 ```
 
+A stage explicitly labelled `Confirmatory` is treated as capable of continuing after first modeled commercial launch. The last non-confirmatory stage before launch is therefore the commercialization gate used for revenue risk adjustment.
+
 Despite the property name `publicCostUsd`, a locally imported private scenario may contain a private internal cost. The property name is retained for file compatibility and should eventually be renamed through a versioned scenario-file migration.
 
-## Stage-adjusted rNPV
+## Commercialization-gate rNPV
 
-For an indication, the engine multiplies configured stage probabilities. Example only:
+The engine no longer automatically multiplies every configured study into the probability of initial sales. Instead:
 
-```text
-Phase II success 70%
-× Phase III success 65%
-= 45.5% cumulative clinical success
-```
+- stage probabilities for studies completed before first modeled launch determine the commercialization factor;
+- later confirmatory-study probabilities affect the probability-weighted cost of reaching those studies;
+- the global `financial.riskAdjustmentPct` remains an additional sensitivity multiplier.
 
-Commercial contribution is weighted by that cumulative probability. Development cost for a later stage is weighted by the probability of reaching that stage. The global `financial.riskAdjustmentPct` is then applied as an additional sensitivity multiplier to commercial contribution.
+In the current GBM base case, Phase II is the pre-launch commercialization gate. Confirmatory Phase III continues after modeled launch, so its probability does not create an additional haircut to initial commercial revenue.
 
-This means the user should avoid entering stage probabilities and a global multiplier that represent the same risk twice.
+This architecture is a modelling assumption, not a regulatory conclusion. Private scenarios should align launch timing and stage roles with the current approved regulatory strategy.
 
 ## Internal build mode
 

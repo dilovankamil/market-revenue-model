@@ -1,6 +1,14 @@
 export type IndicationId = 'gbm' | 'brainMetastasis' | 'opbt';
 export type CountryId = string;
-export type RegionId = 'North America' | 'Europe' | 'Asia-Pacific';
+export type RegionId =
+  | 'North America'
+  | 'Europe'
+  | 'South America'
+  | 'Middle East & North Africa'
+  | 'South Asia'
+  | 'East Asia'
+  | 'Southeast Asia'
+  | 'Oceania';
 export type AccessRoute = 'commercial' | 'clinical-trial' | 'none';
 export type FinancingType = 'equity' | 'debt' | 'partner' | 'grant';
 export type AssumptionStatus = 'configured' | 'proxy';
@@ -110,6 +118,7 @@ export interface YearResult {
   cumulativeCashFlowUsd: number;
   financingCashUsd: number;
   cashBalanceUsd: number;
+  eligiblePatients: number;
   treatedPatients: number;
 }
 
@@ -130,6 +139,7 @@ export interface ModelResult {
   cumulativeCashFlowUsd: number;
   endingCashBalanceUsd: number;
   externalFundingUsd: number;
+  peakEligiblePatients: number;
   peakTreatedPatients: number;
   peakFundingRequirementUsd: number;
   breakEvenYear: number | null;

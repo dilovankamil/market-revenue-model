@@ -132,7 +132,7 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
             <input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => { setIsPlaying(false); setMapYear(+event.target.value); }} />
           </label>
         </div>
-        <p className="model-note">Markets brighten only when modeled commercial revenue begins. There is no early-access or named-patient revenue in this version.</p>
+        <p className="model-note">Markets brighten only when modeled commercial revenue begins, so the globe follows the same launch-year logic as the revenue engine.</p>
 
         <div className="rollout-schedule">
           <div className="rollout-schedule-heading"><span>Base GBM rollout</span><small>Visible cross-check of animation timing</small></div>

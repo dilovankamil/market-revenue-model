@@ -127,6 +127,20 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
     setExternalName(null);
   };
 
+  const removeProxyMarket = () => {
+    if (!selectedCountry || selectedCountry.assumptionStatus !== 'proxy') return;
+    const fallback = Object.values(scenario.countries).find(
+      (country) => country.id !== selectedCountry.id && country.assumptionStatus !== 'proxy',
+    )?.id ?? Object.keys(scenario.countries).find((id) => id !== selectedCountry.id) ?? 'USA';
+
+    setScenario((current) => {
+      const next = cloneScenario(current);
+      delete next.countries[selectedCountry.id];
+      return next;
+    });
+    setSelectedCountryId(fallback);
+  };
+
   return (
     <>
       <section className="global-layout">
@@ -183,7 +197,10 @@ export function GlobalOpportunityTab({ scenario, result, setScenario }: Props) {
             </>
           ) : selectedCountry ? (
             <>
-              <span className="section-kicker">Selected market</span><h3>{selectedCountry.name}</h3>
+              <div className="country-detail-heading">
+                <div><span className="section-kicker">Selected market</span><h3>{selectedCountry.name}</h3></div>
+                {selectedCountry.assumptionStatus === 'proxy' && <button className="danger-button" onClick={removeProxyMarket}>Remove proxy</button>}
+              </div>
               {selectedCountry.assumptionStatus === 'proxy' && <span className="privacy-chip">PROXY MARKET</span>}
               <div className="country-stat"><span>Population</span><strong>{formatPopulation(selectedCountryYear?.population ?? selectedCountry.populationBase)}</strong></div>
               <div className="country-stat"><span>Access route</span><strong>{accessLabel(selectedCountry.accessRoute)}</strong></div>

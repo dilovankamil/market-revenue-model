@@ -3,13 +3,17 @@ import path from 'node:path';
 
 const assetsDir = path.resolve('dist/assets');
 const files = await readdir(assetsDir);
-const jsSource = files.includes('app.js') ? 'app.js' : files.find((file) => file.endsWith('.js'));
+const jsSource = files.find((file) => file.startsWith('app-') && file.endsWith('.js'))
+  ?? files.find((file) => file.endsWith('.js'));
 const cssSource = files.find((file) => file.endsWith('.css'));
 
 if (!jsSource) throw new Error('Could not find built JavaScript entry asset.');
 if (!cssSource) throw new Error('Could not find built CSS asset.');
 
-const legacyJs = [
+// Keep stable aliases so a browser with older cached HTML can still resolve its bundle,
+// while the current HTML points to content-hashed filenames and therefore cannot reuse stale JS/CSS.
+const compatibilityJs = [
+  'app.js',
   'index-Nx9jfuwX.js',
   'index-CETiqWCh.js',
   'index-iJ6mm8Yt.js',
@@ -19,7 +23,8 @@ const legacyJs = [
   'index-CKdeO6Dj.js',
 ];
 
-const legacyCss = [
+const compatibilityCss = [
+  'style.css',
   'index-BSppxZMy.css',
   'index-DfsQZLkw.css',
   'index-cu0FI-cg.css',
@@ -29,8 +34,12 @@ const legacyCss = [
 ];
 
 await Promise.all([
-  ...legacyJs.map((name) => copyFile(path.join(assetsDir, jsSource), path.join(assetsDir, name))),
-  ...legacyCss.map((name) => copyFile(path.join(assetsDir, cssSource), path.join(assetsDir, name))),
+  ...compatibilityJs
+    .filter((name) => name !== jsSource)
+    .map((name) => copyFile(path.join(assetsDir, jsSource), path.join(assetsDir, name))),
+  ...compatibilityCss
+    .filter((name) => name !== cssSource)
+    .map((name) => copyFile(path.join(assetsDir, cssSource), path.join(assetsDir, name))),
 ]);
 
-console.log(`Legacy compatibility assets created from ${jsSource} and ${cssSource}.`);
+console.log(`Compatibility assets created from ${jsSource} and ${cssSource}.`);

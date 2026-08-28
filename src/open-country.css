@@ -1,0 +1,95 @@
+.proxy-market-box {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.proxy-market-box > label,
+.proxy-year-grid label {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  color: #9fb1c1;
+  font-size: 10px;
+  margin-top: 13px;
+}
+
+.proxy-market-box input[type="range"] { grid-column: 1 / -1; width: 100%; }
+
+.proxy-year-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.proxy-year-grid input,
+.proxy-market-box select {
+  width: 100%;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.035);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.stage-table-risk .stage-row { grid-template-columns: 1.15fr .9fr .85fr .85fr .8fr .65fr; }
+
+.clinical-probability-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.clinical-probability-grid > div {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  background: rgba(255,255,255,.025);
+}
+
+.clinical-probability-grid span,
+.clinical-probability-grid small { display: block; color: var(--muted); font-size: 9px; }
+.clinical-probability-grid strong { display: block; margin: 5px 0; font-size: 17px; }
+
+.method-principles {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.method-principles > div {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  padding: 13px;
+  background: rgba(255,255,255,.02);
+}
+
+.method-principles strong,
+.method-principles span { display: block; }
+.method-principles span { color: var(--muted); font-size: 10px; line-height: 1.5; margin-top: 5px; }
+
+.source-section { padding: 20px; }
+.source-list { margin-top: 12px; }
+.source-row {
+  display: grid;
+  grid-template-columns: minmax(250px,.8fr) 1.4fr;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+.source-row strong,
+.source-row small { display: block; }
+.source-row strong { margin-top: 7px; font-size: 12px; }
+.source-row small { color: var(--muted); margin-top: 4px; font-size: 9px; }
+.source-row p { color: var(--muted); font-size: 10px; line-height: 1.55; margin: 0; }
+.source-row a { color: #79d7f3; text-decoration: none; }
+.source-row a:hover { text-decoration: underline; }
+
+@media (max-width: 1100px) {
+  .clinical-probability-grid,
+  .method-principles { grid-template-columns: 1fr; }
+  .source-row { grid-template-columns: 1fr; }
+}

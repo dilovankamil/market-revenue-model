@@ -5,6 +5,7 @@ import './styles.css';
 import './enhancements.css';
 import './open-country.css';
 import './build-mode.css';
+import './ux-v2.css';
 
 const privateModulesEnabled = import.meta.env.VITE_SHOW_PRIVATE_MODULES === 'true';
 document.documentElement.classList.toggle('internal-build', privateModulesEnabled);

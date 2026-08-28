@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { CommercialModelTab } from './components/CommercialModelTab';
 import { CountryGlobe } from './components/CountryGlobe';
 import { DevelopmentTab } from './components/DevelopmentTab';
 import { GlobalOpportunityTab } from './components/GlobalOpportunityTab';
@@ -35,13 +36,6 @@ const formatUsd = (value: number) => {
   if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
   return `${sign}$${Math.round(abs).toLocaleString()}`;
 };
-
-const accessLabel = (route: CountryAssumption['accessRoute']) => ({
-  commercial: 'Commercial',
-  'named-patient': 'Named-patient',
-  'clinical-trial': 'Clinical trial',
-  none: 'Not available',
-}[route]);
 
 const sourceStatusLabel = (status: 'literature' | 'workbook' | 'scenario') => ({
   literature: 'Literature',
@@ -224,37 +218,16 @@ function App() {
               <article className="kpi-card"><span>Peak treated patients</span><strong>{Math.round(result.peakTreatedPatients).toLocaleString()}</strong><small>annual</small></article>
               <article className="kpi-card"><span>Unrisked NPV</span><strong>{formatUsd(result.valuation.npvUsd)}</strong><small>{scenario.financial.discountRatePct.toFixed(1)}% discount rate</small></article>
             </section>
-            <section className="chart-panel panel"><div className="panel-heading"><div><span className="section-kicker">Forecast</span><h3>Global gross revenue</h3></div><div className="legend-inline"><span className="legend-bar" /> Revenue <span className="legend-cost" /> Development spend</div></div><RevenueChart data={result.years} /></section>
+            <section className="chart-panel panel">
+              <div className="panel-heading"><div><span className="section-kicker">Forecast</span><h3>Global gross revenue</h3></div><span className="chart-context-note">Animated stacked revenue</span></div>
+              <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} />
+            </section>
           </>
         )}
 
         {activeTab === 'global' && <GlobalOpportunityTab scenario={scenario} result={result} setScenario={setScenario} />}
 
-        {activeTab === 'commercial' && (
-          <section className="two-column-layout">
-            <div className="panel controls-panel">
-              <div className="panel-heading"><div><span className="section-kicker">Country markets</span><h3>Pricing & penetration</h3></div></div>
-              {Object.values(scenario.countries).map((country) => (
-                <div className={`market-control ${country.enabled ? '' : 'control-disabled'}`} key={country.id}>
-                  <div className="market-control-title"><div><strong>{country.name}</strong><small>{country.region}{country.assumptionStatus === 'proxy' ? ' · proxy' : ''}</small></div><span>{accessLabel(country.accessRoute)}</span></div>
-                  <label>Peak share <b>{country.peakSharePct}%</b><input type="range" min="1" max="60" step="1" value={country.peakSharePct} onChange={(event) => updateCountry(country.id, 'peakSharePct', +event.target.value)} /></label>
-                  <label>Price <b>{formatUsd(country.priceUsd)}</b><input type="range" min="5000" max="150000" step="5000" value={country.priceUsd} onChange={(event) => updateCountry(country.id, 'priceUsd', +event.target.value)} /></label>
-                  {country.assumptionNote && <p className="model-note warning">{country.assumptionNote}</p>}
-                </div>
-              ))}
-            </div>
-            <div className="panel controls-panel sticky-panel">
-              <div className="panel-heading"><div><span className="section-kicker">Portfolio</span><h3>Commercial economics</h3></div></div>
-              <div className="global-control">
-                <label>COGS / treatment <b>{formatUsd(scenario.financial.cogsPerTreatmentUsd)}</b><input type="range" min="100" max="10000" step="100" value={scenario.financial.cogsPerTreatmentUsd} onChange={(event) => updateFinancial('cogsPerTreatmentUsd', +event.target.value)} /></label>
-                <label>Commercial OpEx <b>{scenario.financial.commercialOpexPct.toFixed(1)}%</b><input type="range" min="0" max="30" step="0.5" value={scenario.financial.commercialOpexPct} onChange={(event) => updateFinancial('commercialOpexPct', +event.target.value)} /></label>
-                <label>Post-LoE erosion <b>{scenario.erosionPct.toFixed(1)}%</b><input type="range" min="0" max="60" step="1" value={scenario.erosionPct} onChange={(event) => setScenario((current) => ({ ...current, erosionPct: +event.target.value }))} /></label>
-                <label>Patent extension <b>+{scenario.patentExtensionYears} years</b><input type="range" min="0" max="10" step="1" value={scenario.patentExtensionYears} onChange={(event) => setScenario((current) => ({ ...current, patentExtensionYears: +event.target.value }))} /></label>
-              </div>
-              <RevenueChart data={result.years} />
-            </div>
-          </section>
-        )}
+        {activeTab === 'commercial' && <CommercialModelTab scenario={scenario} result={result} setScenario={setScenario} />}
 
         {activeTab === 'development' && <DevelopmentTab scenario={scenario} result={result} setScenario={setScenario} />}
 

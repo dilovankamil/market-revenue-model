@@ -1,7 +1,7 @@
 export type IndicationId = 'gbm' | 'brainMetastasis' | 'opbt';
 export type CountryId = string;
 export type RegionId = 'North America' | 'Europe' | 'Asia-Pacific';
-export type AccessRoute = 'commercial' | 'named-patient' | 'clinical-trial' | 'none';
+export type AccessRoute = 'commercial' | 'clinical-trial' | 'none';
 export type FinancingType = 'equity' | 'debt' | 'partner' | 'grant';
 export type AssumptionStatus = 'configured' | 'proxy';
 
@@ -11,15 +11,6 @@ export interface IndicationAssumption {
   incidencePer100kByRegion: Record<RegionId, number>;
   defaultRampYears: number;
   enabled: boolean;
-}
-
-export interface NamedPatientAssumption {
-  startYear: number;
-  centres: number;
-  annualCentreGrowthPct: number;
-  maxCentres: number;
-  eligiblePatientsPerCentre: number;
-  conversionPct: number;
 }
 
 export interface CountryAssumption {
@@ -38,7 +29,6 @@ export interface CountryAssumption {
   surgeryEligibility: Record<IndicationId, number>;
   accessiblePopulationPct: number;
   accessRoute: AccessRoute;
-  namedPatient?: NamedPatientAssumption;
   assumptionStatus?: AssumptionStatus;
   assumptionNote?: string;
 }
@@ -128,7 +118,7 @@ export interface ValuationResult {
   riskAdjustedNpvUsd: number;
   discountRatePct: number;
   riskAdjustmentPct: number;
-  clinicalSuccessPctByIndication: Record<IndicationId, number>;
+  commercializationSuccessPctByIndication: Record<IndicationId, number>;
 }
 
 export interface ModelResult {

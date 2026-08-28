@@ -1,8 +1,9 @@
 export type IndicationId = 'gbm' | 'brainMetastasis' | 'opbt';
-export type CountryId = 'USA' | 'DEU' | 'FRA' | 'ITA' | 'ESP' | 'GBR' | 'JPN' | 'IND' | 'CHN';
+export type CountryId = string;
 export type RegionId = 'North America' | 'Europe' | 'Asia-Pacific';
 export type AccessRoute = 'commercial' | 'named-patient' | 'clinical-trial' | 'none';
 export type FinancingType = 'equity' | 'debt' | 'partner' | 'grant';
+export type AssumptionStatus = 'configured' | 'proxy';
 
 export interface IndicationAssumption {
   id: IndicationId;
@@ -38,6 +39,8 @@ export interface CountryAssumption {
   accessiblePopulationPct: number;
   accessRoute: AccessRoute;
   namedPatient?: NamedPatientAssumption;
+  assumptionStatus?: AssumptionStatus;
+  assumptionNote?: string;
 }
 
 export interface DevelopmentStage {

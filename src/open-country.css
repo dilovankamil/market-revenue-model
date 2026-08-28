@@ -88,8 +88,46 @@
 .source-row a { color: #79d7f3; text-decoration: none; }
 .source-row a:hover { text-decoration: underline; }
 
+.subnational-panel {
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.subnational-list { margin-top: 12px; }
+.subnational-row {
+  display: grid;
+  grid-template-columns: minmax(150px,1.15fr) minmax(120px,1.2fr) .8fr .8fr .8fr 48px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.subnational-name strong,
+.subnational-name small,
+.subnational-row span,
+.subnational-row b { display: block; }
+.subnational-name small,
+.subnational-row span { color: var(--muted); font-size: 9px; margin-top: 3px; }
+.subnational-row b { font-size: 11px; margin-top: 3px; }
+.subnational-row a { color: #79d7f3; font-size: 9px; text-decoration: none; }
+.subnational-row a:hover { text-decoration: underline; }
+.subnational-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.045);
+  overflow: hidden;
+}
+.subnational-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(79,209,197,.45), rgba(110,215,255,.9));
+}
+
 @media (max-width: 1100px) {
   .clinical-probability-grid,
   .method-principles { grid-template-columns: 1fr; }
   .source-row { grid-template-columns: 1fr; }
+  .subnational-row { grid-template-columns: 1fr 1fr 1fr; }
+  .subnational-bar { grid-column: 1 / -1; }
 }

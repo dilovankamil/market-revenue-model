@@ -10,10 +10,11 @@ export default defineConfig({
     cssCodeSplit: false,
     rollupOptions: {
       output: {
-        // Stable filenames prevent cached HTML from pointing at assets removed by a later Pages deployment.
-        entryFileNames: 'assets/app.js',
-        chunkFileNames: 'assets/[name].js',
-        assetFileNames: 'assets/[name][extname]',
+        // Content-hashed entry names force browsers/CDNs to fetch the exact release bundle.
+        // scripts/add-legacy-assets.mjs also creates stable compatibility aliases for stale HTML.
+        entryFileNames: 'assets/app-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]',
       },
     },
   },

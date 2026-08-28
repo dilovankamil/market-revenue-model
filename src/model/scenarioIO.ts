@@ -1,4 +1,5 @@
 import type { Scenario } from './types';
+import { scenarioErrors } from './validation';
 
 export const MODEL_FILE_VERSION = 1;
 
@@ -41,5 +42,12 @@ export const parseScenario = (text: string): Scenario => {
     throw new Error('Scenario file is incomplete or malformed.');
   }
 
-  return structuredClone(scenario);
+  const cloned = structuredClone(scenario);
+  const errors = scenarioErrors(cloned);
+  if (errors.length) {
+    const first = errors[0];
+    throw new Error(`Scenario validation failed: ${first.message}${errors.length > 1 ? ` (+${errors.length - 1} more)` : ''}`);
+  }
+
+  return cloned;
 };

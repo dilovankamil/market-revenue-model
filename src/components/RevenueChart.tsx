@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import type { CountryYearResult, IndicationId, RegionId, Scenario, YearResult } from '../model/types';
+import type { CountryYearResult, DevelopmentStage, IndicationId, RegionId, Scenario, YearResult } from '../model/types';
 
 export type RevenueColorMode = 'indication' | 'region';
 
@@ -21,6 +21,12 @@ interface SegmentDatum {
   color: string;
 }
 
+interface DevelopmentBreakdownRow {
+  year: number;
+  total: number;
+  stages: { id: string; label: string; value: number }[];
+}
+
 const indicationColors: Record<IndicationId, string> = {
   gbm: '#4fd1c5',
   brainMetastasis: '#6ed7ff',
@@ -35,7 +41,7 @@ const regionColors: Record<RegionId, string> = {
 
 const formatUsd = (value: number) => {
   if (Math.abs(value) >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(0)}M`;
+  if (Math.abs(value) >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (Math.abs(value) >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
   return `$${Math.round(value)}`;
 };
@@ -44,7 +50,21 @@ const indicationOrder: IndicationId[] = ['gbm', 'brainMetastasis', 'opbt'];
 const regionOrder: RegionId[] = ['North America', 'Europe', 'Asia-Pacific'];
 
 const animate = <E extends d3.BaseType, D, P extends d3.BaseType, PD>(selection: d3.Selection<E, D, P, PD>) =>
-  selection.transition().duration(650).ease(d3.easeCubicOut);
+  selection.transition().duration(560).ease(d3.easeCubicOut);
+
+const stageCostForYear = (stage: DevelopmentStage, year: number) => {
+  const start = new Date(`${stage.startDate}T00:00:00Z`);
+  const end = new Date(`${stage.endDate}T00:00:00Z`);
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const yearEnd = new Date(Date.UTC(year, 11, 31));
+  const overlapStart = start > yearStart ? start : yearStart;
+  const overlapEnd = end < yearEnd ? end : yearEnd;
+  if (overlapEnd < overlapStart) return 0;
+  const day = 86_400_000;
+  const totalDays = Math.max(1, (end.getTime() - start.getTime()) / day + 1);
+  const overlapDays = (overlapEnd.getTime() - overlapStart.getTime()) / day + 1;
+  return stage.publicCostUsd * overlapDays / totalDays;
+};
 
 export function RevenueChart({
   data,
@@ -74,13 +94,8 @@ export function RevenueChart({
   const segments = useMemo<SegmentDatum[]>(() => {
     if (!scenario || countryYears.length === 0) {
       return data.map((row) => ({
-        id: 'total',
-        label: 'Revenue',
-        year: row.year,
-        value: row.grossRevenueUsd,
-        y0: 0,
-        y1: row.grossRevenueUsd,
-        color: '#4ba7c6',
+        id: 'total', label: 'Revenue', year: row.year, value: row.grossRevenueUsd,
+        y0: 0, y1: row.grossRevenueUsd, color: '#4ba7c6',
       }));
     }
 
@@ -103,22 +118,32 @@ export function RevenueChart({
             0,
           );
         }
-
         output.push({
-          id: item.id,
-          label: item.label,
-          year: row.year,
-          value,
-          y0: running,
-          y1: running + value,
-          color: item.color,
+          id: item.id, label: item.label, year: row.year, value,
+          y0: running, y1: running + value, color: item.color,
         });
         running += value;
       });
     });
-
     return output;
   }, [data, countryYears, scenario, series, colorMode]);
+
+  const developmentBreakdown = useMemo<DevelopmentBreakdownRow[]>(() => {
+    if (!scenario || !showDevelopmentAnnotations) return [];
+    return data
+      .map((row) => {
+        const stages = scenario.developmentStages
+          .filter((stage) => scenario.indications[stage.indication].enabled)
+          .map((stage) => ({
+            id: stage.id,
+            label: `${scenario.indications[stage.indication].name} · ${stage.phase}`,
+            value: stageCostForYear(stage, row.year),
+          }))
+          .filter((stage) => stage.value > 0.5);
+        return { year: row.year, total: row.developmentCostsUsd, stages };
+      })
+      .filter((row) => row.total > 0);
+  }, [data, scenario, showDevelopmentAnnotations]);
 
   useEffect(() => {
     if (!svgRef.current) return;
@@ -144,46 +169,29 @@ export function RevenueChart({
       .join(
         (enter) => enter.append('line')
           .attr('class', 'chart-grid')
-          .attr('x1', margin.left)
-          .attr('x2', width - margin.right)
-          .attr('y1', y(0))
-          .attr('y2', y(0)),
+          .attr('x1', margin.left).attr('x2', width - margin.right)
+          .attr('y1', (tick) => y(tick)).attr('y2', (tick) => y(tick))
+          .style('opacity', 0),
         (update) => update,
-        (exit) => exit
-          .transition()
-          .duration(450)
-          .ease(d3.easeCubicOut)
-          .style('opacity', 0)
-          .remove(),
+        (exit) => exit.transition().duration(300).style('opacity', 0).remove(),
       )
       .call((selection) => animate(selection)
-        .attr('x1', margin.left)
-        .attr('x2', width - margin.right)
-        .attr('y1', (tick) => y(tick))
-        .attr('y2', (tick) => y(tick)));
+        .attr('x1', margin.left).attr('x2', width - margin.right)
+        .attr('y1', (tick) => y(tick)).attr('y2', (tick) => y(tick))
+        .style('opacity', 1));
 
     const yLabels = svg.select<SVGGElement>('.chart-y-label-layer');
     yLabels.selectAll<SVGTextElement, number>('text')
       .data(yTicks, (tick) => String(tick))
       .join(
-        (enter) => enter.append('text')
-          .attr('class', 'chart-axis-label')
-          .attr('text-anchor', 'end')
-          .attr('x', margin.left - 12)
-          .attr('y', y(0) + 4)
-          .style('opacity', 0),
+        (enter) => enter.append('text').attr('class', 'chart-axis-label')
+          .attr('text-anchor', 'end').attr('x', margin.left - 12)
+          .attr('y', (tick) => y(tick) + 4).style('opacity', 0),
         (update) => update,
-        (exit) => exit
-          .transition()
-          .duration(450)
-          .ease(d3.easeCubicOut)
-          .style('opacity', 0)
-          .remove(),
+        (exit) => exit.transition().duration(300).style('opacity', 0).remove(),
       )
       .text((tick) => formatUsd(tick))
-      .call((selection) => animate(selection)
-        .attr('y', (tick) => y(tick) + 4)
-        .style('opacity', 1));
+      .call((selection) => animate(selection).attr('y', (tick) => y(tick) + 4).style('opacity', 1));
 
     const bars = svg.select<SVGGElement>('.chart-bar-layer');
     const keyedSegments = segments.filter((segment) => segment.value > 0);
@@ -195,36 +203,46 @@ export function RevenueChart({
       .attr('class', 'revenue-segment')
       .attr('x', (segment) => x(segment.year) ?? 0)
       .attr('width', x.bandwidth())
-      .attr('y', y(0))
-      .attr('height', 0)
+      .attr('y', (segment) => y(segment.y1))
+      .attr('height', (segment) => Math.max(0, y(segment.y0) - y(segment.y1)))
       .attr('rx', 5)
       .attr('fill', (segment) => segment.color)
-      .style('opacity', 0.92);
+      .attr('transform', 'translate(0,6)')
+      .style('opacity', 0);
 
     entered.append('title');
 
-    const merged = entered.merge(rects);
-    merged.select('title').text((segment) => `${segment.year} · ${segment.label}: ${formatUsd(segment.value)}`);
-    animate(merged)
+    entered.transition()
+      .delay((_segment, index) => Math.min(180, index * 5))
+      .duration(420)
+      .ease(d3.easeCubicOut)
+      .attr('transform', 'translate(0,0)')
+      .style('opacity', 0.92);
+
+    const updated = rects;
+    updated.select('title').text((segment) => `${segment.year} · ${segment.label}: ${formatUsd(segment.value)}`);
+    entered.select('title').text((segment) => `${segment.year} · ${segment.label}: ${formatUsd(segment.value)}`);
+
+    animate(updated)
       .attr('x', (segment) => x(segment.year) ?? 0)
       .attr('width', x.bandwidth())
       .attr('y', (segment) => y(segment.y1))
       .attr('height', (segment) => Math.max(0, y(segment.y0) - y(segment.y1)))
       .attr('fill', (segment) => segment.color)
+      .attr('transform', 'translate(0,0)')
       .style('opacity', 0.92);
 
     rects.exit()
       .transition()
-      .duration(450)
+      .duration(300)
       .ease(d3.easeCubicOut)
-      .attr('y', y(0))
-      .attr('height', 0)
       .style('opacity', 0)
+      .attr('transform', 'translate(0,4)')
       .remove();
 
     const xTicks = data.filter((_, index) => index % 2 === 0);
-    const xLabels = svg.select<SVGGElement>('.chart-x-label-layer');
-    xLabels.selectAll<SVGTextElement, YearResult>('text')
+    svg.select<SVGGElement>('.chart-x-label-layer')
+      .selectAll<SVGTextElement, YearResult>('text')
       .data(xTicks, (row) => String(row.year))
       .join('text')
       .attr('class', 'chart-axis-label')
@@ -234,10 +252,8 @@ export function RevenueChart({
       .text((row) => String(row.year).slice(2));
 
     const annotations = svg.select<SVGGElement>('.chart-development-layer');
-    const developmentRows = showDevelopmentAnnotations
-      ? data.filter((row) => row.developmentCostsUsd > 0)
-      : [];
-    const markers = annotations.selectAll<SVGGElement, YearResult>('g')
+    const developmentRows = showDevelopmentAnnotations ? developmentBreakdown : [];
+    const markers = annotations.selectAll<SVGGElement, DevelopmentBreakdownRow>('g')
       .data(developmentRows, (row) => String(row.year))
       .join(
         (enter) => {
@@ -247,15 +263,17 @@ export function RevenueChart({
           return group;
         },
         (update) => update,
-        (exit) => exit.remove(),
+        (exit) => exit.transition().duration(250).style('opacity', 0).remove(),
       );
     markers.select('rect')
       .attr('x', (row) => (x(row.year) ?? 0) + 2)
       .attr('y', height - margin.bottom + 9)
       .attr('width', Math.max(4, x.bandwidth() - 4));
-    markers.select('title')
-      .text((row) => `${row.year}: ${formatUsd(row.developmentCostsUsd)} clinical-development spend. Annotation only; not part of bar height.`);
-  }, [data, segments, showDevelopmentAnnotations]);
+    markers.select('title').text((row) => {
+      const detail = row.stages.map((stage) => `${stage.label} ${formatUsd(stage.value)}`).join(' · ');
+      return `${row.year}: ${formatUsd(row.total)} clinical-development spend${detail ? ` — ${detail}` : ''}`;
+    });
+  }, [data, segments, showDevelopmentAnnotations, developmentBreakdown]);
 
   return (
     <div className="revenue-chart-wrap">
@@ -278,8 +296,24 @@ export function RevenueChart({
         <g className="chart-development-layer" />
         <g className="chart-x-label-layer" />
       </svg>
-      {showDevelopmentAnnotations && data.some((row) => row.developmentCostsUsd > 0) && (
-        <div className="development-annotation-key"><i /> <strong>Clinical-development spend</strong> — the thin red marks under 2026–32 identify years with development expenditure. They are annotations only; revenue bar height is not reduced by them.</div>
+      {developmentBreakdown.length > 0 && (
+        <div className="development-explainer">
+          <div className="development-annotation-key"><i /> <strong>Clinical-development spend</strong> — annual modeled trial/program expenditure. The red marks are annotations only and do not reduce revenue bar height.</div>
+          <details className="development-breakdown">
+            <summary>See what the development spend contains</summary>
+            <div className="development-breakdown-grid">
+              {developmentBreakdown.map((row) => (
+                <div className="development-year-card" key={row.year}>
+                  <div className="development-year-heading"><strong>{row.year}</strong><b>{formatUsd(row.total)}</b></div>
+                  {row.stages.map((stage) => (
+                    <div className="development-stage-line" key={stage.id}><span>{stage.label}</span><b>{formatUsd(stage.value)}</b></div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <p className="development-breakdown-note">Each stage budget is spread across calendar years in proportion to the number of active days in that year. These are modelled program costs, not reported historical expenses.</p>
+          </details>
+        </div>
       )}
     </div>
   );

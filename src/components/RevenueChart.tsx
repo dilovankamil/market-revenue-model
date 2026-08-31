@@ -156,7 +156,13 @@ export function RevenueChart({ data, countryYears = [], scenario, showDevelopmen
     svg.select<SVGGElement>('.chart-total-label-layer').selectAll<SVGTextElement, YearResult>('text')
       .data(revenueRows, (row) => String(row.year))
       .join(
-        (enter) => enter.append('text').attr('class', 'bar-total-label').attr('text-anchor', 'middle').style('opacity', 0),
+        (enter) => enter.append('text')
+          .attr('class', 'bar-total-label')
+          .attr('text-anchor', 'middle')
+          .attr('x', (row) => (x(row.year) ?? 0) + x.bandwidth() / 2)
+          .attr('y', (row) => Math.max(16, y(row.grossRevenueUsd) - 7))
+          .attr('transform', 'translate(0,5)')
+          .style('opacity', 0),
         (update) => update,
         (exit) => exit.transition().duration(220).style('opacity', 0).remove(),
       )
@@ -164,6 +170,7 @@ export function RevenueChart({ data, countryYears = [], scenario, showDevelopmen
       .call((selection) => animate(selection)
         .attr('x', (row) => (x(row.year) ?? 0) + x.bandwidth() / 2)
         .attr('y', (row) => Math.max(16, y(row.grossRevenueUsd) - 7))
+        .attr('transform', 'translate(0,0)')
         .style('opacity', 1));
 
     const xTicks = data.filter((_, index) => index % 2 === 0);

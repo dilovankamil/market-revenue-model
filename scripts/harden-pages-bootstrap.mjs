@@ -18,45 +18,79 @@ html = html.replace(moduleScript, '');
 html = html.replace(stylesheet, '');
 
 const bootstrap = `
-    <script type="module">
-      (() => {
-        const base = '/market-revenue-model/';
-        const root = document.getElementById('root');
-        const stamp = Date.now().toString(36);
+    <script>
+      (function () {
+        var base = '/market-revenue-model/';
+        var root = document.getElementById('root');
+        var stamp = Date.now().toString(36);
+        var finished = false;
 
-        const showFailure = (code, title, detail) => {
-          if (!root) return;
+        function showFailure(code, title, detail) {
+          if (!root || finished) return;
+          finished = true;
           root.innerHTML = '<div style="min-height:45vh;display:grid;place-items:center;align-content:center;gap:10px;padding:24px;text-align:center;color:#eef6ff;background:#06111d"><strong style="font:600 18px system-ui">' + title + '</strong><span style="max-width:600px;color:#9fb1c1;font:12px/1.6 system-ui">' + detail + '</span><small style="color:#71879a;font:10px system-ui">Error code: ' + code + '</small></div>';
-        };
+        }
 
-        const css = document.createElement('link');
+        function shortMessage(value) {
+          try {
+            var text = value && value.message ? value.message : String(value || 'Unknown error');
+            return text.length > 180 ? text.slice(0, 177) + '...' : text;
+          } catch (_) {
+            return 'Unknown browser error';
+          }
+        }
+
+        window.addEventListener('error', function (event) {
+          if (window.__SI053_BOOT_OK__) return;
+          showFailure(
+            'SI053-RUNTIME-1',
+            'The release bundle started but failed during initialization.',
+            shortMessage(event.error || event.message)
+          );
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+          if (window.__SI053_BOOT_OK__) return;
+          showFailure(
+            'SI053-RUNTIME-2',
+            'The release bundle started but a module failed during initialization.',
+            shortMessage(event.reason)
+          );
+        });
+
+        var css = document.createElement('link');
         css.rel = 'stylesheet';
         css.href = base + 'assets/style.css?boot=' + stamp;
         document.head.appendChild(css);
 
-        const timeout = window.setTimeout(() => {
+        var timeout = window.setTimeout(function () {
           if (!window.__SI053_BOOT_OK__) {
             showFailure(
               'SI053-MOUNT-1',
               'The model loaded but did not mount.',
-              'The release bundle was retrieved, but the interface did not initialize. Reload once; if this remains, report this exact error code.'
+              'The application file was requested but the interface did not initialize within 15 seconds.'
             );
           }
         }, 15000);
 
-        import(base + 'assets/app.js?boot=' + stamp)
-          .then(() => {
-            if (window.__SI053_BOOT_OK__) window.clearTimeout(timeout);
-          })
-          .catch((error) => {
+        var app = document.createElement('script');
+        app.type = 'module';
+        app.src = base + 'assets/app.js?boot=' + stamp;
+        app.onload = function () {
+          if (window.__SI053_BOOT_OK__) {
+            finished = true;
             window.clearTimeout(timeout);
-            console.error('SI-053 release bundle failed to load', error);
-            showFailure(
-              'SI053-ASSET-2',
-              'The application bundle could not be loaded.',
-              'A fresh copy of the release bundle could not be executed. This is an asset-loading failure rather than a model calculation error.'
-            );
-          });
+          }
+        };
+        app.onerror = function () {
+          window.clearTimeout(timeout);
+          showFailure(
+            'SI053-ASSET-3',
+            'The application bundle could not be executed.',
+            'The browser could not load or evaluate a fresh copy of assets/app.js.'
+          );
+        };
+        document.head.appendChild(app);
       })();
     </script>`;
 
@@ -67,4 +101,4 @@ if (!html.includes('</body>')) {
 html = html.replace('</body>', `${bootstrap}\n  </body>`);
 await writeFile(indexPath, html, 'utf8');
 
-console.log('Pages bootstrap hardened: stable app.js/style.css are loaded with per-page cache busting.');
+console.log('Pages bootstrap hardened: classic launcher requests cache-busted app.js/style.css and reports runtime failures.');

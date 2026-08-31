@@ -3,6 +3,7 @@ import { CommercialValueTab } from './components/CommercialValueTab';
 import { DevelopmentTab } from './components/DevelopmentTab';
 import { MarketSelector } from './components/MarketSelector';
 import { MethodologyTab } from './components/MethodologyTab';
+import { Si053StoryPage } from './components/Si053StoryPage';
 import { cloneScenario } from './model/assumptions';
 import { calculateModel } from './model/calculateModel';
 import { createDefaultScenario } from './model/defaultScenario';
@@ -12,7 +13,7 @@ import type { IndicationId, Scenario } from './model/types';
 type TabId = 'overview' | 'commercial' | 'development' | 'deal' | 'methodology';
 
 const tabs: { id: TabId; label: string; private?: boolean }[] = [
-  { id: 'overview', label: 'Overview' },
+  { id: 'overview', label: 'SI-053' },
   { id: 'commercial', label: 'Commercial & valuation' },
   { id: 'development', label: 'Development & cash' },
   { id: 'deal', label: 'Deal explorer', private: true },
@@ -102,7 +103,7 @@ export default function AppV9() {
         {scopeControlsVisible && <div className="desktop-scope-controls">{scopeControls}</div>}
       </aside>
 
-      <main className="workspace workspace-v8 workspace-v9">
+      <main className={`workspace workspace-v8 workspace-v9 ${activeTab === 'overview' ? 'story-workspace-v16' : ''}`}>
         <div className="mobile-command-bar" aria-label="Mobile model navigation">
           <label className="mobile-section-select">
             <span>Section</span>
@@ -113,33 +114,17 @@ export default function AppV9() {
           {scopeControlsVisible && <button className="mobile-controls-button" onClick={() => setMobileControlsOpen(true)}>Markets & indications</button>}
         </div>
 
-        <header className="topbar topbar-v8 topbar-v9">
-          <div><div className="eyebrow">INTERACTIVE COMMERCIAL, DEVELOPMENT & VALUE MODEL</div><h2>{visibleTabs.find((tab) => tab.id === activeTab)?.label ?? 'SI-053 Strategic Model'}</h2></div>
-          <div className="topbar-actions topbar-actions-v8"><div className="scenario-pill"><span className={`scenario-status ${privateConfigLoaded ? 'private-loaded' : ''}`} />{scenario.name}</div></div>
-        </header>
+        {activeTab !== 'overview' && (
+          <header className="topbar topbar-v8 topbar-v9">
+            <div><div className="eyebrow">INTERACTIVE COMMERCIAL, DEVELOPMENT & VALUE MODEL</div><h2>{visibleTabs.find((tab) => tab.id === activeTab)?.label ?? 'SI-053 Strategic Model'}</h2></div>
+            <div className="topbar-actions topbar-actions-v8"><div className="scenario-pill"><span className={`scenario-status ${privateConfigLoaded ? 'private-loaded' : ''}`} />{scenario.name}</div></div>
+          </header>
+        )}
 
         {activeTab === 'overview' && (
           <>
             {privateConfigLoaded && <div className="private-model-banner">Private local configuration loaded · {scenario.corporateCosts.length} corporate cost lines · {scenario.financingEvents.length} financing events.</div>}
-            <section className="panel summary-panel">
-              <span className="section-kicker">Strategic model</span>
-              <h3>Two views of the SI-053 opportunity</h3>
-              <p className="summary-copy">The economic model is now separated into commercial value and development financing. This overview is intentionally light so it can become the SI-053 introduction next.</p>
-            </section>
-            <section className="two-column-layout">
-              <article className="panel summary-panel">
-                <span className="section-kicker">Market & value</span>
-                <h3>Commercial & valuation</h3>
-                <p className="summary-copy">Choose markets, set price and penetration, explore the global footprint and see the resulting asset valuation.</p>
-                <button className="text-button" onClick={() => changeTab('commercial')}>Open commercial model →</button>
-              </article>
-              <article className="panel summary-panel">
-                <span className="section-kicker">Programme & financing</span>
-                <h3>Development & cash</h3>
-                <p className="summary-copy">Review the clinical programme, development spend, revenue forecast, funding requirement and cumulative operating cash flow.</p>
-                <button className="text-button" onClick={() => changeTab('development')}>Open development model →</button>
-              </article>
-            </section>
+            <Si053StoryPage onOpenCommercial={() => changeTab('commercial')} onOpenDevelopment={() => changeTab('development')} />
           </>
         )}
 

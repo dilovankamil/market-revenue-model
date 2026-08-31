@@ -43,8 +43,10 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   );
   const activeIds = useMemo(() => new Set(activeCountries.map((country) => country.id)), [activeCountries]);
 
-  const referencePrice = scenario.countries.USA?.priceUsd ?? average(activeCountries.map((country) => country.priceUsd)) || 75_000;
-  const referenceShare = scenario.countries.USA?.peakSharePct ?? average(activeCountries.map((country) => country.peakSharePct)) || 30;
+  const fallbackPrice = average(activeCountries.map((country) => country.priceUsd));
+  const fallbackShare = average(activeCountries.map((country) => country.peakSharePct));
+  const referencePrice = scenario.countries.USA?.priceUsd ?? (fallbackPrice || 75_000);
+  const referenceShare = scenario.countries.USA?.peakSharePct ?? (fallbackShare || 30);
 
   const firstLaunch = activeCountries.length
     ? activeCountries.reduce((earliest, country) => {

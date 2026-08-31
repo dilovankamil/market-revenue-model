@@ -24,11 +24,27 @@ const erosionFactor = (scenario: Scenario, country: CountryAssumption, year: num
   return Math.pow(1 - scenario.erosionPct / 100, year - effectiveLoe);
 };
 
+const launchMonth = (country: CountryAssumption, indication: IndicationId) =>
+  country.launchMonthByIndication?.[indication] ?? 1;
+
+const launchIndex = (country: CountryAssumption, indication: IndicationId) =>
+  country.launchYearByIndication[indication] * 12 + launchMonth(country, indication) - 1;
+
 const commercialAdoption = (country: CountryAssumption, indication: IndicationAssumption, year: number) => {
   const launchYear = country.launchYearByIndication[indication.id];
+  const launchMonthValue = launchMonth(country, indication.id);
   if (year < launchYear) return 0;
-  const elapsed = year - launchYear + 1;
-  return (country.peakSharePct / 100) * Math.min(1, elapsed / indication.defaultRampYears);
+
+  // Average the annual adoption across calendar months. January launches reproduce the prior
+  // annual step-ramp exactly; later launches are naturally prorated in their first calendar year.
+  let annualShare = 0;
+  for (let month = 1; month <= 12; month += 1) {
+    const monthsSinceLaunch = (year - launchYear) * 12 + (month - launchMonthValue);
+    if (monthsSinceLaunch < 0) continue;
+    const rampStep = Math.floor(monthsSinceLaunch / 12) + 1;
+    annualShare += (country.peakSharePct / 100) * Math.min(1, rampStep / indication.defaultRampYears);
+  }
+  return annualShare / 12;
 };
 
 const activeDevelopmentCostForYear = (stage: DevelopmentStage, year: number) => {
@@ -56,15 +72,20 @@ const stagesForIndication = (scenario: Scenario, indication: IndicationId) =>
 const earliestCommercialLaunch = (scenario: Scenario, indication: IndicationId) => {
   const launches = Object.values(scenario.countries)
     .filter((country) => country.accessRoute === 'commercial')
-    .map((country) => country.launchYearByIndication[indication]);
-  return launches.length ? Math.min(...launches) : scenario.endYear + 1;
+    .map((country) => launchIndex(country, indication));
+  return launches.length ? Math.min(...launches) : (scenario.endYear + 1) * 12;
+};
+
+const stageEndIndex = (stage: DevelopmentStage) => {
+  const end = new Date(`${stage.endDate}T00:00:00Z`);
+  return end.getUTCFullYear() * 12 + end.getUTCMonth();
 };
 
 const commercializationSuccessByIndication = (scenario: Scenario): Record<IndicationId, number> => {
   const result = emptyIndicationRecord();
   indicationIds.forEach((indication) => {
-    const launchYear = earliestCommercialLaunch(scenario, indication);
-    const preLaunchStages = stagesForIndication(scenario, indication).filter((stage) => Number(stage.endDate.slice(0, 4)) < launchYear);
+    const launch = earliestCommercialLaunch(scenario, indication);
+    const preLaunchStages = stagesForIndication(scenario, indication).filter((stage) => stageEndIndex(stage) < launch);
     result[indication] = preLaunchStages.length
       ? preLaunchStages.reduce((probability, stage) => probability * (stage.successProbabilityPct / 100), 1)
       : 1;

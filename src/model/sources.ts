@@ -54,7 +54,7 @@ export const methodologySources: MethodologySource[] = [
   {
     id: 'development-workbook', category: 'Development', label: 'Clinical programme timing and public cost layer',
     appliesTo: 'GBM · BM · OPBT',
-    note: 'Coarse cost aggregates are transcribed from SI053_Finance_Model_v8.xlsx. The current public planning calendar begins Phase I in June 2027.', status: 'workbook',
+    note: 'Coarse cost aggregates are transcribed from SI053_Finance_Model_v8.xlsx. The current public planning calendar begins Phase I in June 2027 and ends GBM Phase II on 31 August 2031.', status: 'workbook',
   },
   {
     id: 'fda-orphan-separate-approval', category: 'Development', label: 'FDA orphan designation is separate from approval',
@@ -74,7 +74,7 @@ export const methodologySources: MethodologySource[] = [
   {
     id: 'pricing-scenario', category: 'Commercial', label: 'Treatment price, launch timing and peak penetration',
     appliesTo: 'Country markets',
-    note: 'Scenario assumptions, not observed market facts. Expansion markets are explicitly marked as proxies and require country-specific validation before external quantitative use.', status: 'scenario',
+    note: 'Scenario assumptions, not observed market facts. The default selected-market treatment-price assumption is $75,000. Core US/Europe GBM launch is modeled for November 2031, a couple of months after the configured Phase II end date; the partial first year is prorated. Expansion markets are explicitly marked as proxies and require country-specific validation before external quantitative use.', status: 'scenario',
   },
   {
     id: 'valuation-method', category: 'Valuation', label: 'Explicit-horizon commercialization-gate rNPV',

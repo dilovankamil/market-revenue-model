@@ -16,7 +16,7 @@ function GroupCheckbox({ checked, mixed, onChange, label }: { checked: boolean; 
 
 export function MarketSelector({ scenario, setScenario }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(MARKET_GROUPS.map((group) => [group.id, !group.collapsedByDefault && group.id === 'north-america'])),
+    Object.fromEntries(MARKET_GROUPS.map((group) => [group.id, false])),
   );
 
   const setCountriesEnabled = (ids: CountryId[], enabled: boolean) => {

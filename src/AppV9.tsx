@@ -5,8 +5,9 @@ import { DevelopmentTab } from './components/DevelopmentTab';
 import { MarketSelector } from './components/MarketSelector';
 import { MethodologyTab } from './components/MethodologyTab';
 import { RevenueChart } from './components/RevenueChart';
-import { baseScenario, cloneScenario } from './model/assumptions';
+import { cloneScenario } from './model/assumptions';
 import { calculateModel } from './model/calculateModel';
+import { createDefaultScenario } from './model/defaultScenario';
 import { calculateDeal, type DealTerms, type DealType } from './model/deal';
 import { ensureV8Markets } from './model/marketExtensions';
 import { parseScenario, serializeScenario } from './model/scenarioIO';
@@ -33,9 +34,12 @@ const formatUsd = (value: number) => {
   return `${sign}$${Math.round(abs).toLocaleString()}`;
 };
 
+const formatLaunchMonth = (month: number, year: number) =>
+  `${new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, month - 1, 1)))} ${year}`;
+
 export default function AppV9() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [scenario, setScenario] = useState<Scenario>(() => ensureV8Markets(cloneScenario(baseScenario)));
+  const [scenario, setScenario] = useState<Scenario>(() => createDefaultScenario());
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [overviewCountryId, setOverviewCountryId] = useState<CountryId>('USA');
   const [scenarioFileError, setScenarioFileError] = useState<string | null>(null);
@@ -52,7 +56,12 @@ export default function AppV9() {
   const privateConfigLoaded = scenario.corporateCosts.length > 0 || scenario.financingEvents.length > 0;
   const commercialCountries = selectedCountries.filter((country) => country.accessRoute === 'commercial');
   const firstCommercialLaunch = commercialCountries.length
-    ? Math.min(...commercialCountries.map((country) => country.launchYearByIndication.gbm))
+    ? commercialCountries.reduce((earliest, country) => {
+      const year = country.launchYearByIndication.gbm;
+      const month = country.launchMonthByIndication?.gbm ?? 1;
+      const index = year * 12 + month - 1;
+      return index < earliest.index ? { year, month, index } : earliest;
+    }, { year: scenario.endYear + 1, month: 1, index: (scenario.endYear + 1) * 12 })
     : null;
   const scopeControlsVisible = activeTab === 'commercial';
 
@@ -84,7 +93,7 @@ export default function AppV9() {
   };
 
   const resetBaseCase = () => {
-    setScenario(ensureV8Markets(cloneScenario(baseScenario)));
+    setScenario(createDefaultScenario());
     setOverviewCountryId('USA');
   };
 
@@ -179,7 +188,7 @@ export default function AppV9() {
                 <span className="section-kicker">Model snapshot</span><h3>From patients to value</h3>
                 <p className="summary-copy">{selectedIndications.map((item) => item.name).join(', ')} across {selectedCountries.length} active country markets.</p>
                 <div className="summary-list">
-                  <div><span>First modeled GBM launch</span><strong>{firstCommercialLaunch ?? '—'}</strong></div>
+                  <div><span>First modeled GBM launch</span><strong>{firstCommercialLaunch ? formatLaunchMonth(firstCommercialLaunch.month, firstCommercialLaunch.year) : '—'}</strong></div>
                   <div><span>Peak funding requirement</span><strong>{formatUsd(result.peakFundingRequirementUsd)}</strong></div>
                   <div><span>Break-even</span><strong>{result.breakEvenYear ?? 'Beyond horizon'}</strong></div>
                   <div><span>Stage-adjusted rNPV</span><strong>{formatUsd(result.valuation.riskAdjustedNpvUsd)}</strong></div>

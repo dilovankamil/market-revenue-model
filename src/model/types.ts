@@ -34,6 +34,7 @@ export interface CountryAssumption {
   peakSharePct: number;
   loeYear: number;
   launchYearByIndication: Record<IndicationId, number>;
+  launchMonthByIndication?: Partial<Record<IndicationId, number>>;
   surgeryEligibility: Record<IndicationId, number>;
   accessiblePopulationPct: number;
   accessRoute: AccessRoute;

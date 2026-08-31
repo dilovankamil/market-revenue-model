@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 
@@ -46,6 +47,46 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Wait for automatic branch Pages deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "Checking for GitHub's automatic branch/Jekyll Pages run for ${GITHUB_SHA}..."
+
+          legacy_status="missing"
+          for attempt in $(seq 1 10); do
+            legacy_status="$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" \
+              --jq '[.workflow_runs[] | select(.name == "pages build and deployment")][0].status // "missing"')"
+            if [ "${legacy_status}" != "missing" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ "${legacy_status}" = "missing" ]; then
+            echo "No competing automatic Pages run found; publishing immediately."
+            exit 0
+          fi
+
+          echo "Competing automatic Pages run detected. Waiting until it completes so the Vite artifact is published last."
+          for attempt in $(seq 1 90); do
+            legacy_status="$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" \
+              --jq '[.workflow_runs[] | select(.name == "pages build and deployment")][0].status // "missing"')"
+            if [ "${legacy_status}" = "completed" ]; then
+              echo "Automatic Pages run completed. Safe to publish Vite build."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          echo "Automatic Pages run did not complete within the guard window."
+          exit 1
+
       - name: Deploy GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

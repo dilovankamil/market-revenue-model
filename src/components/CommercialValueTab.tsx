@@ -1,6 +1,5 @@
 import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { CountryGlobe } from './CountryGlobe';
-import { RevenueChart } from './RevenueChart';
 import { cloneScenario } from '../model/assumptions';
 import { REGION_COLORS, REGION_ORDER } from '../model/marketRegions';
 import type { CountryAssumption, CountryId, ModelResult, RegionId, Scenario } from '../model/types';
@@ -24,13 +23,15 @@ const formatPopulation = (value: number) => value >= 1_000_000_000
   ? `${(value / 1_000_000_000).toFixed(2)}B`
   : `${(value / 1_000_000).toFixed(1)}M`;
 
+const formatLaunchMonth = (month: number, year: number) =>
+  `${new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, month - 1, 1)))} ${year}`;
+
 const average = (values: number[]) => values.length
   ? values.reduce((sum, value) => sum + value, 0) / values.length
   : 0;
 
 export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   const [mapYear, setMapYear] = useState(2035);
-  const [selectedCountryId, setSelectedCountryId] = useState<CountryId>('USA');
 
   const activeCountries = useMemo(
     () => Object.values(scenario.countries).filter((country) => country.enabled && country.accessRoute === 'commercial'),
@@ -39,6 +40,14 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   const activeIds = useMemo(() => new Set(activeCountries.map((country) => country.id)), [activeCountries]);
   const averagePrice = average(activeCountries.map((country) => country.priceUsd));
   const averageShare = average(activeCountries.map((country) => country.peakSharePct));
+  const firstLaunch = activeCountries.length
+    ? activeCountries.reduce((earliest, country) => {
+      const year = country.launchYearByIndication.gbm;
+      const month = country.launchMonthByIndication?.gbm ?? 1;
+      const index = year * 12 + month - 1;
+      return index < earliest.index ? { year, month, index } : earliest;
+    }, { year: scenario.endYear + 1, month: 1, index: (scenario.endYear + 1) * 12 })
+    : null;
 
   const scaleActiveCountries = (key: 'priceUsd' | 'peakSharePct', targetAverage: number) => {
     setScenario((current) => {
@@ -76,12 +85,12 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
     });
   };
 
-  const selectAndEnableCountry = (countryId: CountryId) => {
-    setSelectedCountryId(countryId);
+  const toggleCountry = (countryId: CountryId) => {
     setScenario((current) => {
-      if (current.countries[countryId]?.enabled) return current;
+      const country = current.countries[countryId];
+      if (!country || country.accessRoute !== 'commercial') return current;
       const next = cloneScenario(current);
-      if (next.countries[countryId]) next.countries[countryId].enabled = true;
+      next.countries[countryId].enabled = !country.enabled;
       return next;
     });
   };
@@ -89,13 +98,6 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   const yearResult = result.years.find((row) => row.year === mapYear);
   const yearCountryRows = result.countryYears.filter((row) => row.year === mapYear && activeIds.has(row.countryId));
   const representedPopulation = yearCountryRows.reduce((sum, row) => sum + row.population, 0);
-
-  const mapMetricByCountry = useMemo(() => {
-    const metric: Partial<Record<CountryId, number>> = {};
-    Object.values(scenario.countries).forEach((country) => { metric[country.id] = 0; });
-    result.countryYears.filter((row) => row.year === mapYear).forEach((row) => { metric[row.countryId] = row.grossRevenueUsd; });
-    return metric;
-  }, [result.countryYears, scenario.countries, mapYear]);
 
   const regionCards = useMemo(() => REGION_ORDER.map((region) => {
     const countries = activeCountries.filter((country) => country.region === region);
@@ -116,6 +118,8 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
     <div className="commercial-value-page">
       <section className="cv-kpi-strip">
         <article><span>Active markets</span><strong>{activeCountries.length}</strong></article>
+        <article><span>First modeled GBM launch</span><strong>{firstLaunch ? formatLaunchMonth(firstLaunch.month, firstLaunch.year) : '—'}</strong></article>
+        <article><span>Peak eligible surgical patients</span><strong>{Math.round(result.peakEligiblePatients).toLocaleString()}</strong></article>
         <article><span>Peak treated patients</span><strong>{Math.round(result.peakTreatedPatients).toLocaleString()}</strong></article>
         <article><span>Peak revenue</span><strong>{formatUsd(result.peakRevenueUsd)}</strong></article>
         <article className="cv-value-kpi"><span>Stage-adjusted rNPV</span><strong>{formatUsd(result.valuation.riskAdjustedNpvUsd)}</strong></article>
@@ -124,7 +128,7 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
       <section className="panel cv-levers-panel">
         <div className="panel-heading">
           <div><span className="section-kicker">Core assumptions</span><h3>Commercial & valuation levers</h3></div>
-          <span className="chart-context-note">Market selection is controlled from Markets & indications</span>
+          <span className="chart-context-note">Market selection is controlled from Markets & indications or directly on the globe</span>
         </div>
         <div className="cv-lever-grid">
           <label>Treatment price <b>{formatUsd(averagePrice)}</b><input type="range" min={25_000} max={150_000} step={1_000} value={Math.round(averagePrice / 1000) * 1000} onChange={(event) => scaleActiveCountries('priceUsd', +event.target.value)} /><small>Default selected-market average is $75k; moving this scales active-country prices proportionally.</small></label>
@@ -141,17 +145,12 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
           <div className="map-region-legend cv-region-legend">
             {REGION_ORDER.map((region) => <span key={region}><i style={{ background: REGION_COLORS[region] }} />{region}</span>)}
           </div>
-          <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={selectedCountryId} onSelectCountry={selectAndEnableCountry} metricByCountry={mapMetricByCountry} />
+          <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={null} onSelectCountry={toggleCountry} />
           <label className="year-slider cv-year-slider">Model year <b>{mapYear}</b><input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => setMapYear(+event.target.value)} /></label>
-          <p className="model-note">Tap a modeled country to add it to the active footprint. Drag the globe to rotate.</p>
+          <p className="model-note">Light grey markets are available but off. Tap a grey market to add it; tap a coloured market to remove it. Drag to rotate.</p>
         </div>
 
         <aside className="panel cv-market-summary">
-          <div className="cv-value-block">
-            <span>Current asset value</span>
-            <strong>{formatUsd(result.valuation.riskAdjustedNpvUsd)}</strong>
-            <small>Stage-adjusted rNPV through {scenario.endYear}; no perpetual terminal value.</small>
-          </div>
           <span className="section-kicker">Selected footprint</span><h3>{mapYear} snapshot</h3>
           <div className="global-summary-grid cv-summary-grid">
             <div><span>Population represented</span><strong>{formatPopulation(representedPopulation)}</strong></div>
@@ -160,11 +159,6 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
             <div><span>Revenue</span><strong>{formatUsd(yearResult?.grossRevenueUsd ?? 0)}</strong></div>
           </div>
         </aside>
-      </section>
-
-      <section className="panel chart-panel cv-revenue-panel">
-        <div className="panel-heading"><div><span className="section-kicker">Forecast</span><h3>Global gross revenue</h3></div><span className="chart-context-note">Totals above each stacked bar</span></div>
-        <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} />
       </section>
 
       <details className="panel cv-advanced-panel">

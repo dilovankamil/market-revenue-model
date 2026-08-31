@@ -10,6 +10,7 @@ import './runtime-hotfix.css';
 import './model-v5.css';
 import './model-v7.css';
 import './mobile-v8.css';
+import './clean-v9.css';
 
 const privateModulesEnabled = import.meta.env.VITE_SHOW_PRIVATE_MODULES === 'true';
 document.documentElement.classList.toggle('internal-build', privateModulesEnabled);
@@ -20,7 +21,7 @@ if (!rootElement) throw new Error('Application root element is missing.');
 
 rootElement.innerHTML = '<div class="app-boot-status"><strong>Loading SI-053 Strategic Model…</strong></div>';
 
-import('./AppV8')
+import('./AppV9')
   .then(({ default: App }) => {
     rootElement.replaceChildren();
     createRoot(rootElement).render(

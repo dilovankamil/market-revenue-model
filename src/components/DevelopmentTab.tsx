@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { CashFlowChart } from './CashFlowChart';
+import { RevenueChart } from './RevenueChart';
 import { cloneScenario } from '../model/assumptions';
 import type { DevelopmentStage, IndicationId, ModelResult, Scenario } from '../model/types';
 
@@ -110,6 +111,14 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
             <div><span>Ending cash balance</span><strong>{formatUsd(result.endingCashBalanceUsd)}</strong></div>
           </div>
         )}
+      </section>
+
+      <section className="panel chart-panel cv-revenue-panel development-revenue-panel">
+        <div className="panel-heading">
+          <div><span className="section-kicker">Commercial forecast</span><h3>Global gross revenue</h3></div>
+          <span className="chart-context-note">Totals above each stacked bar</span>
+        </div>
+        <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} />
       </section>
 
       <section className="panel chart-panel cash-story-panel">

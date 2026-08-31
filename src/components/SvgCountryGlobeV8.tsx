@@ -19,13 +19,14 @@ type WorldData = { type: 'FeatureCollection'; features: WorldFeature[] };
 const WIDTH = 760;
 const HEIGHT = 760;
 const defaultCountryColor = '#172938';
+const availableMarketColor = '#a8b0b7';
 const worldDataUrl = `${import.meta.env.BASE_URL}world.geojson`;
 
-export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountry, onInspectCountry, metricByCountry = {}, autoRotate = false }: SvgCountryGlobeProps) {
+export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountry, onInspectCountry, autoRotate = false }: SvgCountryGlobeProps) {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [rotation, setRotation] = useState<[number, number]>([-12, -12]);
-  const dragRef = useRef<{ x: number; y: number; rotation: [number, number] } | null>(null);
+  const dragRef = useRef<{ x: number; y: number; rotation: [number, number]; pointerId: number; captured: boolean } | null>(null);
   const draggedRef = useRef(false);
 
   useEffect(() => {
@@ -57,17 +58,15 @@ export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountr
 
   const fillForFeature = (feature: WorldFeature) => {
     const country = countryByFeature(feature);
-    if (!country) return defaultCountryColor;
-    const hasTemporalMetric = Object.prototype.hasOwnProperty.call(metricByCountry, country.id);
-    const revenueActive = !hasTemporalMetric || (metricByCountry[country.id] ?? 0) > 0;
-    return regionColor(country.region, country.enabled && revenueActive);
+    if (!country || country.accessRoute !== 'commercial') return defaultCountryColor;
+    return country.enabled ? regionColor(country.region, true) : availableMarketColor;
   };
 
   const selectFeature = (feature: WorldFeature) => {
     const id = String(feature.id ?? '');
     const name = feature.properties?.name ?? id;
     const country = countryByFeature(feature);
-    if (country) {
+    if (country?.accessRoute === 'commercial') {
       onSelectCountry(country.id);
       onInspectCountry?.({ id: country.id, name: country.name, configured: true });
       return;
@@ -76,25 +75,30 @@ export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountr
   };
 
   const pointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
     draggedRef.current = false;
-    dragRef.current = { x: event.clientX, y: event.clientY, rotation };
+    dragRef.current = { x: event.clientX, y: event.clientY, rotation, pointerId: event.pointerId, captured: false };
   };
 
   const pointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const drag = dragRef.current;
-    if (!drag) return;
-    event.preventDefault();
+    if (!drag || drag.pointerId !== event.pointerId) return;
     const dx = event.clientX - drag.x;
     const dy = event.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 5) draggedRef.current = true;
+    if (Math.abs(dx) + Math.abs(dy) > 5) {
+      draggedRef.current = true;
+      if (!drag.captured) {
+        try { event.currentTarget.setPointerCapture(event.pointerId); drag.captured = true; } catch { /* no-op */ }
+      }
+    }
+    if (!draggedRef.current) return;
     setRotation([drag.rotation[0] + dx * 0.28, Math.max(-70, Math.min(70, drag.rotation[1] - dy * 0.22))]);
   };
 
   const pointerUp = (event: PointerEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
+    const drag = dragRef.current;
+    if (drag?.captured) {
+      try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
+    }
     dragRef.current = null;
   };
 
@@ -134,21 +138,25 @@ export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountr
             const featurePath = path(feature as unknown as d3.GeoPermissibleObjects);
             if (!featurePath) return null;
             const country = countryByFeature(feature);
+            const selectable = country?.accessRoute === 'commercial';
             const selected = country?.id === selectedCountryId;
+            const title = selectable
+              ? `${country.name} — ${country.enabled ? 'selected; tap to remove' : 'available; tap to add'}`
+              : country?.name ?? feature.properties?.name ?? 'Country';
             return (
               <path
                 key={String(feature.id ?? feature.properties?.name ?? index)}
                 d={featurePath}
-                className={`globe-country ${country ? 'configured' : ''} ${selected ? 'selected' : ''}`}
+                className={`globe-country ${selectable ? 'configured selectable' : ''} ${country?.enabled ? 'market-enabled' : ''} ${selected ? 'selected' : ''}`}
                 fill={fillForFeature(feature)}
-                onClick={(event) => handleFeatureClick(event, feature)}
-              ><title>{country?.name ?? feature.properties?.name ?? 'Country'}</title></path>
+                onClick={selectable ? (event) => handleFeatureClick(event, feature) : undefined}
+              ><title>{title}</title></path>
             );
           })}
         </g>
         <path className="globe-rim" d={spherePath} />
       </svg>
-      <div className="globe-drag-hint">Drag anywhere on the globe to rotate · tap a market to add/select it</div>
+      <div className="globe-drag-hint">Drag to rotate · light grey = available · colour = selected</div>
     </div>
   );
 }

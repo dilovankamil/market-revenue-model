@@ -1,17 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CommercialValueTab } from './components/CommercialValueTab';
-import { CountryGlobe } from './components/CountryGlobe';
 import { DevelopmentTab } from './components/DevelopmentTab';
 import { MarketSelector } from './components/MarketSelector';
 import { MethodologyTab } from './components/MethodologyTab';
-import { RevenueChart } from './components/RevenueChart';
 import { cloneScenario } from './model/assumptions';
 import { calculateModel } from './model/calculateModel';
 import { createDefaultScenario } from './model/defaultScenario';
 import { calculateDeal, type DealTerms, type DealType } from './model/deal';
-import { ensureV8Markets } from './model/marketExtensions';
-import { parseScenario, serializeScenario } from './model/scenarioIO';
-import type { CountryId, IndicationId, Scenario } from './model/types';
+import type { IndicationId, Scenario } from './model/types';
 
 type TabId = 'overview' | 'commercial' | 'development' | 'deal' | 'methodology';
 
@@ -34,15 +30,9 @@ const formatUsd = (value: number) => {
   return `${sign}$${Math.round(abs).toLocaleString()}`;
 };
 
-const formatLaunchMonth = (month: number, year: number) =>
-  `${new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, month - 1, 1)))} ${year}`;
-
 export default function AppV9() {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [scenario, setScenario] = useState<Scenario>(() => createDefaultScenario());
   const [activeTab, setActiveTab] = useState<TabId>('overview');
-  const [overviewCountryId, setOverviewCountryId] = useState<CountryId>('USA');
-  const [scenarioFileError, setScenarioFileError] = useState<string | null>(null);
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
   const [dealTerms, setDealTerms] = useState<DealTerms>({
     type: 'self-commercialize', upfrontUsd: 100_000_000, royaltyPct: 18,
@@ -51,18 +41,7 @@ export default function AppV9() {
 
   const result = useMemo(() => calculateModel(scenario), [scenario]);
   const dealResult = useMemo(() => calculateDeal(result, dealTerms), [result, dealTerms]);
-  const selectedCountries = Object.values(scenario.countries).filter((country) => country.enabled);
-  const selectedIndications = Object.values(scenario.indications).filter((indication) => indication.enabled);
   const privateConfigLoaded = scenario.corporateCosts.length > 0 || scenario.financingEvents.length > 0;
-  const commercialCountries = selectedCountries.filter((country) => country.accessRoute === 'commercial');
-  const firstCommercialLaunch = commercialCountries.length
-    ? commercialCountries.reduce((earliest, country) => {
-      const year = country.launchYearByIndication.gbm;
-      const month = country.launchMonthByIndication?.gbm ?? 1;
-      const index = year * 12 + month - 1;
-      return index < earliest.index ? { year, month, index } : earliest;
-    }, { year: scenario.endYear + 1, month: 1, index: (scenario.endYear + 1) * 12 })
-    : null;
   const scopeControlsVisible = activeTab === 'commercial';
 
   useEffect(() => {
@@ -78,12 +57,6 @@ export default function AppV9() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const overviewMetric = useMemo(() => {
-    const metric: Partial<Record<CountryId, number>> = {};
-    result.countryYears.filter((row) => row.year === 2035).forEach((row) => { metric[row.countryId] = row.grossRevenueUsd; });
-    return metric;
-  }, [result.countryYears]);
-
   const updateIndication = (id: IndicationId, enabled: boolean) => {
     setScenario((current) => {
       const next = cloneScenario(current);
@@ -92,37 +65,7 @@ export default function AppV9() {
     });
   };
 
-  const resetBaseCase = () => {
-    setScenario(createDefaultScenario());
-    setOverviewCountryId('USA');
-  };
-
-  const exportScenarioFile = () => {
-    const blob = new Blob([serializeScenario(scenario)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    const safeName = scenario.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'scenario';
-    link.href = url;
-    link.download = `si053-${safeName}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
-
-  const importScenarioFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const imported = ensureV8Markets(parseScenario(await file.text()));
-      setScenario(imported);
-      setScenarioFileError(null);
-    } catch (error) {
-      setScenarioFileError(error instanceof Error ? error.message : 'Could not import scenario.');
-    } finally {
-      event.target.value = '';
-    }
-  };
+  const resetBaseCase = () => setScenario(createDefaultScenario());
 
   const changeDealType = (type: DealType) => setDealTerms((current) => ({
     ...current,
@@ -178,53 +121,31 @@ export default function AppV9() {
         {activeTab === 'overview' && (
           <>
             {privateConfigLoaded && <div className="private-model-banner">Private local configuration loaded · {scenario.corporateCosts.length} corporate cost lines · {scenario.financingEvents.length} financing events.</div>}
-            <section className="hero-grid hero-grid-v5">
-              <div className="map-panel panel overview-globe-panel">
-                <div className="panel-heading"><div><span className="section-kicker">Global opportunity</span><h3>Commercial footprint</h3></div><button className="text-button" onClick={() => changeTab('commercial')}>Open commercial model →</button></div>
-                <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={overviewCountryId} onSelectCountry={setOverviewCountryId} metricByCountry={overviewMetric} />
-                <p className="model-note">Tap to highlight a modeled country. Market selection and assumptions are edited in Commercial & valuation.</p>
-              </div>
-              <div className="summary-panel panel">
-                <span className="section-kicker">Model snapshot</span><h3>From patients to value</h3>
-                <p className="summary-copy">{selectedIndications.map((item) => item.name).join(', ')} across {selectedCountries.length} active country markets.</p>
-                <div className="summary-list">
-                  <div><span>First modeled GBM launch</span><strong>{firstCommercialLaunch ? formatLaunchMonth(firstCommercialLaunch.month, firstCommercialLaunch.year) : '—'}</strong></div>
-                  <div><span>Peak funding requirement</span><strong>{formatUsd(result.peakFundingRequirementUsd)}</strong></div>
-                  <div><span>Break-even</span><strong>{result.breakEvenYear ?? 'Beyond horizon'}</strong></div>
-                  <div><span>Stage-adjusted rNPV</span><strong>{formatUsd(result.valuation.riskAdjustedNpvUsd)}</strong></div>
-                </div>
-              </div>
+            <section className="panel summary-panel">
+              <span className="section-kicker">Strategic model</span>
+              <h3>Two views of the SI-053 opportunity</h3>
+              <p className="summary-copy">The economic model is now separated into commercial value and development financing. This overview is intentionally light so it can become the SI-053 introduction next.</p>
             </section>
-            <section className="kpi-grid kpi-grid-v7 overview-kpis-v9">
-              <article className="kpi-card"><span>Peak revenue</span><strong>{formatUsd(result.peakRevenueUsd)}</strong><small>{result.peakRevenueYear}</small></article>
-              <article className="kpi-card"><span>Cumulative revenue</span><strong>{formatUsd(result.cumulativeRevenueUsd)}</strong><small>{scenario.startYear}–{scenario.endYear}</small></article>
-              <article className="kpi-card"><span>Peak eligible surgical patients</span><strong>{Math.round(result.peakEligiblePatients).toLocaleString()}</strong><small>selected indications & markets</small></article>
-              <article className="kpi-card"><span>Peak treated patients</span><strong>{Math.round(result.peakTreatedPatients).toLocaleString()}</strong><small>after adoption/share assumptions</small></article>
-            </section>
-            <section className="chart-panel panel overview-chart-v9">
-              <div className="panel-heading"><div><span className="section-kicker">Forecast</span><h3>Global gross revenue</h3></div></div>
-              <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} />
+            <section className="two-column-layout">
+              <article className="panel summary-panel">
+                <span className="section-kicker">Market & value</span>
+                <h3>Commercial & valuation</h3>
+                <p className="summary-copy">Choose markets, set price and penetration, explore the global footprint and see the resulting asset valuation.</p>
+                <button className="text-button" onClick={() => changeTab('commercial')}>Open commercial model →</button>
+              </article>
+              <article className="panel summary-panel">
+                <span className="section-kicker">Programme & financing</span>
+                <h3>Development & cash</h3>
+                <p className="summary-copy">Review the clinical programme, development spend, revenue forecast, funding requirement and cumulative operating cash flow.</p>
+                <button className="text-button" onClick={() => changeTab('development')}>Open development model →</button>
+              </article>
             </section>
           </>
         )}
 
         {activeTab === 'commercial' && <CommercialValueTab scenario={scenario} result={result} setScenario={setScenario} />}
         {activeTab === 'development' && <DevelopmentTab scenario={scenario} result={result} setScenario={setScenario} />}
-
-        {activeTab === 'methodology' && (
-          <div className="methodology-page-v9">
-            <section className="panel scenario-file-panel">
-              <div><span className="section-kicker">Scenario files</span><h3>Import or export assumptions</h3><p className="model-note">Optional file actions live here rather than in the main navigation.</p></div>
-              <div className="scenario-file-actions">
-                {scenarioFileError && <span className="import-error" title={scenarioFileError}>Import error</span>}
-                <input ref={fileInputRef} className="hidden-file-input" type="file" accept="application/json,.json" onChange={importScenarioFile} />
-                <button className="toolbar-button" onClick={() => fileInputRef.current?.click()}>Import scenario</button>
-                <button className="toolbar-button" onClick={exportScenarioFile}>Export scenario</button>
-              </div>
-            </section>
-            <MethodologyTab />
-          </div>
-        )}
+        {activeTab === 'methodology' && <MethodologyTab />}
 
         {showPrivateModules && activeTab === 'deal' && (
           <section className="two-column-layout">

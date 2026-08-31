@@ -33,13 +33,21 @@ const average = (values: number[]) => values.length
 export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   const [mapYear, setMapYear] = useState(2035);
 
-  const activeCountries = useMemo(
-    () => Object.values(scenario.countries).filter((country) => country.enabled && country.accessRoute === 'commercial'),
+  const commercialCountries = useMemo(
+    () => Object.values(scenario.countries).filter((country) => country.accessRoute === 'commercial'),
     [scenario.countries],
   );
+  const activeCountries = useMemo(
+    () => commercialCountries.filter((country) => country.enabled),
+    [commercialCountries],
+  );
   const activeIds = useMemo(() => new Set(activeCountries.map((country) => country.id)), [activeCountries]);
-  const averagePrice = average(activeCountries.map((country) => country.priceUsd));
-  const averageShare = average(activeCountries.map((country) => country.peakSharePct));
+
+  const fallbackPrice = average(activeCountries.map((country) => country.priceUsd));
+  const fallbackShare = average(activeCountries.map((country) => country.peakSharePct));
+  const referencePrice = scenario.countries.USA?.priceUsd ?? (fallbackPrice || 75_000);
+  const referenceShare = scenario.countries.USA?.peakSharePct ?? (fallbackShare || 30);
+
   const firstLaunch = activeCountries.length
     ? activeCountries.reduce((earliest, country) => {
       const year = country.launchYearByIndication.gbm;
@@ -49,12 +57,13 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
     }, { year: scenario.endYear + 1, month: 1, index: (scenario.endYear + 1) * 12 })
     : null;
 
-  const scaleActiveCountries = (key: 'priceUsd' | 'peakSharePct', targetAverage: number) => {
+  const scaleCommercialPortfolio = (key: 'priceUsd' | 'peakSharePct', targetReference: number) => {
     setScenario((current) => {
       const next = cloneScenario(current);
-      const countries = Object.values(next.countries).filter((country) => country.enabled && country.accessRoute === 'commercial');
-      const currentAverage = average(countries.map((country) => country[key]));
-      const ratio = currentAverage > 0 ? targetAverage / currentAverage : 1;
+      const countries = Object.values(next.countries).filter((country) => country.accessRoute === 'commercial');
+      const referenceCountry = next.countries.USA;
+      const currentReference = referenceCountry?.[key] ?? average(countries.map((country) => country[key]));
+      const ratio = currentReference > 0 ? targetReference / currentReference : 1;
       countries.forEach((country) => {
         if (key === 'priceUsd') country.priceUsd = Math.max(5_000, Math.min(150_000, Math.round(country.priceUsd * ratio / 1000) * 1000));
         else country.peakSharePct = Math.max(1, Math.min(100, Math.round(country.peakSharePct * ratio)));
@@ -71,7 +80,7 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
     setScenario((current) => {
       const next = cloneScenario(current);
       Object.values(next.countries)
-        .filter((country) => country.enabled && country.region === region && country.accessRoute === 'commercial')
+        .filter((country) => country.region === region && country.accessRoute === 'commercial')
         .forEach((country) => { country[key] = value; });
       return next;
     });
@@ -100,19 +109,23 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   const representedPopulation = yearCountryRows.reduce((sum, row) => sum + row.population, 0);
 
   const regionCards = useMemo(() => REGION_ORDER.map((region) => {
-    const countries = activeCountries.filter((country) => country.region === region);
-    const ids = new Set(countries.map((country) => country.id));
-    const peakRevenue = Math.max(0, ...result.years.map((year) => result.countryYears
-      .filter((row) => row.year === year.year && ids.has(row.countryId))
-      .reduce((sum, row) => sum + row.grossRevenueUsd, 0)));
+    const countries = commercialCountries.filter((country) => country.region === region);
+    const active = countries.filter((country) => country.enabled);
+    const activeRegionIds = new Set(active.map((country) => country.id));
+    const peakRevenue = active.length
+      ? Math.max(0, ...result.years.map((year) => result.countryYears
+        .filter((row) => row.year === year.year && activeRegionIds.has(row.countryId))
+        .reduce((sum, row) => sum + row.grossRevenueUsd, 0)))
+      : 0;
     return {
       region,
       countries,
+      activeCount: active.length,
       price: average(countries.map((country) => country.priceUsd)),
       share: average(countries.map((country) => country.peakSharePct)),
       peakRevenue,
     };
-  }).filter((card) => card.countries.length > 0), [activeCountries, result.countryYears, result.years]);
+  }).filter((card) => card.countries.length > 0), [commercialCountries, result.countryYears, result.years]);
 
   return (
     <div className="commercial-value-page">
@@ -131,8 +144,8 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
           <span className="chart-context-note">Market selection is controlled from Markets & indications or directly on the globe</span>
         </div>
         <div className="cv-lever-grid">
-          <label>Treatment price <b>{formatUsd(averagePrice)}</b><input type="range" min={25_000} max={150_000} step={1_000} value={Math.round(averagePrice / 1000) * 1000} onChange={(event) => scaleActiveCountries('priceUsd', +event.target.value)} /><small>Default selected-market average is $75k; moving this scales active-country prices proportionally.</small></label>
-          <label>Peak market share <b>{averageShare.toFixed(0)}%</b><input type="range" min={1} max={100} step={1} value={Math.round(averageShare)} onChange={(event) => scaleActiveCountries('peakSharePct', +event.target.value)} /><small>Portfolio penetration sensitivity; individual markets can still be overridden below.</small></label>
+          <label>Treatment price <b>{formatUsd(referencePrice)}</b><input type="range" min={25_000} max={150_000} step={1_000} value={Math.round(referencePrice / 1000) * 1000} onChange={(event) => scaleCommercialPortfolio('priceUsd', +event.target.value)} /><small>Core-market reference price. It stays stable when markets are added or removed and scales the regional price structure proportionally.</small></label>
+          <label>Peak market share <b>{referenceShare.toFixed(0)}%</b><input type="range" min={1} max={100} step={1} value={Math.round(referenceShare)} onChange={(event) => scaleCommercialPortfolio('peakSharePct', +event.target.value)} /><small>Core-market reference penetration. Regional and country-specific overrides remain available below.</small></label>
           <label>Discount rate <b>{scenario.financial.discountRatePct.toFixed(2)}%</b><input type="range" min={5} max={20} step={0.25} value={scenario.financial.discountRatePct} onChange={(event) => updateFinancial('discountRatePct', +event.target.value)} /></label>
           <label>Additional risk sensitivity <b>{scenario.financial.riskAdjustmentPct.toFixed(0)}%</b><input type="range" min={20} max={100} step={1} value={scenario.financial.riskAdjustmentPct} onChange={(event) => updateFinancial('riskAdjustmentPct', +event.target.value)} /></label>
           <label>Corporate tax <b>{scenario.financial.corporateTaxPct.toFixed(0)}%</b><input type="range" min={0} max={35} step={1} value={scenario.financial.corporateTaxPct} onChange={(event) => updateFinancial('corporateTaxPct', +event.target.value)} /></label>
@@ -147,7 +160,7 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
           </div>
           <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={null} onSelectCountry={toggleCountry} />
           <label className="year-slider cv-year-slider">Model year <b>{mapYear}</b><input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => setMapYear(+event.target.value)} /></label>
-          <p className="model-note">Light grey markets are available but off. Tap a grey market to add it; tap a coloured market to remove it. Drag to rotate.</p>
+          <p className="model-note">Dark grey markets are available but off. Tap a grey market to add it; tap a coloured market to remove it. Drag to rotate.</p>
         </div>
 
         <aside className="panel cv-market-summary">
@@ -165,13 +178,13 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
         <summary>Advanced assumptions</summary>
         <div className="cv-advanced-content">
           <section>
-            <div className="advanced-section-heading"><span>Regional assumptions</span><small>Fine-tune active markets without editing every country</small></div>
+            <div className="advanced-section-heading"><span>Regional treatment price & peak share</span><small>Pre-set a region before switching its countries on, or fine-tune an active region after selection.</small></div>
             <div className="commercial-region-grid">
               {regionCards.map((card) => (
                 <article className="commercial-region-card" key={card.region}>
-                  <div className="region-card-heading"><div><span>{card.region}</span><strong>{card.countries.length} market{card.countries.length === 1 ? '' : 's'}</strong></div><small>{formatUsd(card.peakRevenue)} peak revenue</small></div>
-                  <label>Treatment price <b>{formatUsd(card.price)}</b><input type="range" min={5_000} max={150_000} step={5_000} value={Math.round(card.price / 5000) * 5000} onChange={(event) => updateRegion(card.region, 'priceUsd', +event.target.value)} /></label>
-                  <label>Peak share <b>{card.share.toFixed(0)}%</b><input type="range" min={1} max={100} step={1} value={Math.round(card.share)} onChange={(event) => updateRegion(card.region, 'peakSharePct', +event.target.value)} /></label>
+                  <div className="region-card-heading"><div><span>{card.region}</span><strong>{card.activeCount}/{card.countries.length} active</strong></div><small>{card.activeCount ? `${formatUsd(card.peakRevenue)} peak revenue` : 'Not in current footprint'}</small></div>
+                  <label>Region treatment price <b>{formatUsd(card.price)}</b><input type="range" min={5_000} max={150_000} step={5_000} value={Math.round(card.price / 5000) * 5000} onChange={(event) => updateRegion(card.region, 'priceUsd', +event.target.value)} /></label>
+                  <label>Region peak share <b>{card.share.toFixed(0)}%</b><input type="range" min={1} max={100} step={1} value={Math.round(card.share)} onChange={(event) => updateRegion(card.region, 'peakSharePct', +event.target.value)} /></label>
                 </article>
               ))}
             </div>

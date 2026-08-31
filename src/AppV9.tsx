@@ -42,7 +42,7 @@ export default function AppV9() {
   const result = useMemo(() => calculateModel(scenario), [scenario]);
   const dealResult = useMemo(() => calculateDeal(result, dealTerms), [result, dealTerms]);
   const privateConfigLoaded = scenario.corporateCosts.length > 0 || scenario.financingEvents.length > 0;
-  const scopeControlsVisible = activeTab === 'commercial';
+  const scopeControlsVisible = activeTab === 'commercial' || activeTab === 'development';
 
   useEffect(() => {
     if (!mobileControlsOpen) return;
@@ -145,7 +145,7 @@ export default function AppV9() {
 
         {activeTab === 'commercial' && <CommercialValueTab scenario={scenario} result={result} setScenario={setScenario} />}
         {activeTab === 'development' && <DevelopmentTab scenario={scenario} result={result} setScenario={setScenario} />}
-        {activeTab === 'methodology' && <MethodologyTab />}
+        {activeTab === 'methodology' && <div className="methodology-page-v9"><MethodologyTab /></div>}
 
         {showPrivateModules && activeTab === 'deal' && (
           <section className="two-column-layout">

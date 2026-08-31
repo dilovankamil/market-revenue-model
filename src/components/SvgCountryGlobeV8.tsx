@@ -18,8 +18,8 @@ type WorldData = { type: 'FeatureCollection'; features: WorldFeature[] };
 
 const WIDTH = 760;
 const HEIGHT = 760;
-const defaultCountryColor = '#172938';
-const availableMarketColor = '#a8b0b7';
+const defaultCountryColor = '#13191d';
+const availableMarketColor = '#2a3035';
 const worldDataUrl = `${import.meta.env.BASE_URL}world.geojson`;
 
 export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountry, onInspectCountry, autoRotate = false }: SvgCountryGlobeProps) {
@@ -156,7 +156,7 @@ export function SvgCountryGlobeV8({ countries, selectedCountryId, onSelectCountr
         </g>
         <path className="globe-rim" d={spherePath} />
       </svg>
-      <div className="globe-drag-hint">Drag to rotate · light grey = available · colour = selected</div>
+      <div className="globe-drag-hint">Drag to rotate · dark grey = available · colour = selected</div>
     </div>
   );
 }

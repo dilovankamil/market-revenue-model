@@ -22,11 +22,5 @@ export const REGION_COLORS: Record<RegionId, string> = {
   Oceania: '#f1a7c5',
 };
 
-export const regionColor = (region: RegionId, active = true) => {
-  if (active) return REGION_COLORS[region];
-  const hex = REGION_COLORS[region].replace('#', '');
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  return `rgb(${Math.round(r * 0.32)} ${Math.round(g * 0.32)} ${Math.round(b * 0.32)})`;
-};
+export const regionColor = (region: RegionId, active = true) =>
+  active ? REGION_COLORS[region] : '#2a3035';

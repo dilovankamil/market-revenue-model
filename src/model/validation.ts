@@ -13,6 +13,7 @@ const indicationIds: IndicationId[] = ['gbm', 'brainMetastasis', 'opbt'];
 const finite = (value: number) => Number.isFinite(value);
 const inRange = (value: number, min: number, max: number) => finite(value) && value >= min && value <= max;
 const isConfirmatoryStage = (phase: string) => /confirmatory/i.test(phase);
+const monthName = (month: number) => new Intl.DateTimeFormat('en', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(2020, month - 1, 1)));
 
 export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
   const issues: ValidationIssue[] = [];
@@ -40,8 +41,10 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
 
     for (const indication of indicationIds) {
       const launch = country.launchYearByIndication[indication];
+      const month = country.launchMonthByIndication?.[indication] ?? 1;
       const eligibility = country.surgeryEligibility[indication];
       if (!Number.isInteger(launch)) add('error', 'invalid-launch-year', `${base}.launchYearByIndication.${indication}`, `${country.name}: ${indication} launch year must be an integer.`);
+      if (!Number.isInteger(month) || month < 1 || month > 12) add('error', 'invalid-launch-month', `${base}.launchMonthByIndication.${indication}`, `${country.name}: ${indication} launch month must be an integer from 1 to 12.`);
       if (!inRange(eligibility, 0, 1)) add('error', 'invalid-surgery-eligibility', `${base}.surgeryEligibility.${indication}`, `${country.name}: ${indication} surgery eligibility must be between 0 and 1.`);
       if (Number.isInteger(launch) && country.loeYear < launch) add('error', 'loe-before-launch', `${base}.loeYear`, `${country.name}: LoE (${country.loeYear}) occurs before ${indication} launch (${launch}).`);
     }
@@ -79,18 +82,20 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
   if (!inRange(scenario.financial.riskAdjustmentPct, 0, 100)) add('error', 'invalid-risk-adjustment', 'financial.riskAdjustmentPct', 'Additional risk multiplier must be between 0% and 100%.');
   if (!finite(scenario.financial.discountRatePct) || scenario.financial.discountRatePct <= -100 || scenario.financial.discountRatePct > 100) add('error', 'invalid-discount-rate', 'financial.discountRatePct', 'Discount rate is outside the supported range (-100%, 100%].');
 
-  // Commercial launch is compared with the last non-confirmatory stage only. A study explicitly
+  // Commercial launch is compared with the last non-confirmatory stage. A study explicitly
   // designated "Confirmatory" may overlap the post-launch period without creating a timing warning.
   for (const indication of indicationIds) {
     if (!scenario.indications[indication]?.enabled) continue;
     const gateStages = scenario.developmentStages
       .filter((stage) => stage.indication === indication && !isConfirmatoryStage(stage.phase));
     if (!gateStages.length) continue;
-    const gateEndYear = Math.max(...gateStages.map((stage) => new Date(`${stage.endDate}T00:00:00Z`).getUTCFullYear()));
+    const gateEnd = Math.max(...gateStages.map((stage) => Date.parse(`${stage.endDate}T23:59:59Z`)));
     for (const country of countries.filter((item) => item.enabled && item.accessRoute === 'commercial')) {
-      const launch = country.launchYearByIndication[indication];
-      if (launch <= gateEndYear) {
-        add('warning', 'launch-before-commercial-gate', `countries.${country.id}.launchYearByIndication.${indication}`, `${country.name}: ${indication} launch (${launch}) is not after the configured pre-launch programme gate (${gateEndYear}).`);
+      const launchYear = country.launchYearByIndication[indication];
+      const launchMonthValue = country.launchMonthByIndication?.[indication] ?? 1;
+      const launchDate = Date.UTC(launchYear, launchMonthValue - 1, 1);
+      if (launchDate <= gateEnd) {
+        add('warning', 'launch-before-commercial-gate', `countries.${country.id}.launchYearByIndication.${indication}`, `${country.name}: ${indication} launch (${monthName(launchMonthValue)} ${launchYear}) is not after the configured pre-launch programme gate.`);
       }
     }
   }

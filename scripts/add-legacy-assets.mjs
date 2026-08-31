@@ -10,10 +10,13 @@ const cssSource = files.find((file) => file.endsWith('.css'));
 if (!jsSource) throw new Error('Could not find built JavaScript entry asset.');
 if (!cssSource) throw new Error('Could not find built CSS asset.');
 
-// Keep stable aliases so a browser with older cached HTML can still resolve its bundle,
-// while the current HTML points to content-hashed filenames and therefore cannot reuse stale JS/CSS.
+// Stable aliases support the hardened bootstrap. Recent historical entry names are
+// retained as recovery bridges for browsers that still have older HTML cached.
 const compatibilityJs = [
   'app.js',
+  'app-Cbx9B5sK.js',
+  'app-CJ--7t1x.js',
+  'app-D7DijVDW.js',
   'index-Nx9jfuwX.js',
   'index-CETiqWCh.js',
   'index-iJ6mm8Yt.js',

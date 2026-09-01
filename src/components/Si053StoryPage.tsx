@@ -84,88 +84,87 @@ const smooth = (from: number, to: number, value: number) => {
   return t * t * (3 - 2 * t);
 };
 
-const assetFile = (index: number) =>
-  `${import.meta.env.BASE_URL}story/${encodeURIComponent(`ChatGPT Image Sep 1, 2026, 05_14_05 PM (${index}).png`)}`;
+const storyAsset = (filename: string) =>
+  `${import.meta.env.BASE_URL}story/${encodeURIComponent(filename)}`;
 
 const storyAssets = {
-  brain: assetFile(1),
-  tumor: assetFile(2),
-  bbb: assetFile(3),
-  delivery: assetFile(4),
-  pathway: assetFile(5),
-  platform: assetFile(6),
+  brain: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_27 PM (1).png'),
+  tumor: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_27 PM (2).png'),
+  cavity: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_28 PM (3).png'),
+  bbb: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_28 PM (4).png'),
+  needle: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_28 PM (5).png'),
+  pathway: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_29 PM (6).png'),
+  platform: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_29 PM (7).png'),
 };
 
 function ContinuousVisual({ position }: { position: number }) {
-  const tumorOut = smooth(0.16, 0.92, position);
-  const bbbIn = smooth(1.42, 1.92, position);
-  const deliveryIn = smooth(2.55, 3.05, position);
-  const releaseEmphasis = smooth(3.35, 4.05, position);
-  const workflowIn = smooth(4.5, 4.98, position);
-  const platformIn = smooth(5.5, 5.98, position);
+  const tumorOut = smooth(0.18, 0.92, position);
 
-  const brainOpacity = (1 - bbbIn) * (1 - workflowIn);
-  const bbbOpacity = bbbIn * (1 - deliveryIn) * (1 - workflowIn);
-  const deliveryOpacity = deliveryIn * (1 - workflowIn);
-  const pathwayOpacity = workflowIn * (1 - platformIn);
-  const platformOpacity = platformIn;
+  const cavityAfterResection = smooth(0.28, 0.92, position) * (1 - smooth(1.34, 1.82, position));
+  const bbbOpacity = smooth(1.42, 1.92, position) * (1 - smooth(2.42, 2.92, position));
+  const cavityDuringTreatment = smooth(2.48, 2.96, position) * (1 - smooth(4.48, 4.96, position));
+  const needleOpacity = smooth(2.58, 3.06, position) * (1 - smooth(4.5, 4.98, position));
+
+  const pathwayIn = smooth(4.56, 5.0, position);
+  const platformIn = smooth(5.54, 5.98, position);
+
+  const brainOpacity = 1 - pathwayIn;
+  const cavityOpacity = Math.min(1, cavityAfterResection + cavityDuringTreatment) * brainOpacity;
   const tumorOpacity = (1 - tumorOut) * brainOpacity;
-  const tumorScale = 1 - tumorOut * 0.16;
-  const deliveryScale = 0.985 + releaseEmphasis * 0.015;
+  const outlineOpacity = bbbOpacity * brainOpacity;
+  const treatmentOpacity = needleOpacity * brainOpacity;
+  const pathwayOpacity = pathwayIn * (1 - platformIn);
+  const platformOpacity = platformIn;
 
   return (
     <div className="si-cinema-visual-shell">
       <div className="si-cinema-ambient" />
 
-      <img
-        src={storyAssets.brain}
-        alt=""
-        className="si-story-image si-story-brain"
-        style={{ opacity: brainOpacity }}
-      />
-
-      <img
-        src={storyAssets.tumor}
-        alt=""
-        className="si-story-image si-story-tumor"
-        style={{
-          opacity: tumorOpacity,
-          transform: `translate(-50%, -50%) scale(${tumorScale})`,
-        }}
-      />
-
-      <img
-        src={storyAssets.bbb}
-        alt=""
-        className="si-story-image si-story-brain si-story-bbb"
-        style={{ opacity: bbbOpacity }}
-      />
-
-      <img
-        src={storyAssets.delivery}
-        alt=""
-        className="si-story-image si-story-brain si-story-delivery"
-        style={{ opacity: deliveryOpacity, transform: `translate(-50%, -50%) scale(${deliveryScale})` }}
-      />
+      <div className="si-story-stack">
+        <img
+          src={storyAssets.brain}
+          alt=""
+          className="si-story-layer si-story-layer-brain"
+          style={{ opacity: brainOpacity }}
+        />
+        <img
+          src={storyAssets.cavity}
+          alt=""
+          className="si-story-layer si-story-layer-cavity"
+          style={{ opacity: cavityOpacity }}
+        />
+        <img
+          src={storyAssets.tumor}
+          alt=""
+          className="si-story-layer si-story-layer-tumor"
+          style={{ opacity: tumorOpacity }}
+        />
+        <img
+          src={storyAssets.bbb}
+          alt=""
+          className="si-story-layer si-story-layer-bbb"
+          style={{ opacity: outlineOpacity }}
+        />
+        <img
+          src={storyAssets.needle}
+          alt=""
+          className="si-story-layer si-story-layer-needle"
+          style={{ opacity: treatmentOpacity }}
+        />
+      </div>
 
       <img
         src={storyAssets.pathway}
         alt=""
-        className="si-story-image si-story-wide"
-        style={{
-          opacity: pathwayOpacity,
-          transform: `translate(-50%, calc(-50% + ${14 * (1 - workflowIn)}px))`,
-        }}
+        className="si-story-standalone si-story-pathway"
+        style={{ opacity: pathwayOpacity }}
       />
 
       <img
         src={storyAssets.platform}
         alt=""
-        className="si-story-image si-story-platform"
-        style={{
-          opacity: platformOpacity,
-          transform: `translateY(${12 * (1 - platformIn)}px) scale(${0.985 + platformIn * 0.015})`,
-        }}
+        className="si-story-standalone si-story-platform"
+        style={{ opacity: platformOpacity }}
       />
     </div>
   );

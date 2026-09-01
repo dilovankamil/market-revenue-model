@@ -56,12 +56,94 @@
   cursor: grabbing;
 }
 
+.si-story-transform-box {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  border: 1px dashed rgba(110, 215, 255, .45);
+  border-radius: 10px;
+  transform-origin: center center;
+  pointer-events: none;
+  box-sizing: border-box;
+  will-change: transform;
+}
+
+.si-story-transform-box::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -30px;
+  width: 1px;
+  height: 30px;
+  transform: translateX(-50%);
+  background: rgba(110, 215, 255, .45);
+}
+
+.si-story-transform-handle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(110, 215, 255, .72);
+  border-radius: 50%;
+  background: rgba(7, 27, 40, .96);
+  color: #d9f8ff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  font: 700 13px/1 system-ui, sans-serif;
+}
+
+.si-story-transform-handle:hover {
+  background: rgba(18, 57, 74, .98);
+  border-color: rgba(79, 209, 197, .9);
+}
+
+.si-story-transform-handle-rotate {
+  left: 50%;
+  top: -42px;
+  transform: translateX(-50%);
+  cursor: grab;
+}
+
+.si-story-transform-handle-rotate:active {
+  cursor: grabbing;
+}
+
+.si-story-transform-handle-resize {
+  right: -12px;
+  bottom: -12px;
+  cursor: nwse-resize;
+}
+
+.si-story-transform-handle-resize::before,
+.si-story-transform-handle-resize::after {
+  content: '';
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 7px;
+  height: 1px;
+  background: #bfefff;
+  transform-origin: right center;
+  transform: rotate(-45deg);
+}
+
+.si-story-transform-handle-resize::after {
+  right: 9px;
+  bottom: 6px;
+  width: 4px;
+}
+
 .si-story-calibrator {
   position: absolute;
   z-index: 40;
   top: 22px;
   right: 24px;
-  width: min(360px, calc(100vw - 48px));
+  width: min(390px, calc(100vw - 48px));
   padding: 16px;
   border: 1px solid rgba(127, 179, 202, .22);
   border-radius: 14px;
@@ -117,7 +199,8 @@
 }
 
 .si-story-calibrator button:focus-visible,
-.si-story-calibrator input:focus-visible {
+.si-story-calibrator input:focus-visible,
+.si-story-transform-handle:focus-visible {
   outline: 2px solid rgba(110, 215, 255, .72);
   outline-offset: 2px;
 }
@@ -143,6 +226,10 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 7px;
+}
+
+.si-story-calibrator-values-four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .si-story-calibrator-values label,
@@ -232,7 +319,11 @@
   .si-story-calibrator {
     top: 12px;
     right: 12px;
-    width: min(320px, calc(100vw - 24px));
+    width: min(340px, calc(100vw - 24px));
     padding: 12px;
+  }
+
+  .si-story-calibrator-values-four {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

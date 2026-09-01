@@ -8,8 +8,9 @@ type StoryStep = {
 };
 
 type LayerKey = 'tumor' | 'cavity' | 'bbb' | 'needle';
-type LayerTransform = { x: number; y: number; scale: number };
+type LayerTransform = { x: number; y: number; scale: number; rotation: number };
 type Calibration = Record<LayerKey, LayerTransform>;
+type InteractionMode = 'move' | 'scale' | 'rotate';
 
 interface Props {
   onOpenCommercial: () => void;
@@ -110,10 +111,10 @@ const layerLabels: Record<LayerKey, string> = {
 };
 
 const defaultCalibration: Calibration = {
-  tumor: { x: 0, y: 0, scale: 1 },
-  cavity: { x: 0, y: 0, scale: 1 },
-  bbb: { x: 0, y: 0, scale: 1 },
-  needle: { x: 0, y: 0, scale: 1 },
+  tumor: { x: 0, y: 0, scale: 1, rotation: 0 },
+  cavity: { x: 0, y: 0, scale: 1, rotation: 0 },
+  bbb: { x: 0, y: 0, scale: 1, rotation: 0 },
+  needle: { x: 0, y: 0, scale: 1, rotation: 0 },
 };
 
 const cloneCalibration = (source: Calibration): Calibration => ({
@@ -123,10 +124,19 @@ const cloneCalibration = (source: Calibration): Calibration => ({
   needle: { ...source.needle },
 });
 
+const normalizeRotation = (value: number) => {
+  if (!Number.isFinite(value)) return 0;
+  let normalized = value % 360;
+  if (normalized > 180) normalized -= 360;
+  if (normalized < -180) normalized += 360;
+  return normalized;
+};
+
 const normalizeTransform = (value: Partial<LayerTransform> | undefined): LayerTransform => ({
   x: Math.max(-60, Math.min(60, Number(value?.x) || 0)),
   y: Math.max(-60, Math.min(60, Number(value?.y) || 0)),
-  scale: Math.max(0.45, Math.min(1.75, Number(value?.scale) || 1)),
+  scale: Math.max(0.2, Math.min(2.5, Number(value?.scale) || 1)),
+  rotation: normalizeRotation(Number(value?.rotation) || 0),
 });
 
 const normalizeCalibration = (value: Partial<Record<LayerKey, Partial<LayerTransform>>> | undefined): Calibration => ({
@@ -167,7 +177,7 @@ const readInitialCalibration = (): Calibration => {
 };
 
 const layerTransformStyle = (value: LayerTransform) =>
-  `translate(${value.x}%, ${value.y}%) scale(${value.scale})`;
+  `translate(${value.x}%, ${value.y}%) rotate(${value.rotation}deg) scale(${value.scale})`;
 
 function ContinuousVisual({
   position,
@@ -182,13 +192,18 @@ function ContinuousVisual({
   selectedLayer: LayerKey;
   onCalibrationChange: (key: LayerKey, value: LayerTransform) => void;
 }) {
-  const dragRef = useRef<{
+  const interactionRef = useRef<{
+    mode: InteractionMode;
     key: LayerKey;
     pointerId: number;
     clientX: number;
     clientY: number;
     width: number;
     height: number;
+    centerX: number;
+    centerY: number;
+    startDistance: number;
+    startAngle: number;
     start: LayerTransform;
   } | null>(null);
 
@@ -221,35 +236,69 @@ function ContinuousVisual({
     return normalTreatmentOpacity;
   };
 
-  const beginDrag = (event: React.PointerEvent<HTMLImageElement>, key: LayerKey) => {
+  const beginInteraction = (
+    event: React.PointerEvent<HTMLElement>,
+    key: LayerKey,
+    mode: InteractionMode,
+  ) => {
     if (!editMode || key !== selectedLayer) return;
-    const stack = event.currentTarget.parentElement?.getBoundingClientRect();
+    const stackElement = event.currentTarget.closest('.si-story-stack') as HTMLElement | null;
+    const stack = stackElement?.getBoundingClientRect();
     if (!stack) return;
-    dragRef.current = {
+    const start = { ...calibration[key] };
+    const centerX = stack.left + stack.width / 2 + (start.x / 100) * stack.width;
+    const centerY = stack.top + stack.height / 2 + (start.y / 100) * stack.height;
+    const dx = event.clientX - centerX;
+    const dy = event.clientY - centerY;
+    interactionRef.current = {
+      mode,
       key,
       pointerId: event.pointerId,
       clientX: event.clientX,
       clientY: event.clientY,
       width: Math.max(stack.width, 1),
       height: Math.max(stack.height, 1),
-      start: { ...calibration[key] },
+      centerX,
+      centerY,
+      startDistance: Math.max(Math.hypot(dx, dy), 1),
+      startAngle: Math.atan2(dy, dx) * (180 / Math.PI),
+      start,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   };
 
-  const moveDrag = (event: React.PointerEvent<HTMLImageElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const x = drag.start.x + ((event.clientX - drag.clientX) / drag.width) * 100;
-    const y = drag.start.y + ((event.clientY - drag.clientY) / drag.height) * 100;
-    onCalibrationChange(drag.key, normalizeTransform({ ...drag.start, x, y }));
+  const moveInteraction = (event: React.PointerEvent<HTMLElement>) => {
+    const interaction = interactionRef.current;
+    if (!interaction || interaction.pointerId !== event.pointerId) return;
+    const { start } = interaction;
+
+    if (interaction.mode === 'move') {
+      const x = start.x + ((event.clientX - interaction.clientX) / interaction.width) * 100;
+      const y = start.y + ((event.clientY - interaction.clientY) / interaction.height) * 100;
+      onCalibrationChange(interaction.key, normalizeTransform({ ...start, x, y }));
+      return;
+    }
+
+    const dx = event.clientX - interaction.centerX;
+    const dy = event.clientY - interaction.centerY;
+
+    if (interaction.mode === 'scale') {
+      const distance = Math.max(Math.hypot(dx, dy), 1);
+      const scale = start.scale * (distance / interaction.startDistance);
+      onCalibrationChange(interaction.key, normalizeTransform({ ...start, scale }));
+      return;
+    }
+
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    const rotation = start.rotation + (angle - interaction.startAngle);
+    onCalibrationChange(interaction.key, normalizeTransform({ ...start, rotation }));
   };
 
-  const endDrag = (event: React.PointerEvent<HTMLImageElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    dragRef.current = null;
+  const endInteraction = (event: React.PointerEvent<HTMLElement>) => {
+    const interaction = interactionRef.current;
+    if (!interaction || interaction.pointerId !== event.pointerId) return;
+    interactionRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
@@ -265,12 +314,14 @@ function ContinuousVisual({
         transform: layerTransformStyle(calibration[key]),
         pointerEvents: editMode && selectedLayer === key ? 'auto' : 'none',
       }}
-      onPointerDown={(event) => beginDrag(event, key)}
-      onPointerMove={moveDrag}
-      onPointerUp={endDrag}
-      onPointerCancel={endDrag}
+      onPointerDown={(event) => beginInteraction(event, key, 'move')}
+      onPointerMove={moveInteraction}
+      onPointerUp={endInteraction}
+      onPointerCancel={endInteraction}
     />
   );
+
+  const selectedTransform = calibration[selectedLayer];
 
   return (
     <div className="si-cinema-visual-shell">
@@ -287,6 +338,37 @@ function ContinuousVisual({
         {renderLayer('tumor', storyAssets.tumor, 'si-story-layer-tumor')}
         {renderLayer('bbb', storyAssets.bbb, 'si-story-layer-bbb')}
         {renderLayer('needle', storyAssets.needle, 'si-story-layer-needle')}
+
+        {editMode && (
+          <div
+            className="si-story-transform-box"
+            style={{ transform: layerTransformStyle(selectedTransform) }}
+            aria-hidden="true"
+          >
+            <button
+              type="button"
+              className="si-story-transform-handle si-story-transform-handle-rotate"
+              title="Drag to rotate"
+              aria-label="Rotate selected layer"
+              onPointerDown={(event) => beginInteraction(event, selectedLayer, 'rotate')}
+              onPointerMove={moveInteraction}
+              onPointerUp={endInteraction}
+              onPointerCancel={endInteraction}
+            >
+              ↻
+            </button>
+            <button
+              type="button"
+              className="si-story-transform-handle si-story-transform-handle-resize"
+              title="Drag to resize"
+              aria-label="Resize selected layer"
+              onPointerDown={(event) => beginInteraction(event, selectedLayer, 'scale')}
+              onPointerMove={moveInteraction}
+              onPointerUp={endInteraction}
+              onPointerCancel={endInteraction}
+            />
+          </div>
+        )}
       </div>
 
       <img
@@ -358,6 +440,8 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
       if (event.key === 'ArrowDown') next = { ...current, y: current.y + nudge };
       if (event.key === '[') next = { ...current, scale: current.scale - 0.01 };
       if (event.key === ']') next = { ...current, scale: current.scale + 0.01 };
+      if (event.key === ',') next = { ...current, rotation: current.rotation - (event.shiftKey ? 5 : 1) };
+      if (event.key === '.') next = { ...current, rotation: current.rotation + (event.shiftKey ? 5 : 1) };
       if (!next) return;
       event.preventDefault();
       updateLayer(selectedLayer, next);
@@ -453,7 +537,7 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
             <div className="si-story-calibrator-head">
               <div>
                 <strong>Story alignment</strong>
-                <span>Drag overlays directly on the master brain</span>
+                <span>Drag, resize and rotate overlays on the master brain</span>
               </div>
               <button type="button" onClick={exitEditor}>Exit</button>
             </div>
@@ -472,10 +556,10 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
             </div>
 
             <p className="si-story-calibrator-help">
-              Drag anywhere over the selected overlay. Arrow keys nudge 0.2%; Shift + arrows nudge 1%. [ and ] change scale.
+              Drag the layer to move. Drag the corner handle to resize and the top handle to rotate. Arrow keys nudge; [ ] resize; , . rotate.
             </p>
 
-            <div className="si-story-calibrator-values">
+            <div className="si-story-calibrator-values si-story-calibrator-values-four">
               <label>
                 X
                 <input
@@ -500,24 +584,48 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
                 Scale
                 <input
                   type="number"
-                  min="0.45"
-                  max="1.75"
+                  min="0.2"
+                  max="2.5"
                   step="0.01"
                   value={Number(selectedTransform.scale.toFixed(3))}
                   onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, scale: Number(event.target.value) })}
                 />
               </label>
+              <label>
+                Rotate
+                <input
+                  type="number"
+                  min="-180"
+                  max="180"
+                  step="0.5"
+                  value={Number(selectedTransform.rotation.toFixed(2))}
+                  onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, rotation: Number(event.target.value) })}
+                />
+                <span>°</span>
+              </label>
             </div>
 
             <label className="si-story-calibrator-scale">
-              <span>Scale selected layer</span>
+              <span>Resize selected layer</span>
               <input
                 type="range"
-                min="0.45"
-                max="1.75"
+                min="0.2"
+                max="2.5"
                 step="0.005"
                 value={selectedTransform.scale}
                 onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, scale: Number(event.target.value) })}
+              />
+            </label>
+
+            <label className="si-story-calibrator-scale">
+              <span>Rotate selected layer</span>
+              <input
+                type="range"
+                min="-180"
+                max="180"
+                step="0.25"
+                value={selectedTransform.rotation}
+                onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, rotation: Number(event.target.value) })}
               />
             </label>
 

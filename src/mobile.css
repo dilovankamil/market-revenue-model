@@ -1,7 +1,7 @@
 /* Compact command bar, bottom sheet and touch layouts. */
 
 .mobile-command-bar,
-.mobile-sheet-backdrop {
+.mobile-controls-layer {
   display: none;
 }
 
@@ -54,7 +54,7 @@
   cursor: grabbing;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1080px) {
   .app-shell-v8 {
     display: block;
     min-height: 100dvh;
@@ -244,18 +244,31 @@
     width: 100%;
   }
 
-  .mobile-sheet-backdrop {
+  .mobile-controls-layer {
     position: fixed;
     inset: 0;
     z-index: 200;
     display: flex;
     align-items: flex-end;
     justify-content: stretch;
-    background: rgba(0,0,0,.58);
     overscroll-behavior: contain;
   }
 
+  .mobile-controls-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(0,0,0,.58);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
+
   .mobile-controls-sheet {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-height: min(86dvh,760px);
     display: flex;
@@ -268,7 +281,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  .mobile-sheet-header {
+  .mobile-controls-sheet-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -277,7 +290,7 @@
     border-bottom: 1px solid var(--line);
   }
 
-  .mobile-sheet-header h3 {
+  .mobile-controls-sheet-head h3 {
     margin: 3px 0 0;
     font-size: 18px;
   }
@@ -293,7 +306,7 @@
     line-height: 1;
   }
 
-  .mobile-sheet-scroll {
+  .mobile-controls-scroll {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 2px 16px 22px;

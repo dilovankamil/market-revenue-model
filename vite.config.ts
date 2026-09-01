@@ -11,7 +11,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Content-hashed entry names force browsers/CDNs to fetch the exact release bundle.
-        // scripts/add-legacy-assets.mjs also creates stable compatibility aliases for stale HTML.
+        // scripts/create-stable-assets.mjs also creates stable bootstrap aliases.
         entryFileNames: 'assets/app-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',

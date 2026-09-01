@@ -5,13 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && node scripts/add-legacy-assets.mjs && node scripts/harden-pages-bootstrap.mjs",
+    "build": "tsc -b && vite build && node scripts/create-stable-assets.mjs && node scripts/harden-pages-bootstrap.mjs",
     "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
     "d3": "^7.9.0",
-    "maplibre-gl": "^6.6.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

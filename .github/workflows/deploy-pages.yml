@@ -52,10 +52,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          echo "Checking for GitHub's automatic branch/Jekyll Pages run for ${GITHUB_SHA}..."
+          echo "Giving GitHub's automatic branch/Jekyll Pages run time to register..."
+          sleep 60
+          echo "Checking for the competing Pages run for ${GITHUB_SHA}..."
 
           legacy_status="missing"
-          for attempt in $(seq 1 10); do
+          for attempt in $(seq 1 30); do
             legacy_status="$(gh api \
               -H 'Accept: application/vnd.github+json' \
               "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100" \

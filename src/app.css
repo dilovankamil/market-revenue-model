@@ -1,0 +1,21 @@
+/*
+ * Single production stylesheet entry point.
+ *
+ * The order is intentional: older structural layers establish the shared
+ * dashboard primitives; current page-level files refine them afterward.
+ * Keeping the cascade here makes the live dependency explicit while the
+ * remaining legacy selectors are retired incrementally.
+ */
+@import './base.css';
+@import './enhancements.css';
+@import './build-mode.css';
+@import './data-views.css';
+@import './responsive.css';
+@import './runtime.css';
+@import './model-foundation.css';
+@import './model-pages.css';
+@import './mobile.css';
+@import './commercial.css';
+@import './story.css';
+@import './story-calibration.css';
+@import './story-calibration-baked.css';

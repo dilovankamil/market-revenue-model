@@ -7,6 +7,10 @@ type StoryStep = {
   callout: string;
 };
 
+type LayerKey = 'tumor' | 'cavity' | 'bbb' | 'needle';
+type LayerTransform = { x: number; y: number; scale: number };
+type Calibration = Record<LayerKey, LayerTransform>;
+
 interface Props {
   onOpenCommercial: () => void;
   onOpenDevelopment: () => void;
@@ -97,74 +101,206 @@ const storyAssets = {
   platform: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_29 PM (7).png'),
 };
 
-function ContinuousVisual({ position }: { position: number }) {
-  const tumorOut = smooth(0.18, 0.92, position);
+const layerKeys: LayerKey[] = ['tumor', 'cavity', 'bbb', 'needle'];
+const layerLabels: Record<LayerKey, string> = {
+  tumor: 'Tumor',
+  cavity: 'Cavity',
+  bbb: 'BBB outline',
+  needle: 'Needle + gel',
+};
 
+const defaultCalibration: Calibration = {
+  tumor: { x: 0, y: 0, scale: 1 },
+  cavity: { x: 0, y: 0, scale: 1 },
+  bbb: { x: 0, y: 0, scale: 1 },
+  needle: { x: 0, y: 0, scale: 1 },
+};
+
+const cloneCalibration = (source: Calibration): Calibration => ({
+  tumor: { ...source.tumor },
+  cavity: { ...source.cavity },
+  bbb: { ...source.bbb },
+  needle: { ...source.needle },
+});
+
+const normalizeTransform = (value: Partial<LayerTransform> | undefined): LayerTransform => ({
+  x: Math.max(-60, Math.min(60, Number(value?.x) || 0)),
+  y: Math.max(-60, Math.min(60, Number(value?.y) || 0)),
+  scale: Math.max(0.45, Math.min(1.75, Number(value?.scale) || 1)),
+});
+
+const normalizeCalibration = (value: Partial<Record<LayerKey, Partial<LayerTransform>>> | undefined): Calibration => ({
+  tumor: normalizeTransform(value?.tumor),
+  cavity: normalizeTransform(value?.cavity),
+  bbb: normalizeTransform(value?.bbb),
+  needle: normalizeTransform(value?.needle),
+});
+
+const encodeCalibration = (value: Calibration) => {
+  const raw = window.btoa(JSON.stringify(value));
+  return raw.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+};
+
+const decodeCalibration = (raw: string | null): Calibration | null => {
+  if (!raw) return null;
+  try {
+    const normalized = raw.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+    return normalizeCalibration(JSON.parse(window.atob(padded)));
+  } catch {
+    return null;
+  }
+};
+
+const readInitialCalibration = (): Calibration => {
+  if (typeof window === 'undefined') return cloneCalibration(defaultCalibration);
+  const params = new URLSearchParams(window.location.search);
+  const fromUrl = decodeCalibration(params.get('storyCal'));
+  if (fromUrl) return fromUrl;
+  try {
+    const stored = window.localStorage.getItem('si053-story-calibration-v1');
+    if (stored) return normalizeCalibration(JSON.parse(stored));
+  } catch {
+    // Local storage is optional; the editor still works without it.
+  }
+  return cloneCalibration(defaultCalibration);
+};
+
+const layerTransformStyle = (value: LayerTransform) =>
+  `translate(${value.x}%, ${value.y}%) scale(${value.scale})`;
+
+function ContinuousVisual({
+  position,
+  calibration,
+  editMode,
+  selectedLayer,
+  onCalibrationChange,
+}: {
+  position: number;
+  calibration: Calibration;
+  editMode: boolean;
+  selectedLayer: LayerKey;
+  onCalibrationChange: (key: LayerKey, value: LayerTransform) => void;
+}) {
+  const dragRef = useRef<{
+    key: LayerKey;
+    pointerId: number;
+    clientX: number;
+    clientY: number;
+    width: number;
+    height: number;
+    start: LayerTransform;
+  } | null>(null);
+
+  const tumorOut = smooth(0.18, 0.92, position);
   const cavityAfterResection = smooth(0.28, 0.92, position) * (1 - smooth(1.34, 1.82, position));
   const bbbOpacity = smooth(1.42, 1.92, position) * (1 - smooth(2.42, 2.92, position));
   const cavityDuringTreatment = smooth(2.48, 2.96, position) * (1 - smooth(4.48, 4.96, position));
   const needleOpacity = smooth(2.58, 3.06, position) * (1 - smooth(4.5, 4.98, position));
-
   const pathwayIn = smooth(4.56, 5.0, position);
   const platformIn = smooth(5.54, 5.98, position);
 
-  const brainOpacity = 1 - pathwayIn;
-  const cavityOpacity = Math.min(1, cavityAfterResection + cavityDuringTreatment) * brainOpacity;
-  const tumorOpacity = (1 - tumorOut) * brainOpacity;
-  const outlineOpacity = bbbOpacity * brainOpacity;
-  const treatmentOpacity = needleOpacity * brainOpacity;
-  const pathwayOpacity = pathwayIn * (1 - platformIn);
-  const platformOpacity = platformIn;
+  const brainOpacity = editMode ? 1 : 1 - pathwayIn;
+  const normalCavityOpacity = Math.min(1, cavityAfterResection + cavityDuringTreatment) * brainOpacity;
+  const normalTumorOpacity = (1 - tumorOut) * brainOpacity;
+  const normalOutlineOpacity = bbbOpacity * brainOpacity;
+  const normalTreatmentOpacity = needleOpacity * brainOpacity;
+
+  const editorOpacity: Record<LayerKey, number> = {
+    tumor: selectedLayer === 'tumor' ? 1 : selectedLayer === 'cavity' ? 0.22 : 0,
+    cavity: selectedLayer === 'cavity' ? 1 : selectedLayer === 'tumor' ? 0.22 : selectedLayer === 'needle' ? 0.55 : 0,
+    bbb: selectedLayer === 'bbb' ? 1 : 0,
+    needle: selectedLayer === 'needle' ? 1 : 0,
+  };
+
+  const opacityFor = (key: LayerKey) => {
+    if (editMode) return editorOpacity[key];
+    if (key === 'tumor') return normalTumorOpacity;
+    if (key === 'cavity') return normalCavityOpacity;
+    if (key === 'bbb') return normalOutlineOpacity;
+    return normalTreatmentOpacity;
+  };
+
+  const beginDrag = (event: React.PointerEvent<HTMLImageElement>, key: LayerKey) => {
+    if (!editMode || key !== selectedLayer) return;
+    const stack = event.currentTarget.parentElement?.getBoundingClientRect();
+    if (!stack) return;
+    dragRef.current = {
+      key,
+      pointerId: event.pointerId,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      width: Math.max(stack.width, 1),
+      height: Math.max(stack.height, 1),
+      start: { ...calibration[key] },
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
+
+  const moveDrag = (event: React.PointerEvent<HTMLImageElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const x = drag.start.x + ((event.clientX - drag.clientX) / drag.width) * 100;
+    const y = drag.start.y + ((event.clientY - drag.clientY) / drag.height) * 100;
+    onCalibrationChange(drag.key, normalizeTransform({ ...drag.start, x, y }));
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLImageElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
+
+  const renderLayer = (key: LayerKey, src: string, className: string) => (
+    <img
+      src={src}
+      alt=""
+      className={`si-story-layer ${className}${editMode && selectedLayer === key ? ' is-calibration-selected' : ''}`}
+      style={{
+        opacity: opacityFor(key),
+        transform: layerTransformStyle(calibration[key]),
+        pointerEvents: editMode && selectedLayer === key ? 'auto' : 'none',
+      }}
+      onPointerDown={(event) => beginDrag(event, key)}
+      onPointerMove={moveDrag}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    />
+  );
 
   return (
     <div className="si-cinema-visual-shell">
       <div className="si-cinema-ambient" />
 
-      <div className="si-story-stack">
+      <div className={`si-story-stack${editMode ? ' is-calibrating' : ''}`}>
         <img
           src={storyAssets.brain}
           alt=""
           className="si-story-layer si-story-layer-brain"
           style={{ opacity: brainOpacity }}
         />
-        <img
-          src={storyAssets.cavity}
-          alt=""
-          className="si-story-layer si-story-layer-cavity"
-          style={{ opacity: cavityOpacity }}
-        />
-        <img
-          src={storyAssets.tumor}
-          alt=""
-          className="si-story-layer si-story-layer-tumor"
-          style={{ opacity: tumorOpacity }}
-        />
-        <img
-          src={storyAssets.bbb}
-          alt=""
-          className="si-story-layer si-story-layer-bbb"
-          style={{ opacity: outlineOpacity }}
-        />
-        <img
-          src={storyAssets.needle}
-          alt=""
-          className="si-story-layer si-story-layer-needle"
-          style={{ opacity: treatmentOpacity }}
-        />
+        {renderLayer('cavity', storyAssets.cavity, 'si-story-layer-cavity')}
+        {renderLayer('tumor', storyAssets.tumor, 'si-story-layer-tumor')}
+        {renderLayer('bbb', storyAssets.bbb, 'si-story-layer-bbb')}
+        {renderLayer('needle', storyAssets.needle, 'si-story-layer-needle')}
       </div>
 
       <img
         src={storyAssets.pathway}
         alt=""
         className="si-story-standalone si-story-pathway"
-        style={{ opacity: pathwayOpacity }}
+        style={{ opacity: editMode ? 0 : pathwayIn * (1 - platformIn) }}
       />
 
       <img
         src={storyAssets.platform}
         alt=""
         className="si-story-standalone si-story-platform"
-        style={{ opacity: platformOpacity }}
+        style={{ opacity: editMode ? 0 : platformIn }}
       />
     </div>
   );
@@ -174,6 +310,19 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
   const trackRef = useRef<HTMLElement | null>(null);
   const frameRef = useRef<number | null>(null);
   const [progress, setProgress] = useState(0);
+  const [editMode] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('storyEdit') === '1';
+  });
+  const [selectedLayer, setSelectedLayer] = useState<LayerKey>('tumor');
+  const [calibration, setCalibration] = useState<Calibration>(() =>
+    editMode ? readInitialCalibration() : cloneCalibration(defaultCalibration),
+  );
+  const [copyStatus, setCopyStatus] = useState('');
+
+  const updateLayer = (key: LayerKey, value: LayerTransform) => {
+    setCalibration((current) => ({ ...current, [key]: normalizeTransform(value) }));
+  };
 
   useEffect(() => {
     Object.values(storyAssets).forEach((src) => {
@@ -181,6 +330,41 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
       image.src = src;
     });
   }, []);
+
+  useEffect(() => {
+    if (!editMode || typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem('si053-story-calibration-v1', JSON.stringify(calibration));
+    } catch {
+      // The URL remains the source of truth if storage is unavailable.
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set('storyEdit', '1');
+    url.searchParams.set('storyCal', encodeCalibration(calibration));
+    window.history.replaceState(null, '', url.toString());
+  }, [calibration, editMode]);
+
+  useEffect(() => {
+    if (!editMode) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return;
+      const current = calibration[selectedLayer];
+      const nudge = event.shiftKey ? 1 : 0.2;
+      let next: LayerTransform | null = null;
+      if (event.key === 'ArrowLeft') next = { ...current, x: current.x - nudge };
+      if (event.key === 'ArrowRight') next = { ...current, x: current.x + nudge };
+      if (event.key === 'ArrowUp') next = { ...current, y: current.y - nudge };
+      if (event.key === 'ArrowDown') next = { ...current, y: current.y + nudge };
+      if (event.key === '[') next = { ...current, scale: current.scale - 0.01 };
+      if (event.key === ']') next = { ...current, scale: current.scale + 0.01 };
+      if (!next) return;
+      event.preventDefault();
+      updateLayer(selectedLayer, next);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [calibration, editMode, selectedLayer]);
 
   useEffect(() => {
     const update = () => {
@@ -208,12 +392,35 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
 
   const position = progress * (steps.length - 1);
   const activeIndex = Math.min(steps.length - 1, Math.max(0, Math.round(position)));
+  const selectedTransform = calibration[selectedLayer];
+
+  const copyCalibrationLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopyStatus('Calibration link copied. Send me that link and I can bake the values into the site.');
+    } catch {
+      setCopyStatus('Copy was blocked by the browser. Copy the current URL from the address bar instead.');
+    }
+  };
+
+  const exitEditor = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('storyEdit');
+    url.searchParams.delete('storyCal');
+    window.location.assign(url.toString());
+  };
 
   return (
     <section ref={trackRef} className="si-cinema-track">
-      <div className="si-cinema-stage">
-        <div className="si-cinema-visual" aria-hidden="true">
-          <ContinuousVisual position={position} />
+      <div className={`si-cinema-stage${editMode ? ' si-calibration-mode' : ''}`}>
+        <div className="si-cinema-visual" aria-hidden={!editMode}>
+          <ContinuousVisual
+            position={position}
+            calibration={calibration}
+            editMode={editMode}
+            selectedLayer={selectedLayer}
+            onCalibrationChange={updateLayer}
+          />
         </div>
 
         <div className="si-cinema-copy" aria-live="polite">
@@ -224,7 +431,7 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
               <article
                 key={step.title}
                 className="si-cinema-copy-step"
-                style={{ opacity, pointerEvents: opacity > 0.55 ? 'auto' : 'none' }}
+                style={{ opacity, pointerEvents: opacity > 0.55 && !editMode ? 'auto' : 'none' }}
               >
                 <span className="si-cinema-eyebrow">{step.eyebrow}</span>
                 <h1>{step.title}</h1>
@@ -241,16 +448,110 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
           })}
         </div>
 
-        <div className="si-cinema-ui" aria-hidden="true">
-          <div className="si-cinema-count">
-            <strong>{String(activeIndex + 1).padStart(2, '0')}</strong>
-            <span>/ {String(steps.length).padStart(2, '0')}</span>
+        {editMode && (
+          <aside className="si-story-calibrator" aria-label="Story asset alignment editor">
+            <div className="si-story-calibrator-head">
+              <div>
+                <strong>Story alignment</strong>
+                <span>Drag overlays directly on the master brain</span>
+              </div>
+              <button type="button" onClick={exitEditor}>Exit</button>
+            </div>
+
+            <div className="si-story-calibrator-tabs" role="tablist" aria-label="Layer to align">
+              {layerKeys.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={selectedLayer === key ? 'active' : ''}
+                  onClick={() => setSelectedLayer(key)}
+                >
+                  {layerLabels[key]}
+                </button>
+              ))}
+            </div>
+
+            <p className="si-story-calibrator-help">
+              Drag anywhere over the selected overlay. Arrow keys nudge 0.2%; Shift + arrows nudge 1%. [ and ] change scale.
+            </p>
+
+            <div className="si-story-calibrator-values">
+              <label>
+                X
+                <input
+                  type="number"
+                  step="0.1"
+                  value={Number(selectedTransform.x.toFixed(2))}
+                  onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, x: Number(event.target.value) })}
+                />
+                <span>%</span>
+              </label>
+              <label>
+                Y
+                <input
+                  type="number"
+                  step="0.1"
+                  value={Number(selectedTransform.y.toFixed(2))}
+                  onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, y: Number(event.target.value) })}
+                />
+                <span>%</span>
+              </label>
+              <label>
+                Scale
+                <input
+                  type="number"
+                  min="0.45"
+                  max="1.75"
+                  step="0.01"
+                  value={Number(selectedTransform.scale.toFixed(3))}
+                  onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, scale: Number(event.target.value) })}
+                />
+              </label>
+            </div>
+
+            <label className="si-story-calibrator-scale">
+              <span>Scale selected layer</span>
+              <input
+                type="range"
+                min="0.45"
+                max="1.75"
+                step="0.005"
+                value={selectedTransform.scale}
+                onChange={(event) => updateLayer(selectedLayer, { ...selectedTransform, scale: Number(event.target.value) })}
+              />
+            </label>
+
+            <div className="si-story-calibrator-actions">
+              <button
+                type="button"
+                onClick={() => updateLayer(selectedLayer, { ...defaultCalibration[selectedLayer] })}
+              >
+                Reset layer
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalibration(cloneCalibration(defaultCalibration))}
+              >
+                Reset all
+              </button>
+              <button type="button" className="primary" onClick={copyCalibrationLink}>Copy calibration link</button>
+            </div>
+            <small>{copyStatus || 'Your values are saved in this browser and encoded into the page URL automatically.'}</small>
+          </aside>
+        )}
+
+        {!editMode && (
+          <div className="si-cinema-ui" aria-hidden="true">
+            <div className="si-cinema-count">
+              <strong>{String(activeIndex + 1).padStart(2, '0')}</strong>
+              <span>/ {String(steps.length).padStart(2, '0')}</span>
+            </div>
+            <div className="si-cinema-progress"><i style={{ transform: `scaleX(${progress})` }} /></div>
+            <div className="si-cinema-dots">
+              {steps.map((_, index) => <b key={index} className={index === activeIndex ? 'active' : ''} />)}
+            </div>
           </div>
-          <div className="si-cinema-progress"><i style={{ transform: `scaleX(${progress})` }} /></div>
-          <div className="si-cinema-dots">
-            {steps.map((_, index) => <b key={index} className={index === activeIndex ? 'active' : ''} />)}
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );

@@ -145,14 +145,17 @@ function ContinuousVisual({ position }: { position: number }) {
         src={storyAssets.delivery}
         alt=""
         className="si-story-image si-story-brain si-story-delivery"
-        style={{ opacity: deliveryOpacity, transform: `scale(${deliveryScale})` }}
+        style={{ opacity: deliveryOpacity, transform: `translate(-50%, -50%) scale(${deliveryScale})` }}
       />
 
       <img
         src={storyAssets.pathway}
         alt=""
         className="si-story-image si-story-wide"
-        style={{ opacity: pathwayOpacity, transform: `translateY(${14 * (1 - workflowIn)}px)` }}
+        style={{
+          opacity: pathwayOpacity,
+          transform: `translate(-50%, calc(-50% + ${14 * (1 - workflowIn)}px))`,
+        }}
       />
 
       <img

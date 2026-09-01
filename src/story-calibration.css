@@ -1,0 +1,238 @@
+.si-calibration-mode .si-cinema-copy {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.si-calibration-mode .si-cinema-visual {
+  grid-column: 1 / -1;
+  z-index: 6;
+}
+
+.si-calibration-mode .si-cinema-visual-shell {
+  width: min(100%, 1180px);
+}
+
+.si-calibration-mode .si-story-stack {
+  width: min(76vh, 820px, 74vw);
+  filter: none;
+}
+
+.si-story-stack.is-calibrating::before,
+.si-story-stack.is-calibrating::after {
+  content: '';
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.si-story-stack.is-calibrating::before {
+  inset: 0;
+  border: 1px dashed rgba(127, 179, 202, .24);
+  border-radius: 10px;
+}
+
+.si-story-stack.is-calibrating::after {
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(110, 215, 255, .42);
+  border-radius: 50%;
+  box-shadow:
+    0 -18px 0 -6px rgba(110, 215, 255, .25),
+    0 18px 0 -6px rgba(110, 215, 255, .25),
+    -18px 0 0 -6px rgba(110, 215, 255, .25),
+    18px 0 0 -6px rgba(110, 215, 255, .25);
+}
+
+.si-story-layer.is-calibration-selected {
+  cursor: grab;
+  touch-action: none;
+  will-change: transform;
+}
+
+.si-story-layer.is-calibration-selected:active {
+  cursor: grabbing;
+}
+
+.si-story-calibrator {
+  position: absolute;
+  z-index: 40;
+  top: 22px;
+  right: 24px;
+  width: min(360px, calc(100vw - 48px));
+  padding: 16px;
+  border: 1px solid rgba(127, 179, 202, .22);
+  border-radius: 14px;
+  background: rgba(6, 20, 31, .92);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .26);
+  backdrop-filter: blur(16px);
+  color: #dbeaf1;
+}
+
+.si-story-calibrator-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.si-story-calibrator-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.si-story-calibrator-head strong {
+  color: #f4f9fc;
+  font-size: 14px;
+  letter-spacing: -.01em;
+}
+
+.si-story-calibrator-head span,
+.si-story-calibrator small,
+.si-story-calibrator-help {
+  color: #829eae;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.si-story-calibrator button {
+  min-height: 32px;
+  border: 1px solid rgba(127, 179, 202, .2);
+  border-radius: 8px;
+  background: rgba(30, 55, 70, .5);
+  color: #dceaf1;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.si-story-calibrator button:hover {
+  border-color: rgba(110, 215, 255, .42);
+  background: rgba(38, 71, 88, .72);
+}
+
+.si-story-calibrator button:focus-visible,
+.si-story-calibrator input:focus-visible {
+  outline: 2px solid rgba(110, 215, 255, .72);
+  outline-offset: 2px;
+}
+
+.si-story-calibrator-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.si-story-calibrator-tabs button.active {
+  border-color: rgba(79, 209, 197, .7);
+  background: rgba(79, 209, 197, .15);
+  color: #a8f3eb;
+}
+
+.si-story-calibrator-help {
+  margin: 12px 0 10px;
+}
+
+.si-story-calibrator-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.si-story-calibrator-values label,
+.si-story-calibrator-scale {
+  color: #9fb6c3;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.si-story-calibrator-values label {
+  position: relative;
+  display: grid;
+  gap: 4px;
+}
+
+.si-story-calibrator-values input[type='number'] {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  box-sizing: border-box;
+  border: 1px solid rgba(127, 179, 202, .18);
+  border-radius: 7px;
+  background: rgba(3, 14, 22, .7);
+  color: #eef8fc;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.si-story-calibrator-values label > span {
+  position: absolute;
+  right: 7px;
+  bottom: 9px;
+  color: #668495;
+  font-size: 9px;
+  pointer-events: none;
+}
+
+.si-story-calibrator-scale {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.si-story-calibrator-scale input[type='range'] {
+  width: 100%;
+  accent-color: #4fd1c5;
+}
+
+.si-story-calibrator-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.si-story-calibrator-actions .primary {
+  grid-column: 1 / -1;
+  min-height: 36px;
+  border-color: rgba(79, 209, 197, .62);
+  background: rgba(79, 209, 197, .16);
+  color: #b9f6ef;
+}
+
+.si-story-calibrator small {
+  display: block;
+  margin-top: 10px;
+}
+
+@media (max-width: 900px) {
+  .si-calibration-mode {
+    top: 68px;
+    grid-template-rows: 1fr;
+  }
+
+  .si-calibration-mode .si-cinema-visual {
+    grid-row: 1;
+  }
+
+  .si-calibration-mode .si-story-stack {
+    width: min(68vw, 520px);
+  }
+
+  .si-story-calibrator {
+    top: 12px;
+    right: 12px;
+    width: min(320px, calc(100vw - 24px));
+    padding: 12px;
+  }
+}

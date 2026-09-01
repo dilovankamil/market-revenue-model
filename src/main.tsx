@@ -13,6 +13,7 @@ import './model-v7.css';
 import './mobile-v8.css';
 import './clean-v9.css';
 import './story-v16.css';
+import './story-calibration.css';
 
 const privateModulesEnabled = import.meta.env.VITE_SHOW_PRIVATE_MODULES === 'true';
 document.documentElement.classList.toggle('internal-build', privateModulesEnabled);

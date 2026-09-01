@@ -59,6 +59,9 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
     for (const [region, incidence] of Object.entries(indication.incidencePer100kByRegion)) {
       if (!finite(incidence) || incidence < 0) add('error', 'invalid-incidence', `indications.${indication.id}.incidencePer100kByRegion.${region}`, `${indication.name}: incidence cannot be negative.`);
     }
+    if (indication.enabled && (indication.assumptionStatus === 'proxy' || indication.id !== 'gbm')) {
+      add('warning', 'proxy-indication', `indications.${indication.id}`, `${indication.name} uses provisional epidemiology or eligibility assumptions and requires validation before external quantitative use.`);
+    }
   }
   if (!Object.values(scenario.indications).some((indication) => indication.enabled)) add('warning', 'no-enabled-indications', 'indications', 'No indication is enabled, so commercial revenue will be zero.');
 

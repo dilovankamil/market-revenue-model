@@ -19,6 +19,8 @@ export interface IndicationAssumption {
   incidencePer100kByRegion: Record<RegionId, number>;
   defaultRampYears: number;
   enabled: boolean;
+  assumptionStatus?: AssumptionStatus;
+  assumptionNote?: string;
 }
 
 export interface CountryAssumption {
@@ -95,6 +97,8 @@ export interface CountryYearResult {
   countryId: CountryId;
   year: number;
   population: number;
+  incidentCases: number;
+  accessibleCases: number;
   eligiblePatients: number;
   treatedPatients: number;
   grossRevenueUsd: number;
@@ -119,6 +123,8 @@ export interface YearResult {
   cumulativeCashFlowUsd: number;
   financingCashUsd: number;
   cashBalanceUsd: number;
+  incidentCases: number;
+  accessibleCases: number;
   eligiblePatients: number;
   treatedPatients: number;
 }

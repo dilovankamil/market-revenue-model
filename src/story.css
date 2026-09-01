@@ -1,3 +1,4 @@
+/* SI-053 cinematic scroll story. */
 .story-workspace-v16 {
   overflow: visible;
   padding-top: 0 !important;
@@ -5,8 +6,8 @@
 
 .si-cinema-track {
   position: relative;
-  height: 700vh;
-  min-height: 4200px;
+  height: 760vh;
+  min-height: 4560px;
   margin: 0;
 }
 
@@ -19,6 +20,7 @@
   grid-template-columns: minmax(380px, .86fr) minmax(520px, 1.14fr);
   overflow: hidden;
   isolation: isolate;
+  font-family: "Segoe UI Variable Display", "Avenir Next", Inter, ui-sans-serif, system-ui, sans-serif;
   background:
     radial-gradient(circle at 75% 43%, rgba(50, 126, 143, .18), transparent 34%),
     radial-gradient(circle at 64% 54%, rgba(52, 154, 144, .07), transparent 31%),
@@ -52,14 +54,14 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
-  will-change: opacity;
+  will-change: opacity, transform;
 }
 
 .si-cinema-eyebrow {
   color: #7fb3ca;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: .18em;
+  letter-spacing: .2em;
   text-transform: uppercase;
 }
 
@@ -67,17 +69,20 @@
   max-width: 680px;
   margin: 14px 0 20px;
   color: #f4f9fc;
-  font-size: clamp(38px, 4.15vw, 62px);
-  line-height: 1.01;
-  letter-spacing: -.042em;
+  font-size: clamp(42px, 4.35vw, 66px);
+  font-weight: 690;
+  line-height: .99;
+  letter-spacing: -.047em;
+  text-wrap: balance;
 }
 
 .si-cinema-copy-step p {
-  max-width: 610px;
-  margin: 0 0 12px;
-  color: #a9bdca;
-  font-size: clamp(13px, 1.12vw, 16px);
-  line-height: 1.72;
+  max-width: 590px;
+  margin: 0 0 11px;
+  color: #b3c5d1;
+  font-size: clamp(16px, 1.18vw, 18px);
+  line-height: 1.58;
+  letter-spacing: -.006em;
 }
 
 .si-cinema-callout {
@@ -86,7 +91,7 @@
   gap: 10px;
   margin-top: 18px;
   color: #d0e1e9;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: .025em;
 }
@@ -103,7 +108,39 @@
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
-  margin-top: 24px;
+  margin-top: 12px;
+}
+
+.si-cinema-model-bridge {
+  width: min(100%, 590px);
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(110, 215, 255, .2);
+}
+
+.si-cinema-model-bridge > span {
+  color: #7fb3ca;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.si-cinema-actions .primary-button,
+.si-cinema-actions .secondary-button {
+  width: auto;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.si-cinema-actions .primary-button {
+  border-color: rgba(110, 215, 255, .58);
+  background: linear-gradient(135deg, rgba(79, 209, 197, .22), rgba(110, 215, 255, .16));
+  box-shadow: 0 12px 28px rgba(31, 148, 174, .15);
 }
 
 .si-cinema-visual {
@@ -151,7 +188,7 @@
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(88%, 820px);
+  width: min(86%, 800px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -191,13 +228,15 @@
 }
 
 .si-story-pathway {
-  width: min(106%, 980px);
-  height: 78%;
+  width: min(100%, 930px);
+  height: auto;
+  max-height: 78%;
 }
 
 .si-story-platform {
-  width: min(92%, 870px);
-  height: 86%;
+  width: min(82%, 760px);
+  height: auto;
+  max-height: 84%;
 }
 
 .si-cinema-ui {
@@ -286,8 +325,8 @@
   }
 
   .si-cinema-track {
-    height: 690svh;
-    min-height: 4200px;
+    height: 735svh;
+    min-height: 4410px;
     margin-inline: -12px;
   }
 
@@ -296,7 +335,7 @@
     height: calc(100svh - 68px);
     min-height: 570px;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(250px, 52%) minmax(260px, 48%);
+    grid-template-rows: minmax(245px, 47%) minmax(310px, 53%);
     background:
       radial-gradient(circle at 54% 25%, rgba(50, 126, 143, .18), transparent 32%),
       linear-gradient(180deg, #081723 0%, #07141f 100%);
@@ -320,17 +359,17 @@
   }
 
   .si-story-stack {
-    width: min(72vw, 500px);
+    width: min(70vw, 480px);
   }
 
   .si-story-pathway {
-    width: min(102vw, 760px);
-    height: 86%;
+    width: min(96vw, 720px);
+    max-height: 82%;
   }
 
   .si-story-platform {
-    width: min(88vw, 620px);
-    height: 90%;
+    width: min(74vw, 560px);
+    max-height: 88%;
   }
 
   .si-cinema-copy {
@@ -347,23 +386,23 @@
 
   .si-cinema-copy-step h1 {
     margin: 9px 0 11px;
-    font-size: clamp(25px, 7vw, 34px);
-    line-height: 1.03;
+    font-size: clamp(28px, 7.3vw, 38px);
+    line-height: 1.01;
   }
 
   .si-cinema-copy-step p {
     margin-bottom: 7px;
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: 15px;
+    line-height: 1.47;
   }
 
   .si-cinema-eyebrow {
-    font-size: 8px;
+    font-size: 10px;
   }
 
   .si-cinema-callout {
     margin-top: 9px;
-    font-size: 8px;
+    font-size: 11px;
   }
 
   .si-cinema-actions {
@@ -371,10 +410,19 @@
     gap: 7px;
   }
 
+  .si-cinema-model-bridge {
+    margin-top: 11px;
+    padding-top: 10px;
+  }
+
+  .si-cinema-model-bridge > span {
+    font-size: 9px;
+  }
+
   .si-cinema-actions button {
-    min-height: 38px;
-    padding: 0 10px;
-    font-size: 10px;
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 11px;
   }
 
   .si-cinema-ui {
@@ -390,11 +438,11 @@
   }
 
   .si-cinema-stage {
-    grid-template-rows: minmax(225px, 49%) minmax(280px, 51%);
+    grid-template-rows: minmax(220px, 43%) minmax(330px, 57%);
   }
 
   .si-story-stack {
-    width: min(70vw, 330px);
+    width: min(67vw, 320px);
   }
 
   .si-cinema-copy-step {
@@ -404,11 +452,25 @@
   }
 
   .si-cinema-copy-step h1 {
-    font-size: clamp(23px, 6.6vw, 30px);
+    font-size: clamp(26px, 7vw, 32px);
   }
 
   .si-cinema-copy-step p {
-    font-size: 11.5px;
+    font-size: 14px;
+  }
+
+  .si-cinema-callout {
+    display: none;
+  }
+
+  .si-cinema-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .si-cinema-actions .primary-button,
+  .si-cinema-actions .secondary-button {
+    width: 100%;
   }
 
   .si-cinema-dots {

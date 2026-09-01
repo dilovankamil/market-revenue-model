@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { baseScenario, cloneScenario } from './assumptions';
 import { parseScenario, serializeScenario } from './scenarioIO';
 import { validateScenario } from './validation';
+import { buildScenarioPresets } from './scenarios';
 
 describe('scenario validation', () => {
   it('accepts the committed base scenario without fatal errors', () => {
@@ -38,5 +39,12 @@ describe('scenario validation', () => {
     const scenario = cloneScenario(baseScenario);
     scenario.financial.corporateTaxPct = 150;
     expect(() => parseScenario(serializeScenario(scenario))).toThrow(/validation failed/i);
+  });
+
+  it('flags provisional indication epidemiology when expansion indications are active', () => {
+    const issues = validateScenario(buildScenarioPresets().expansion);
+    const proxyIndications = issues.filter((issue) => issue.code === 'proxy-indication');
+    expect(proxyIndications.some((issue) => issue.path === 'indications.brainMetastasis')).toBe(true);
+    expect(proxyIndications.some((issue) => issue.path === 'indications.opbt')).toBe(true);
   });
 });

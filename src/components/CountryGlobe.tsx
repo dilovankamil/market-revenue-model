@@ -1,5 +1,5 @@
 import type { CountryAssumption, CountryId } from '../model/types';
-import { SvgCountryGlobeV8 } from './SvgCountryGlobeV8';
+import { SvgCountryGlobe } from './SvgCountryGlobe';
 
 export interface GlobeCountrySelection {
   id: string;
@@ -17,5 +17,5 @@ interface CountryGlobeProps {
 }
 
 export function CountryGlobe(props: CountryGlobeProps) {
-  return <SvgCountryGlobeV8 {...props} />;
+  return <SvgCountryGlobe {...props} />;
 }

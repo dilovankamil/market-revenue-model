@@ -71,7 +71,7 @@ const stagesForIndication = (scenario: Scenario, indication: IndicationId) =>
 
 const earliestCommercialLaunch = (scenario: Scenario, indication: IndicationId) => {
   const launches = Object.values(scenario.countries)
-    .filter((country) => country.accessRoute === 'commercial')
+    .filter((country) => country.enabled && country.accessRoute === 'commercial')
     .map((country) => launchIndex(country, indication));
   return launches.length ? Math.min(...launches) : (scenario.endYear + 1) * 12;
 };
@@ -105,6 +105,8 @@ const stageReachProbability = (scenario: Scenario, target: DevelopmentStage) => 
 
 const calculateCountryYear = (scenario: Scenario, country: CountryAssumption, year: number): CountryYearResult => {
   const population = populationForYear(country, year);
+  let incidentCases = 0;
+  let accessibleCases = 0;
   let eligiblePatients = 0;
   let treatedPatients = 0;
   let grossRevenueUsd = 0;
@@ -116,8 +118,10 @@ const calculateCountryYear = (scenario: Scenario, country: CountryAssumption, ye
   Object.values(scenario.indications).filter((indication) => indication.enabled).forEach((indication) => {
     const incidence = indication.incidencePer100kByRegion[country.region];
     const totalCases = population * incidence / 100_000;
-    const accessibleCases = totalCases * (country.accessiblePopulationPct / 100);
-    const eligible = accessibleCases * country.surgeryEligibility[indication.id];
+    const addressableCases = totalCases * (country.accessiblePopulationPct / 100);
+    const eligible = addressableCases * country.surgeryEligibility[indication.id];
+    incidentCases += totalCases;
+    accessibleCases += addressableCases;
     eligiblePatients += eligible;
     const treated = country.accessRoute === 'commercial' ? eligible * commercialAdoption(country, indication, year) : 0;
     const revenue = treated * country.priceUsd * erosionFactor(scenario, country, year);
@@ -133,7 +137,7 @@ const calculateCountryYear = (scenario: Scenario, country: CountryAssumption, ye
   });
 
   return {
-    countryId: country.id, year, population, eligiblePatients, treatedPatients, grossRevenueUsd, cogsUsd,
+    countryId: country.id, year, population, incidentCases, accessibleCases, eligiblePatients, treatedPatients, grossRevenueUsd, cogsUsd,
     commercialOpexUsd, contributionUsd: grossRevenueUsd - cogsUsd - commercialOpexUsd,
     grossRevenueByIndicationUsd, contributionByIndicationUsd,
   };
@@ -186,6 +190,8 @@ export const calculateModel = (scenario: Scenario): ModelResult => {
       year, grossRevenueUsd, riskAdjustedGrossRevenueUsd, cogsUsd, commercialOpexUsd, developmentCostsUsd,
       corporateCostsUsd, taxUsd, netCashFlowUsd, riskAdjustedNetCashFlowUsd, cumulativeCashFlowUsd,
       financingCashUsd, cashBalanceUsd,
+      incidentCases: countryRows.reduce((sum, row) => sum + row.incidentCases, 0),
+      accessibleCases: countryRows.reduce((sum, row) => sum + row.accessibleCases, 0),
       eligiblePatients: countryRows.reduce((sum, row) => sum + row.eligiblePatients, 0),
       treatedPatients: countryRows.reduce((sum, row) => sum + row.treatedPatients, 0),
     };

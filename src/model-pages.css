@@ -1,3 +1,4 @@
+/* Current model-page layouts and programme views. */
 .kpi-grid-v7 {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }

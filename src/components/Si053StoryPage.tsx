@@ -19,67 +19,67 @@ interface Props {
 
 const steps: StoryStep[] = [
   {
-    eyebrow: 'SI-053 · THE CLINICAL IDEA',
-    title: 'Treat the place where brain-tumor surgery ends.',
+    eyebrow: 'THE CLINICAL IDEA',
+    title: 'Treat the place where brain tumor surgery ends.',
     body: [
-      'Glioblastoma is highly infiltrative. Surgery removes the visible tumor, but microscopic disease may remain in tissue surrounding the resection site.',
-      'SI-053 is being developed around that postoperative space: a local treatment placed directly into the cavity after resection.',
+      'Surgery removes the visible tumor. Infiltrating glioblastoma cells may remain in the tissue surrounding the resection site.',
+      'SI-053 is being developed for that postoperative space: a local treatment placed directly into the cavity after resection.',
     ],
-    callout: 'Residual disease risk at the resection margin',
+    callout: 'Treat the resection margin directly',
   },
   {
     eyebrow: 'AFTER RESECTION',
-    title: 'Surgery creates a defined cavity at the site of highest local concern.',
+    title: 'The tumor is removed. The local risk is not.',
     body: [
-      'Once the tumor mass is removed, the surgeon is left with a postoperative cavity and a surrounding margin where infiltrating tumor cells may remain.',
-      'That cavity creates a direct, clinically natural treatment site.',
+      'The postoperative cavity marks where the visible mass was removed. Its surrounding margin is also where residual, infiltrating cells may remain.',
+      'That makes the cavity a defined, clinically natural site for local treatment.',
     ],
-    callout: 'A defined postoperative treatment site',
+    callout: 'A defined postoperative target',
   },
   {
     eyebrow: 'WHY LOCAL DELIVERY',
-    title: 'Systemic therapy still has to reach the brain from the bloodstream.',
+    title: 'Systemic therapy still has to cross the blood–brain barrier.',
     body: [
-      'The blood–brain barrier limits the passage of many circulating therapies into brain tissue and complicates efforts to achieve high exposure at the tumor margin.',
-      'Local administration changes the delivery problem by placing therapy at the surgical site instead of relying only on systemic transport.',
+      'The blood–brain barrier limits the passage of many circulating therapies into brain tissue, complicating efforts to achieve high exposure at the tumor margin.',
+      'Local administration changes the delivery problem: the therapy starts at the surgical site.',
     ],
-    callout: 'Reduce dependence on systemic delivery across the BBB',
+    callout: 'Reduce dependence on systemic delivery',
   },
   {
     eyebrow: 'THE SI-053 CONCEPT',
-    title: 'SI-053 is placed directly into the post-resection cavity.',
+    title: 'SI-053 places temozolomide directly into the cavity.',
     body: [
-      'SI-053 is a temozolomide-based hydrogel formulation intended for intracavitary administration immediately following tumor resection.',
-      'The drug is positioned where residual tumor cells may remain, within the same surgical episode.',
+      'SI-053 is a temozolomide and dextran phosphate hydrogel designed for intracavitary administration immediately after tumor resection.',
+      'The drug is positioned where residual tumor cells may remain, within the same surgical procedure.',
     ],
-    callout: 'Local intracavitary administration',
+    callout: 'Local administration in the operating room',
   },
   {
     eyebrow: 'LOCAL EXPOSURE',
-    title: 'The formulation is designed to release temozolomide locally over time.',
+    title: 'Designed to release temozolomide locally over time.',
     body: [
-      'The objective is sustained local drug exposure at and around the cavity margin while limiting the need to increase systemic exposure to achieve it.',
-      'The treatment concept therefore connects delivery, anatomy and recurrence biology in one local intervention.',
+      'The objective is sustained local exposure at and around the cavity margin, without increasing systemic exposure to achieve the same local concentration.',
+      'Delivery, anatomy and recurrence biology are addressed in one local intervention.',
     ],
-    callout: 'Sustained local temozolomide exposure',
+    callout: 'Sustained exposure at the surgical margin',
   },
   {
     eyebrow: 'CARE PATHWAY',
-    title: 'One surgical episode. One local administration.',
+    title: 'One surgery. One local administration.',
     body: [
-      'The intended use is deliberately simple: tumor resection, local SI-053 administration, then continuation of the patient’s broader standard treatment pathway.',
-      'No separate device platform or chronic administration infrastructure is built into the commercial concept.',
+      'The intended pathway is deliberately simple: tumor resection, local SI-053 administration, then continuation of the patient’s broader standard treatment pathway.',
+      'No separate device platform or chronic administration infrastructure is built into the concept.',
     ],
-    callout: 'Designed around the neurosurgical workflow',
+    callout: 'Designed around the existing surgical workflow',
   },
   {
     eyebrow: 'FROM THERAPY TO OPPORTUNITY',
-    title: 'A local-delivery strategy with a broader brain-tumor opportunity.',
+    title: 'From local treatment to global opportunity.',
     body: [
-      'Glioblastoma is the lead indication. The strategic model can also explore brain metastases and other primary brain tumors in which surgery creates a resection cavity.',
-      'The next sections translate this treatment concept into patient opportunity, commercial value, development spend and funding requirements.',
+      'Glioblastoma is the lead indication. The same intracavitary concept could extend to resected brain metastases and other primary brain tumors.',
+      'Now explore how patient opportunity, market access, pricing, development costs and risk shape the modeled value of SI-053.',
     ],
-    callout: 'GBM lead indication · broader intracavitary potential',
+    callout: 'The treatment story becomes the commercial model',
   },
 ];
 
@@ -87,6 +87,17 @@ const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, v
 const smooth = (from: number, to: number, value: number) => {
   const t = clamp((value - from) / (to - from));
   return t * t * (3 - 2 * t);
+};
+
+const getStoryPosition = (progress: number) => {
+  const lastIndex = steps.length - 1;
+  if (progress >= 1) return lastIndex;
+  const raw = clamp(progress) * lastIndex;
+  const chapter = Math.min(lastIndex - 1, Math.floor(raw));
+  const chapterProgress = raw - chapter;
+
+  // Let each chapter settle before the next cross-fade begins.
+  return chapter + smooth(0.42, 0.92, chapterProgress);
 };
 
 const storyAsset = (filename: string) =>
@@ -474,7 +485,7 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
     };
   }, []);
 
-  const position = progress * (steps.length - 1);
+  const position = getStoryPosition(progress);
   const activeIndex = Math.min(steps.length - 1, Math.max(0, Math.round(position)));
   const selectedTransform = calibration[selectedLayer];
 
@@ -510,21 +521,31 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
         <div className="si-cinema-copy" aria-live="polite">
           {steps.map((step, index) => {
             const distance = Math.abs(position - index);
-            const opacity = 1 - smooth(0.12, 0.62, distance);
+            const opacity = 1 - smooth(0.1, 0.72, distance);
+            const offset = Math.max(-28, Math.min(28, (index - position) * 28));
+            const isActive = index === activeIndex;
             return (
               <article
                 key={step.title}
-                className="si-cinema-copy-step"
-                style={{ opacity, pointerEvents: opacity > 0.55 && !editMode ? 'auto' : 'none' }}
+                className={`si-cinema-copy-step${index === steps.length - 1 ? ' is-final-step' : ''}`}
+                style={{
+                  opacity,
+                  transform: `translate3d(0, ${offset}px, 0)`,
+                  pointerEvents: opacity > 0.55 && !editMode ? 'auto' : 'none',
+                }}
+                aria-hidden={!isActive}
               >
                 <span className="si-cinema-eyebrow">{step.eyebrow}</span>
                 <h1>{step.title}</h1>
                 {step.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
                 <div className="si-cinema-callout"><span />{step.callout}</div>
                 {index === steps.length - 1 && (
-                  <div className="si-cinema-actions">
-                    <button className="primary-button" onClick={onOpenCommercial}>Explore commercial & valuation</button>
-                    <button className="secondary-button" onClick={onOpenDevelopment}>Development & cash</button>
+                  <div className="si-cinema-model-bridge">
+                    <span>Continue into the strategic model</span>
+                    <div className="si-cinema-actions">
+                      <button className="primary-button" onClick={onOpenCommercial}>Open commercial & valuation</button>
+                      <button className="secondary-button" onClick={onOpenDevelopment}>Review development & cash</button>
+                    </div>
                   </div>
                 )}
               </article>

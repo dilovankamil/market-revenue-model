@@ -51,7 +51,7 @@ export function MethodologyTab() {
 
       <div className="panel methodology-caveat-v7">
         <span className="section-kicker">High-priority review</span>
-        <p>South America, MENA, South Asia, East/Southeast Asia expansion markets and Oceania currently contain explicit planning proxies. Their population scale is useful for scenario exploration, but country-specific epidemiology, surgical eligibility, pricing, reimbursement/access and launch timing should be validated before external quantitative use.</p>
+        <p>Brain-metastasis incidence is currently a regional planning proxy, while other primary brain tumors temporarily reuse the GBM incidence structure. South America, MENA, South Asia, East/Southeast Asia and Oceania also contain country-level planning proxies. These inputs must be replaced or validated before the corresponding outputs are used externally.</p>
       </div>
     </section>
   );

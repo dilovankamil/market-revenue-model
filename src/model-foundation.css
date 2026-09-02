@@ -58,15 +58,14 @@
 .globe-large-panel .country-globe { width: min(100%,820px); }
 .svg-country-globe { aspect-ratio: 1 / 1; }
 .globe-country.configured {
-  stroke: rgba(110,215,255,.72);
-  stroke-width: 1.15;
+  stroke: rgba(146,164,173,.45);
+  stroke-width: .82;
 }
-.globe-country.configured:hover { stroke: #dff8ff; stroke-width: 1.8; }
-.globe-country.selected {
-  stroke: #fff;
-  stroke-width: 2.5;
-  filter: drop-shadow(0 0 4px rgba(255,255,255,.22));
-}
+.globe-country.market-available { opacity: .68; }
+.globe-country.market-available:hover,
+.globe-country.market-available:focus-visible { opacity: 1; }
+.globe-country.market-enabled { stroke: rgba(110,215,255,.68); stroke-width: 1.05; }
+.globe-country.market-enabled:hover { stroke: #dff8ff; stroke-width: 1.45; }
 /* ---------- development / cash ---------- */
 .development-story-panel { overflow: hidden; }
 .development-lead-note { max-width: 900px; }

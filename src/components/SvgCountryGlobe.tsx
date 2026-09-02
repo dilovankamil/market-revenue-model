@@ -19,7 +19,7 @@ type WorldData = { type: 'FeatureCollection'; features: WorldFeature[] };
 const WIDTH = 760;
 const HEIGHT = 760;
 const defaultCountryColor = '#13191d';
-const availableMarketColor = '#2a3035';
+const availableMarketColor = '#303538';
 const runtimeAssetBase =
   (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
 const worldDataUrl = `${runtimeAssetBase}world.geojson`;
@@ -169,7 +169,7 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
               <path
                 key={String(feature.id ?? feature.properties?.name ?? index)}
                 d={featurePath}
-                className={`globe-country ${selectable ? 'configured selectable' : ''} ${country?.enabled ? 'market-enabled' : ''} ${revenueActive ? 'revenue-active' : ''} ${selected ? 'selected' : ''}`}
+                className={`globe-country ${selectable ? 'configured selectable' : ''} ${selectable && !country?.enabled ? 'market-available' : ''} ${country?.enabled ? 'market-enabled' : ''} ${revenueActive ? 'revenue-active' : ''} ${selected ? 'selected' : ''}`}
                 fill={fillForFeature(feature)}
                 role={selectable ? 'button' : undefined}
                 tabIndex={selectable ? 0 : undefined}

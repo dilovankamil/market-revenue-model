@@ -46,6 +46,14 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
 
   return (
     <>
+      <section className="panel chart-panel cv-revenue-panel development-revenue-panel">
+        <div className="panel-heading">
+          <div><span className="section-kicker">Commercial forecast</span><h3>Global gross revenue</h3></div>
+          <span className="chart-context-note">Totals above each stacked bar</span>
+        </div>
+        <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} />
+      </section>
+
       <section className="panel development-panel development-story-panel">
         <div className="panel-heading">
           <div><span className="section-kicker">Development programme</span><h3>From Phase I to modeled launch</h3></div>
@@ -108,14 +116,6 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
             <div><span>Ending cash balance</span><strong>{formatUsd(result.endingCashBalanceUsd)}</strong></div>
           </div>
         )}
-      </section>
-
-      <section className="panel chart-panel cv-revenue-panel development-revenue-panel">
-        <div className="panel-heading">
-          <div><span className="section-kicker">Commercial forecast</span><h3>Global gross revenue</h3></div>
-          <span className="chart-context-note">Totals above each stacked bar</span>
-        </div>
-        <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} />
       </section>
 
       <section className="panel chart-panel cash-story-panel">

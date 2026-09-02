@@ -79,7 +79,6 @@
 }
 .globe-country:hover { stroke: rgba(255,255,255,.82); stroke-width: 1.25; }
 .globe-country.revenue-active { filter: drop-shadow(0 0 3px rgba(110, 215, 255, .18)); }
-.globe-country.selected { stroke: #fff; stroke-width: 2.2; }
 .globe-country:focus-visible { outline: none; stroke: #fff; stroke-width: 2.6; filter: drop-shadow(0 0 5px rgba(110,215,255,.55)); }
 .globe-rim { fill: none; stroke: rgba(203,239,255,.24); stroke-width: 1.4; pointer-events: none; }
 .globe-drag-hint {

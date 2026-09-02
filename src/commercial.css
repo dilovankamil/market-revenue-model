@@ -677,6 +677,10 @@
     margin-top: 14px;
   }
 
+  /* On narrow screens, show the visual decision surface before its controls. */
+  .commercial-value-page > .cv-revenue-panel { order: 3; }
+  .commercial-value-page > .cv-levers-panel { order: 4; }
+
   .cv-advanced-content {
     padding: 14px;
   }

@@ -7,8 +7,13 @@ export default defineConfig({
   base: '/market-revenue-model/',
   build: {
     target: 'es2019',
+    emptyOutDir: true,
     cssCodeSplit: false,
     rollupOptions: {
+      input: {
+        index: 'index.html',
+        app: 'src/main.tsx',
+      },
       output: {
         // Content-hashed entry names force browsers/CDNs to fetch the exact release bundle.
         // scripts/create-stable-assets.mjs also creates stable bootstrap aliases.

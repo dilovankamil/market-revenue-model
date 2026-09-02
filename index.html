@@ -18,6 +18,58 @@
         JavaScript is required to run the SI-053 Strategic Model.
       </div>
     </noscript>
-    <script type="module" src="/src/main.tsx"></script>
+    <script id="source-pages-bootstrap">
+      (function () {
+        var developmentHosts = ['localhost', '127.0.0.1', 'terminal.local'];
+        var isDevelopment = developmentHosts.indexOf(window.location.hostname) !== -1;
+        var root = document.getElementById('root');
+
+        function showFailure(code, title, detail) {
+          if (!root) return;
+          root.innerHTML = '<div style="min-height:45vh;display:grid;place-items:center;align-content:center;gap:10px;padding:24px;text-align:center;color:#eef6ff;background:#06111d"><strong style="font:600 18px system-ui">' + title + '</strong><span style="max-width:600px;color:#9fb1c1;font:12px/1.6 system-ui">' + detail + '</span><small style="color:#71879a;font:10px system-ui">Error code: ' + code + '</small></div>';
+        }
+
+        if (isDevelopment) {
+          var developmentEntry = document.createElement('script');
+          developmentEntry.type = 'module';
+          developmentEntry.src = '/src/main.tsx';
+          developmentEntry.onerror = function () {
+            showFailure('SI053-DEV-1', 'The local application entry could not be loaded.', 'Restart the development server and reload this page.');
+          };
+          document.head.appendChild(developmentEntry);
+          return;
+        }
+
+        var base = '/market-revenue-model/';
+        var stamp = Date.now().toString(36);
+        window.__SI053_ASSET_ROOT__ = base + 'public/';
+
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = base + 'assets/style.css?boot=' + stamp;
+        css.onerror = function () {
+          showFailure('SI053-ASSET-2', 'The application stylesheet could not be loaded.', 'The published release is incomplete.');
+        };
+        document.head.appendChild(css);
+
+        var timeout = window.setTimeout(function () {
+          if (!window.__SI053_BOOT_OK__) {
+            showFailure('SI053-MOUNT-1', 'The model loaded but did not mount.', 'Reload the page to request a fresh copy of the release.');
+          }
+        }, 15000);
+
+        var application = document.createElement('script');
+        application.type = 'module';
+        application.src = base + 'assets/app.js?boot=' + stamp;
+        application.onload = function () {
+          if (window.__SI053_BOOT_OK__) window.clearTimeout(timeout);
+        };
+        application.onerror = function () {
+          window.clearTimeout(timeout);
+          showFailure('SI053-ASSET-3', 'The application bundle could not be loaded.', 'The published release is incomplete.');
+        };
+        document.head.appendChild(application);
+      })();
+    </script>
   </body>
 </html>

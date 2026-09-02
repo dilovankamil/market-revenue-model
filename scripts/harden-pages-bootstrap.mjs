@@ -9,11 +9,9 @@ await Promise.all([access(indexPath), access(stableJs), access(stableCss)]);
 let html = await readFile(indexPath, 'utf8');
 const moduleScript = /<script\s+type="module"[^>]*\bsrc="[^"]+"[^>]*><\/script>/i;
 const stylesheet = /<link\s+rel="stylesheet"[^>]*\bhref="[^"]+"[^>]*>/i;
+const sourcePagesBootstrap = /<script\s+id="source-pages-bootstrap"[^>]*>[\s\S]*?<\/script>/i;
 
-if (!moduleScript.test(html)) {
-  throw new Error('Could not find the Vite entry script in dist/index.html.');
-}
-
+html = html.replace(sourcePagesBootstrap, '');
 html = html.replace(moduleScript, '');
 html = html.replace(stylesheet, '');
 

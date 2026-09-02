@@ -1,6 +1,6 @@
 import { baseScenario, cloneScenario } from './assumptions';
 import { EUROPE_IDS } from './marketGroups';
-import { ensureV8Markets } from './marketExtensions';
+import { ensureCompleteMarketSet } from './marketExtensions';
 import type { Scenario } from './types';
 
 const EARLY_GBM_LAUNCH_IDS = new Set(['USA', ...EUROPE_IDS]);
@@ -13,7 +13,7 @@ const EARLY_GBM_LAUNCH_IDS = new Set(['USA', ...EUROPE_IDS]);
  * naturally prorated by the model engine.
  */
 export const createDefaultScenario = (): Scenario => {
-  const scenario = ensureV8Markets(cloneScenario(baseScenario));
+  const scenario = ensureCompleteMarketSet(cloneScenario(baseScenario));
 
   // Core public footprint remains North America + Europe. Japan starts deselected.
   if (scenario.countries.JPN) scenario.countries.JPN.enabled = false;

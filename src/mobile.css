@@ -17,6 +17,19 @@
   margin: 3px 0 6px;
 }
 
+.scenario-file-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.scenario-file-status {
+  display: block;
+  margin-top: 7px;
+  color: #9fdacb;
+  font-size: 9px;
+}
+
 .scenario-file-actions {
   display: flex;
   align-items: center;
@@ -39,8 +52,9 @@
 
 .globe-touch-surface,
 .svg-country-globe {
-  touch-action: none !important;
-  overscroll-behavior: contain;
+  touch-action: pan-y !important;
+  overscroll-behavior-y: auto;
+  overscroll-behavior-x: contain;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
@@ -55,16 +69,16 @@
 }
 
 @media (max-width: 1080px) {
-  .app-shell-v8 {
+  .app-shell {
     display: block;
     min-height: 100dvh;
   }
 
-  .desktop-sidebar-v8 {
+  .desktop-sidebar {
     display: none !important;
   }
 
-  .workspace-v8 {
+  .app-workspace {
     width: 100%;
     max-width: none;
     padding: 0 12px 34px;
@@ -122,74 +136,31 @@
     line-height: 1.15;
   }
 
-  .topbar-v8 {
-    display: flex;
-    align-items: flex-end;
-    flex-wrap: nowrap;
-    gap: 10px;
-    margin: 0 0 14px;
-    padding: 0 2px;
-  }
-
-  .topbar-v8 > div:first-child {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .topbar-v8 .eyebrow {
-    display: none;
-  }
-
-  .topbar-v8 h2 {
-    margin: 0;
-    font-size: clamp(22px,7vw,29px);
-    line-height: 1.05;
-  }
-
-  .topbar-actions-v8 {
-    width: auto !important;
-    display: block !important;
-    flex: 0 0 auto;
-  }
-
-  .topbar-actions-v8 .scenario-pill {
-    min-height: 32px;
-    max-width: 120px;
-    padding: 7px 9px;
-    font-size: 9px;
+  .app-topbar {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
     overflow: hidden;
+    clip: rect(0, 0, 0, 0);
     white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-
-  .hero-grid,
-  .global-layout,
-  .global-story-layout,
-  .two-column-layout {
-    grid-template-columns: 1fr !important;
+    border: 0;
   }
 
   .panel {
     border-radius: 12px;
   }
 
-  .map-panel,
-  .summary-panel,
   .chart-panel,
   .controls-panel,
   .development-panel,
-  .country-detail,
-  .valuation-hero,
   .deal-output,
   .globe-large-panel,
-  .commercial-simple-panel,
-  .source-section,
-  .methodology-intro,
   .scenario-file-panel {
     padding: 13px;
   }
 
-  .overview-globe-panel .country-globe,
   .globe-large-panel .country-globe {
     width: 100%;
     height: auto !important;
@@ -209,23 +180,9 @@
     font-size: 9px;
   }
 
-  .kpi-grid,
-  .kpi-grid-v7,
   .commercial-region-grid,
-  .global-story-aside,
-  .source-grid,
-  .clinical-probability-grid,
-  .method-principles {
+  .two-column-layout {
     grid-template-columns: 1fr !important;
-  }
-
-  .kpi-card {
-    min-height: 0;
-    padding: 13px;
-  }
-
-  .kpi-card strong {
-    font-size: 22px;
   }
 
   .scenario-file-panel {
@@ -296,13 +253,15 @@
   }
 
   .mobile-sheet-close {
-    width: 42px;
-    height: 42px;
+    min-width: 64px;
+    min-height: 40px;
+    padding: 0 14px;
     border: 1px solid var(--line);
-    border-radius: 50%;
+    border-radius: 999px;
     background: rgba(255,255,255,.04);
     color: var(--text);
-    font-size: 25px;
+    font-size: 12px;
+    font-weight: 700;
     line-height: 1;
   }
 
@@ -372,7 +331,7 @@
 }
 
 @media (max-width: 480px) {
-  .workspace-v8 {
+  .app-workspace {
     padding-inline: 9px;
   }
 
@@ -385,19 +344,6 @@
     max-width: 126px;
     padding-inline: 9px;
     font-size: 11px;
-  }
-
-  .topbar-v8 h2 {
-    font-size: 24px;
-  }
-
-  .topbar-actions-v8 .scenario-pill {
-    max-width: 92px;
-  }
-
-  .story-metrics,
-  .global-summary-grid {
-    grid-template-columns: 1fr !important;
   }
 
   .scenario-file-actions {

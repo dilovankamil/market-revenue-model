@@ -47,7 +47,7 @@ const additionalMenaMarkets: CountryAssumption[] = [
   menaProxy('OMN', 'Oman', 5_500_000, 1.3, 55_000, 20, 80, 0.68),
 ];
 
-export const ensureV8Markets = (scenario: Scenario): Scenario => {
+export const ensureCompleteMarketSet = (scenario: Scenario): Scenario => {
   additionalMenaMarkets.forEach((country) => {
     if (!scenario.countries[country.id]) {
       scenario.countries[country.id] = JSON.parse(JSON.stringify(country)) as CountryAssumption;

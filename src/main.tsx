@@ -8,31 +8,9 @@ const privateModulesEnabled = import.meta.env.VITE_SHOW_PRIVATE_MODULES === 'tru
 document.documentElement.classList.toggle('internal-build', privateModulesEnabled);
 document.documentElement.classList.toggle('public-build', !privateModulesEnabled);
 
-const scrollToPageStart = () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-const scheduleSectionScrollReset = () => {
-  queueMicrotask(scrollToPageStart);
-  window.requestAnimationFrame(() => {
-    scrollToPageStart();
-    window.requestAnimationFrame(scrollToPageStart);
-  });
-};
-
-// Section changes replace a 700+ vh story with a normal dashboard page. Reset
-// after React commits so the new page never inherits the story's final scroll.
 if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
-scrollToPageStart();
-document.addEventListener('click', (event) => {
-  const target = event.target;
-  if (target instanceof Element && target.closest('.nav-button, .si-cinema-actions button')) {
-    scheduleSectionScrollReset();
-  }
-}, true);
-document.addEventListener('change', (event) => {
-  const target = event.target;
-  if (target instanceof Element && target.matches('.mobile-section-select select')) {
-    scheduleSectionScrollReset();
-  }
-}, true);
+window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+window.addEventListener('pageshow', () => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }), { once: true });
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Application root element is missing.');

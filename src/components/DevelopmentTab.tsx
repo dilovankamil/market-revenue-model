@@ -2,7 +2,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import { CashFlowChart } from './CashFlowChart';
 import { RevenueChart } from './RevenueChart';
 import { cloneScenario } from '../model/assumptions';
-import type { DevelopmentStage, IndicationId, ModelResult, Scenario } from '../model/types';
+import { isPreLaunchDevelopmentStage } from '../model/timing';
+import type { ModelResult, Scenario } from '../model/types';
 
 interface Props {
   scenario: Scenario;
@@ -18,15 +19,11 @@ const formatUsd = (value: number) => {
   return `${sign}$${Math.round(abs).toLocaleString()}`;
 };
 
-const earliestLaunch = (scenario: Scenario, indication: IndicationId) => {
-  const years = Object.values(scenario.countries)
-    .filter((country) => country.accessRoute === 'commercial')
-    .map((country) => country.launchYearByIndication[indication]);
-  return years.length ? Math.min(...years) : scenario.endYear + 1;
-};
-
-const isPreLaunchStage = (scenario: Scenario, stage: DevelopmentStage) =>
-  Number(stage.endDate.slice(0, 4)) < earliestLaunch(scenario, stage.indication);
+const formatStageDate = (value: string) => new Intl.DateTimeFormat('en', {
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+}).format(new Date(`${value}T00:00:00Z`));
 
 export function DevelopmentTab({ scenario, result, setScenario }: Props) {
   const privateConfigLoaded = scenario.corporateCosts.length > 0 || scenario.financingEvents.length > 0;
@@ -51,17 +48,17 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
     <>
       <section className="panel development-panel development-story-panel">
         <div className="panel-heading">
-          <div><span className="section-kicker">Development programme</span><h3>From Phase I to commercial launch</h3></div>
-          <span className="privacy-chip">{privateConfigLoaded ? 'PRIVATE CONFIG ACTIVE' : 'PUBLIC / DEMO COST LAYER'}</span>
+          <div><span className="section-kicker">Development programme</span><h3>From Phase I to modeled launch</h3></div>
+          <span className="privacy-chip">{privateConfigLoaded ? 'PRIVATE CONFIG ACTIVE' : 'PUBLIC ASSUMPTIONS'}</span>
         </div>
 
         <p className="model-note development-lead-note">
-          The base model treats Phase II as the commercialization gate. Confirmatory Phase III can continue after modeled launch and is therefore shown as post-launch programme spend rather than an additional barrier to initial sales.
+          Phase I and Phase II form the modeled commercialization gate. Confirmatory Phase III can continue after launch and is therefore shown as post-launch programme spend rather than an additional barrier to initial sales.
         </p>
 
         <div className="programme-timeline">
           {activeStages.map((stage) => {
-            const preLaunch = isPreLaunchStage(scenario, stage);
+            const preLaunch = isPreLaunchDevelopmentStage(scenario, stage);
             return (
               <article className={`programme-stage-card ${preLaunch ? 'prelaunch' : 'confirmatory'}`} key={stage.id}>
                 <div className="programme-stage-topline">
@@ -69,7 +66,7 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
                   <i>{preLaunch ? 'PRE-LAUNCH' : 'POST-LAUNCH'}</i>
                 </div>
                 <strong>{stage.phase}</strong>
-                <div className="programme-stage-dates"><span>{stage.startDate}</span><b>→</b><span>{stage.endDate}</span></div>
+                <div className="programme-stage-dates"><span>{formatStageDate(stage.startDate)}</span><b>→</b><span>{formatStageDate(stage.endDate)}</span></div>
                 <div className="programme-stage-cost"><span>Programme cost</span><b>{formatUsd(stage.publicCostUsd)}</b></div>
               </article>
             );
@@ -79,7 +76,7 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
         <div className="development-cash-kpis">
           <div><span>Total enabled development spend</span><strong>{formatUsd(totalDevelopmentSpend)}</strong><small>undiscounted programme budgets</small></div>
           <div><span>Peak annual development spend</span><strong>{formatUsd(peakDevelopmentYear?.developmentCostsUsd ?? 0)}</strong><small>{peakDevelopmentYear?.year ?? '—'}</small></div>
-          <div><span>Peak funding requirement</span><strong>{formatUsd(result.peakFundingRequirementUsd)}</strong><small>before external financing</small></div>
+          <div><span>Peak funding requirement</span><strong>{formatUsd(result.peakFundingRequirementUsd)}</strong><small>{privateConfigLoaded ? 'before external financing' : 'programme cash need; excludes company overhead'}</small></div>
           <div><span>Operating break-even</span><strong>{result.breakEvenYear ?? 'Beyond horizon'}</strong><small>cumulative operating cash flow</small></div>
         </div>
 
@@ -92,7 +89,7 @@ export function DevelopmentTab({ scenario, result, setScenario }: Props) {
               <div className="stage-row" key={stage.id}>
                 <span>{scenario.indications[stage.indication].name}</span>
                 <strong>{stage.phase}</strong>
-                <span>{isPreLaunchStage(scenario, stage) ? 'Commercial gate' : 'Confirmatory'}</span>
+                <span>{isPreLaunchDevelopmentStage(scenario, stage) ? 'Commercial gate' : 'Confirmatory'}</span>
                 <label className="stage-probability-control" aria-label={`${stage.phase} success probability`}>
                   <input type="range" min="0" max="100" step="1" value={stage.successProbabilityPct} onChange={(event) => updateProbability(stage.id, +event.target.value)} />
                   <input className="stage-probability-number" type="number" min="0" max="100" step="1" value={stage.successProbabilityPct} onChange={(event) => updateProbability(stage.id, +event.target.value)} />

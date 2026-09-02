@@ -58,7 +58,7 @@ const steps: StoryStep[] = [
     eyebrow: 'LOCAL EXPOSURE',
     title: 'Designed to release temozolomide locally over time.',
     body: [
-      'The objective is sustained local exposure at and around the cavity margin, without increasing systemic exposure to achieve the same local concentration.',
+      'The objective is sustained local exposure at and around the cavity margin, with the aim of limiting the need to drive local concentration through systemic dosing.',
       'Delivery, anatomy and recurrence biology are addressed in one local intervention.',
     ],
     callout: 'Sustained exposure at the surgical margin',
@@ -96,8 +96,9 @@ const getStoryPosition = (progress: number) => {
   const chapter = Math.min(lastIndex - 1, Math.floor(raw));
   const chapterProgress = raw - chapter;
 
-  // Let each chapter settle before the next cross-fade begins.
-  return chapter + smooth(0.42, 0.92, chapterProgress);
+  // Keep a short reading hold at each chapter while avoiding long stretches
+  // where scrolling appears to do nothing.
+  return chapter + smooth(0.18, 0.82, chapterProgress);
 };
 
 const runtimeAssetBase = () =>
@@ -112,8 +113,6 @@ const storyAssets = {
   cavity: storyAsset('cavity.webp'),
   bbb: storyAsset('bbb.webp'),
   needle: storyAsset('needle-gel.webp'),
-  pathway: storyAsset('care-pathway.webp'),
-  platform: storyAsset('platform-opportunity.webp'),
 };
 
 const layerKeys: LayerKey[] = ['tumor', 'cavity', 'bbb', 'needle'];
@@ -192,6 +191,40 @@ const readInitialCalibration = (): Calibration => {
 
 const layerTransformStyle = (value: LayerTransform) =>
   `translate(${value.x}%, ${value.y}%) rotate(${value.rotation}deg) scale(${value.scale})`;
+
+function CarePathwayVisual({ opacity = 1 }: { opacity?: number }) {
+  const items = [
+    ['01', 'Resection', 'Visible tumor removed'],
+    ['02', 'SI-053 placement', 'Local administration'],
+    ['03', 'Local release', 'At the cavity margin'],
+    ['04', 'Standard care', 'Broader pathway continues'],
+  ];
+  return (
+    <div className="si-story-diagram si-care-pathway" style={{ opacity }}>
+      <div className="si-diagram-heading"><span>Intended care pathway</span><strong>Built around one surgical event</strong></div>
+      <div className="si-care-pathway-steps">
+        {items.map(([number, label, detail]) => (
+          <div className="si-care-pathway-step" key={number}>
+            <b>{number}</b><div><strong>{label}</strong><span>{detail}</span></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function OpportunityVisual({ opacity = 1 }: { opacity?: number }) {
+  return (
+    <div className="si-story-diagram si-opportunity-map" style={{ opacity }}>
+      <div className="si-opportunity-lead"><span>Lead indication</span><strong>Glioblastoma</strong><small>Local treatment at the resection margin</small></div>
+      <div className="si-opportunity-extensions">
+        <div><span>Potential expansion</span><strong>Brain metastases</strong></div>
+        <div><span>Potential expansion</span><strong>Other primary brain tumors</strong></div>
+      </div>
+      <div className="si-opportunity-bridge"><span>Patient opportunity</span><i /> <span>Market access</span><i /> <span>Commercial value</span></div>
+    </div>
+  );
+}
 
 function ContinuousVisual({
   position,
@@ -390,24 +423,52 @@ function ContinuousVisual({
         )}
       </div>
 
-      <img
-        src={storyAssets.pathway}
-        alt=""
-        decoding="async"
-        draggable={false}
-        className="si-story-standalone si-story-pathway"
-        style={{ opacity: editMode ? 0 : pathwayIn * (1 - platformIn) }}
-      />
-
-      <img
-        src={storyAssets.platform}
-        alt=""
-        decoding="async"
-        draggable={false}
-        className="si-story-standalone si-story-platform"
-        style={{ opacity: editMode ? 0 : platformIn }}
-      />
+      <CarePathwayVisual opacity={editMode ? 0 : pathwayIn * (1 - platformIn)} />
+      <OpportunityVisual opacity={editMode ? 0 : platformIn} />
     </div>
+  );
+}
+
+function MobileStoryVisual({ index }: { index: number }) {
+  if (index === 5) return <CarePathwayVisual />;
+  if (index === 6) return <OpportunityVisual />;
+  return (
+    <div className="si-mobile-layered-visual">
+      <div className="si-story-stack">
+        <img src={storyAssets.brain} alt="" decoding="async" draggable={false} className="si-story-layer si-story-layer-brain" />
+        {(index === 1 || index === 3 || index === 4) && <img src={storyAssets.cavity} alt="" decoding="async" draggable={false} className="si-story-layer si-story-layer-cavity" />}
+        {index === 0 && <img src={storyAssets.tumor} alt="" decoding="async" draggable={false} className="si-story-layer si-story-layer-tumor" />}
+        {index === 2 && <img src={storyAssets.bbb} alt="" decoding="async" draggable={false} className="si-story-layer si-story-layer-bbb" />}
+        {(index === 3 || index === 4) && <img src={storyAssets.needle} alt="" decoding="async" draggable={false} className="si-story-layer si-story-layer-needle" />}
+      </div>
+    </div>
+  );
+}
+
+function MobileStory({ onOpenCommercial, onOpenDevelopment }: Props) {
+  return (
+    <section className="si-mobile-story" aria-label="SI-053 treatment story">
+      {steps.map((step, index) => (
+        <article className={`si-mobile-chapter${index === 0 ? ' is-opening' : ''}${index === steps.length - 1 ? ' is-closing' : ''}`} key={step.title}>
+          <div className="si-mobile-visual" aria-hidden="true"><MobileStoryVisual index={index} /></div>
+          <div className="si-mobile-copy">
+            <span className="si-cinema-eyebrow">{step.eyebrow}</span>
+            <h2>{step.title}</h2>
+            {step.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+            <div className="si-cinema-callout"><span />{step.callout}</div>
+            {index === steps.length - 1 && (
+              <div className="si-cinema-model-bridge">
+                <span>Continue into the strategic model</span>
+                <div className="si-cinema-actions">
+                  <button type="button" className="primary-button" onClick={onOpenCommercial}>Open commercial & valuation</button>
+                  <button type="button" className="secondary-button" onClick={onOpenDevelopment}>Review development & cash</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </article>
+      ))}
+    </section>
   );
 }
 
@@ -518,7 +579,8 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
   };
 
   return (
-    <section ref={trackRef} className="si-cinema-track">
+    <>
+    <section ref={trackRef} className="si-cinema-track" aria-label="SI-053 treatment story">
       <div className={`si-cinema-stage${editMode ? ' si-calibration-mode' : ''}`}>
         <div className="si-cinema-visual" aria-hidden={!editMode}>
           <ContinuousVisual
@@ -530,10 +592,10 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
           />
         </div>
 
-        <div className="si-cinema-copy" aria-live="polite">
+        <div className="si-cinema-copy">
           {steps.map((step, index) => {
             const distance = Math.abs(position - index);
-            const opacity = 1 - smooth(0.1, 0.72, distance);
+            const opacity = 1 - smooth(0.08, 0.92, distance);
             const offset = Math.max(-28, Math.min(28, (index - position) * 28));
             const isActive = index === activeIndex;
             return (
@@ -548,15 +610,15 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
                 aria-hidden={!isActive}
               >
                 <span className="si-cinema-eyebrow">{step.eyebrow}</span>
-                <h1>{step.title}</h1>
+                <h2>{step.title}</h2>
                 {step.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
                 <div className="si-cinema-callout"><span />{step.callout}</div>
                 {index === steps.length - 1 && (
                   <div className="si-cinema-model-bridge">
                     <span>Continue into the strategic model</span>
                     <div className="si-cinema-actions">
-                      <button className="primary-button" onClick={onOpenCommercial}>Open commercial & valuation</button>
-                      <button className="secondary-button" onClick={onOpenDevelopment}>Review development & cash</button>
+                      <button type="button" className="primary-button" onClick={onOpenCommercial}>Open commercial & valuation</button>
+                      <button type="button" className="secondary-button" onClick={onOpenDevelopment}>Review development & cash</button>
                     </div>
                   </div>
                 )}
@@ -695,5 +757,7 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
         )}
       </div>
     </section>
+    <MobileStory onOpenCommercial={onOpenCommercial} onOpenDevelopment={onOpenDevelopment} />
+    </>
   );
 }

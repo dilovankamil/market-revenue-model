@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { CommercialValueTab } from './components/CommercialValueTab';
 import { DevelopmentTab } from './components/DevelopmentTab';
 import { MarketSelector } from './components/MarketSelector';
 import { MethodologyTab } from './components/MethodologyTab';
+import { ScenarioFileControls } from './components/ScenarioFileControls';
 import { Si053StoryPage } from './components/Si053StoryPage';
 import { cloneScenario } from './model/assumptions';
 import { calculateModel } from './model/calculateModel';
@@ -31,10 +32,13 @@ const formatUsd = (value: number) => {
   return `${sign}$${Math.round(abs).toLocaleString()}`;
 };
 
-export default function AppV9() {
+export default function App() {
   const [scenario, setScenario] = useState<Scenario>(() => createDefaultScenario());
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
+  const mobileControlsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileControlsCloseRef = useRef<HTMLButtonElement | null>(null);
+  const mobileControlsSheetRef = useRef<HTMLElement | null>(null);
   const [dealTerms, setDealTerms] = useState<DealTerms>({
     type: 'self-commercialize', upfrontUsd: 100_000_000, royaltyPct: 18,
     retainedCommercialPct: 0, partnerDevelopmentFundingPct: 100, milestonesUsd: 250_000_000,
@@ -49,13 +53,47 @@ export default function AppV9() {
     if (!mobileControlsOpen) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = previous; };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMobileControlsOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from(mobileControlsSheetRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? []).filter((element) => element.offsetParent !== null);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    const frame = window.requestAnimationFrame(() => mobileControlsCloseRef.current?.focus());
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previous;
+      mobileControlsButtonRef.current?.focus();
+    };
   }, [mobileControlsOpen]);
 
+  // A story page can be several viewport-heights tall. Reset after React commits
+  // the next section so a dashboard never inherits the story's scroll position.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [activeTab]);
+
   const changeTab = (tab: TabId) => {
+    if (tab === activeTab) window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     setActiveTab(tab);
     setMobileControlsOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const updateIndication = (id: IndicationId, enabled: boolean) => {
@@ -89,37 +127,40 @@ export default function AppV9() {
         </div>
       </div>
       <MarketSelector scenario={scenario} setScenario={setScenario} />
-      <button className="secondary-button" onClick={resetBaseCase}>Reset base case</button>
+      <button type="button" className="secondary-button" onClick={resetBaseCase}>Reset base case</button>
     </>
   );
 
   return (
-    <div className="app-shell app-shell-v8 app-shell-v9">
-      <aside className="sidebar desktop-sidebar-v8">
-        <div className="brand-block"><div className="brand-mark">SI</div><div><div className="eyebrow">DOUBLE BOND PHARMACEUTICAL</div><h1>SI-053 Strategic Model</h1></div></div>
+    <div className="app-shell">
+      <aside className="sidebar desktop-sidebar">
+        <div className="brand-block"><div className="brand-mark">SI</div><div><div className="eyebrow">DOUBLE BOND PHARMACEUTICAL</div><div className="brand-title">SI-053 Strategic Model</div></div></div>
         <nav className="nav-list" aria-label="Model sections">
-          {visibleTabs.map((tab) => <button key={tab.id} className={`nav-button ${activeTab === tab.id ? 'active' : ''}`} onClick={() => changeTab(tab.id)}><span>{tab.label}</span>{tab.private && <small>PRIVATE</small>}</button>)}
+          {visibleTabs.map((tab) => <button type="button" key={tab.id} className={`nav-button ${activeTab === tab.id ? 'active' : ''}`} aria-current={activeTab === tab.id ? 'page' : undefined} onClick={() => changeTab(tab.id)}><span>{tab.label}</span>{tab.private && <small>PRIVATE</small>}</button>)}
         </nav>
         {scopeControlsVisible && <div className="desktop-scope-controls">{scopeControls}</div>}
       </aside>
 
-      <main className={`workspace workspace-v8 workspace-v9 ${activeTab === 'overview' ? 'story-workspace-v16' : ''}`}>
-        <div className="mobile-command-bar" aria-label="Mobile model navigation">
+      <main className={`workspace app-workspace ${activeTab === 'overview' ? 'story-workspace' : ''}`}>
+        <h1 className="sr-only">SI-053 Strategic Model</h1>
+        <nav className="mobile-command-bar" aria-label="Mobile model navigation">
           <label className="mobile-section-select">
             <span>Section</span>
             <select value={activeTab} onChange={(event) => changeTab(event.target.value as TabId)}>
               {visibleTabs.map((tab) => <option key={tab.id} value={tab.id}>{tab.label}</option>)}
             </select>
           </label>
-          {scopeControlsVisible && <button className="mobile-controls-button" onClick={() => setMobileControlsOpen(true)}>Markets & indications</button>}
-        </div>
+          {scopeControlsVisible && <button ref={mobileControlsButtonRef} type="button" className="mobile-controls-button" aria-haspopup="dialog" aria-expanded={mobileControlsOpen} onClick={() => setMobileControlsOpen(true)}>Markets & indications</button>}
+        </nav>
 
         {activeTab !== 'overview' && (
-          <header className="topbar topbar-v8 topbar-v9">
+          <header className="topbar app-topbar">
             <div><div className="eyebrow">INTERACTIVE COMMERCIAL, DEVELOPMENT & VALUE MODEL</div><h2>{visibleTabs.find((tab) => tab.id === activeTab)?.label ?? 'SI-053 Strategic Model'}</h2></div>
-            <div className="topbar-actions topbar-actions-v8"><div className="scenario-pill"><span className={`scenario-status ${privateConfigLoaded ? 'private-loaded' : ''}`} />{scenario.name}</div></div>
+            <div className="topbar-actions"><div className="scenario-pill"><span className={`scenario-status ${privateConfigLoaded ? 'private-loaded' : ''}`} />{scenario.name}</div></div>
           </header>
         )}
+
+        {showPrivateModules && activeTab !== 'overview' && <ScenarioFileControls scenario={scenario} setScenario={setScenario} />}
 
         {activeTab === 'overview' && (
           <>
@@ -130,7 +171,7 @@ export default function AppV9() {
 
         {activeTab === 'commercial' && <CommercialValueTab scenario={scenario} result={result} setScenario={setScenario} />}
         {activeTab === 'development' && <DevelopmentTab scenario={scenario} result={result} setScenario={setScenario} />}
-        {activeTab === 'methodology' && <div className="methodology-page-v9"><MethodologyTab /></div>}
+        {activeTab === 'methodology' && <div className="methodology-page"><MethodologyTab /></div>}
 
         {showPrivateModules && activeTab === 'deal' && (
           <section className="two-column-layout">
@@ -150,9 +191,9 @@ export default function AppV9() {
 
       {mobileControlsOpen && scopeControlsVisible && (
         <div className="mobile-controls-layer" role="dialog" aria-modal="true" aria-label="Markets and indications">
-          <button className="mobile-controls-backdrop" aria-label="Close model controls" onClick={() => setMobileControlsOpen(false)} />
-          <section className="mobile-controls-sheet">
-            <div className="mobile-controls-sheet-head"><div><span className="section-kicker">Model scope</span><h3>Markets & indications</h3></div><button className="mobile-sheet-close" onClick={() => setMobileControlsOpen(false)}>Done</button></div>
+          <button type="button" className="mobile-controls-backdrop" aria-label="Close model controls" onClick={() => setMobileControlsOpen(false)} />
+          <section ref={mobileControlsSheetRef} className="mobile-controls-sheet">
+            <div className="mobile-controls-sheet-head"><div><span className="section-kicker">Model scope</span><h3>Markets & indications</h3></div><button ref={mobileControlsCloseRef} type="button" className="mobile-sheet-close" onClick={() => setMobileControlsOpen(false)}>Done</button></div>
             <div className="mobile-controls-scroll">{scopeControls}</div>
           </section>
         </div>

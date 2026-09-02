@@ -10,8 +10,8 @@ export function MethodologyTab() {
   const categories = Array.from(new Set(methodologySources.map((source) => source.category)));
 
   return (
-    <section className="methodology-v7">
-      <div className="panel methodology-hero-v7">
+    <section className="methodology">
+      <div className="panel methodology-hero">
         <div>
           <span className="section-kicker">Model governance</span>
           <h3>What is sourced, what is assumed</h3>
@@ -49,7 +49,7 @@ export function MethodologyTab() {
         })}
       </div>
 
-      <div className="panel methodology-caveat-v7">
+      <div className="panel methodology-caveat">
         <span className="section-kicker">High-priority review</span>
         <p>Brain-metastasis incidence is currently a regional planning proxy, while other primary brain tumors temporarily reuse the GBM incidence structure. South America, MENA, South Asia, East/Southeast Asia and Oceania also contain country-level planning proxies. These inputs must be replaced or validated before the corresponding outputs are used externally.</p>
       </div>

@@ -6,7 +6,7 @@ Interactive commercial, development and valuation model for SI-053. The React/Ty
 
 - **React + TypeScript + Vite** — application shell and controls
 - **D3 + SVG** — revenue/cash-flow charts and the interactive orthographic globe
-- **Lossless WebP story artwork** — seven production assets with transparent layered scenes
+- **Layered WebP + code-native story visuals** — five calibrated scientific assets, plus restrained pathway/opportunity diagrams rendered by the application
 - **Bundled world geometry** — country selection does not require WebGL or a third-party map service at runtime
 - **Pure TypeScript engine** — scenario → epidemiology → eligible patients → commercial adoption → revenue → costs → cash flow → NPV/rNPV
 - **Vitest** — calculation and validation tests
@@ -24,17 +24,17 @@ Interactive commercial, development and valuation model for SI-053. The React/Ty
 The committed base scenario now contains:
 
 - United States, Canada and Mexico under **North America**;
-- all **27 European Union member states** under one parent selector, enabled by default and individually deselectable;
-- the United Kingdom separately;
-- Japan in the base case, with India and China available as disabled expansion markets.
+- all **27 European Union member states**, the United Kingdom, Norway and Switzerland under **Europe**;
+- North America and Europe enabled by default, for 33 active base-case markets;
+- selectable planning markets across South America, MENA, South Asia, East Asia, Southeast Asia and Oceania, disabled by default.
 
-Canada, Mexico and the non-core EU country commercial assumptions are labelled planning proxies until country-specific epidemiology, pricing, access and launch assumptions are validated. Latin America beyond Mexico has deliberately not been added as arbitrary geographic buckets; it should be introduced only with a defensible regional/country assumption set.
+Canada, Mexico, non-core European countries and the expansion markets are labelled planning proxies until country-specific epidemiology, pricing, access and launch assumptions are validated. Japan is available in East Asia but is not selected in the public base case.
 
 ## Public vs private assumptions
 
 This repository is public. It intentionally excludes internal salary schedules, detailed financing plans, confidential workbook line items, acquisition expectations and real partner terms.
 
-Scenario JSON files can be imported locally in the browser to add private corporate-cost and financing assumptions without committing those values to the repository. Browser import/export does not upload the file to a server.
+Private builds expose local scenario JSON import/export for adding approved corporate-cost and financing assumptions without committing those values to the repository. Import/export runs in the browser and does not upload the file to a server.
 
 ## Development and valuation method
 
@@ -55,7 +55,7 @@ Detailed stage probabilities are advanced scenario inputs, not headline forecast
 ## Development
 
 ```bash
-npm install
+npm ci
 npm test
 npm run dev
 ```
@@ -67,13 +67,13 @@ npm test
 npm run build
 ```
 
-CI validates tests and a production build on every pull request to `main` and publishes the compiled `dist` directory as an artifact.
+CI validates tests and a production build on every pull request to `main` and publishes the compiled `dist` directory as an artifact. `npm run release:pages` also refreshes the stable branch-hosted release aliases.
 
 ## Website deployment
 
-GitHub Pages is deployed from Actions on `main`. Production uses stable, cache-busted `/market-revenue-model/assets/app.js` and `style.css` aliases so the bootstrap always requests the current release.
+GitHub Pages is served from the repository branch root. Production uses checked-in, cache-busted `/market-revenue-model/assets/app.js` and `style.css` aliases generated from a verified build; CI independently verifies the same source on `main`.
 
-The responsive shell is designed around a 320 px minimum width, uses a mobile command bar through tablet widths, accounts for iOS safe areas, and expands the story presentation independently of the width-constrained analytical pages on large displays.
+The responsive shell is designed around a 320 px minimum width, uses a mobile command bar through tablet widths, accounts for iOS safe areas, and expands analytical pages on large displays. Desktop/tablet use a paced sticky story; phones use a normal editorial sequence so touch scrolling remains predictable.
 
 ## Important modelling limitations
 

@@ -160,7 +160,6 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
             if (!featurePath) return null;
             const country = countryByFeature(feature);
             const selectable = country?.accessRoute === 'commercial';
-            const selected = country?.id === selectedCountryId;
             const revenueActive = !!country && (metricByCountry?.[country.id] ?? 0) > 0;
             const title = selectable
               ? `${country.name} — ${country.enabled ? 'in the selected footprint' : 'available; select to inspect'}`
@@ -169,7 +168,7 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
               <path
                 key={String(feature.id ?? feature.properties?.name ?? index)}
                 d={featurePath}
-                className={`globe-country ${selectable ? 'configured selectable' : ''} ${selectable && !country?.enabled ? 'market-available' : ''} ${country?.enabled ? 'market-enabled' : ''} ${revenueActive ? 'revenue-active' : ''} ${selected ? 'selected' : ''}`}
+                className={`globe-country ${selectable ? 'configured selectable' : ''} ${selectable && !country?.enabled ? 'market-available' : ''} ${country?.enabled ? 'market-enabled' : ''} ${revenueActive ? 'revenue-active' : ''}`}
                 fill={fillForFeature(feature)}
                 role={selectable ? 'button' : undefined}
                 tabIndex={selectable ? 0 : undefined}

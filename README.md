@@ -2,26 +2,22 @@
 
 Interactive commercial, development and valuation model for SI-053. The React/TypeScript application separates the model engine from the user interface so market, development, cash-flow, valuation and private transaction views share one scenario source of truth.
 
-`Prototype.html` remains in the repository as a historical/reference implementation.
-
 ## Architecture
 
 - **React + TypeScript + Vite** — application shell and controls
 - **D3 + SVG** — revenue/cash-flow charts and the interactive orthographic globe
+- **Lossless WebP story artwork** — seven production assets with transparent layered scenes
 - **Bundled world geometry** — country selection does not require WebGL or a third-party map service at runtime
 - **Pure TypeScript engine** — scenario → epidemiology → eligible patients → commercial adoption → revenue → costs → cash flow → NPV/rNPV
 - **Vitest** — calculation and validation tests
 
 ## Application sections
 
-1. **Overview** — global footprint, key commercial/funding/value metrics
-2. **Global opportunity** — clickable commercial footprint and year-by-year rollout animation
-3. **Commercial model** — simple regional levers with country-level advanced controls
-4. **Development & cash** — programme sequence, development spend, funding requirement and cumulative operating cash flow
-5. **Scenario lab** — explained conservative/base/expansion assumption presets
-6. **Valuation** — explicit-horizon NPV and commercialization-gate rNPV
-7. **Deal explorer** — private-build illustrative self-commercialisation, licensing and acquisition structures
-8. **Methodology** — source lineage and modelling caveats
+1. **SI-053 story** — seven-chapter treatment-to-opportunity scrollytelling introduction
+2. **Commercial & valuation** — scenario, value levers, rollout globe, country contribution and revenue forecast
+3. **Development & cash** — programme sequence, development spend, funding requirement and cumulative operating cash flow
+4. **Methodology** — source lineage, assumption status and modelling caveats
+5. **Deal explorer** — private-build-only illustrative transaction structures
 
 ## Geography
 
@@ -75,7 +71,9 @@ CI validates tests and a production build on every pull request to `main` and pu
 
 ## Website deployment
 
-GitHub Pages is deployed from Actions on `main`. Production uses a stable `/market-revenue-model/assets/app.js` entry plus compatibility aliases for recent hashed assets, reducing stale-HTML failures across deployments.
+GitHub Pages is deployed from Actions on `main`. Production uses stable, cache-busted `/market-revenue-model/assets/app.js` and `style.css` aliases so the bootstrap always requests the current release.
+
+The responsive shell is designed around a 320 px minimum width, uses a mobile command bar through tablet widths, accounts for iOS safe areas, and expands the story presentation independently of the width-constrained analytical pages on large displays.
 
 ## Important modelling limitations
 

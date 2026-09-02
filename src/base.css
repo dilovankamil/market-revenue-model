@@ -19,7 +19,7 @@
 
 * { box-sizing: border-box; }
 html { background: var(--bg); }
-body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 74% 6%, rgba(30,98,132,.23), transparent 34%), var(--bg); }
+body { margin: 0; min-width: 320px; min-height: 100vh; overflow-x: hidden; background: radial-gradient(circle at 74% 6%, rgba(30,98,132,.23), transparent 34%), var(--bg); }
 button, input, select { font: inherit; }
 button { color: inherit; }
 select, input[type="number"] { color: var(--text); background: #0a1723; border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; }
@@ -61,11 +61,6 @@ select, input[type="number"] { color: var(--text); background: #0a1723; border: 
 .panel-heading h3, .summary-panel h3, .development-panel h3, .scenario-card h3, .country-detail h3, .valuation-hero h3, .deal-output h3 { margin: 4px 0 0; font-size: 18px; }
 
 .country-globe { position: relative; height: 350px; border-radius: 14px; overflow: hidden; margin-top: 10px; background: radial-gradient(circle at center,#163047,#07121d 70%); }
-.country-globe .maplibregl-canvas { outline: none; }
-.maplibregl-ctrl-group { background: rgba(8,21,32,.8)!important; border: 1px solid var(--line); }
-.maplibregl-ctrl-group button { filter: invert(1) opacity(.72); }
-.maplibregl-ctrl-attrib { background: rgba(4,14,24,.7)!important; color: #8ca1b3!important; font-size: 9px!important; }
-.maplibregl-ctrl-attrib a { color: #aadff0!important; }
 .globe-large-panel .country-globe { height: min(64vh, 650px); }
 
 .summary-copy { color: #9db0c0; font-size: 13px; line-height: 1.65; margin: 14px 0 22px; }

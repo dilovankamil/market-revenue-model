@@ -104,13 +104,13 @@ const storyAsset = (filename: string) =>
   `${import.meta.env.BASE_URL}story/${encodeURIComponent(filename)}`;
 
 const storyAssets = {
-  brain: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_27 PM (1).png'),
-  tumor: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_27 PM (2).png'),
-  cavity: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_28 PM (3).png'),
-  bbb: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_28 PM (4).png'),
-  needle: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_28 PM (5).png'),
-  pathway: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_29 PM (6).png'),
-  platform: storyAsset('ChatGPT Image Sep 1, 2026, 05_59_29 PM (7).png'),
+  brain: storyAsset('brain.webp'),
+  tumor: storyAsset('tumor.webp'),
+  cavity: storyAsset('cavity.webp'),
+  bbb: storyAsset('bbb.webp'),
+  needle: storyAsset('needle-gel.webp'),
+  pathway: storyAsset('care-pathway.webp'),
+  platform: storyAsset('platform-opportunity.webp'),
 };
 
 const layerKeys: LayerKey[] = ['tumor', 'cavity', 'bbb', 'needle'];
@@ -319,6 +319,8 @@ function ContinuousVisual({
     <img
       src={src}
       alt=""
+      decoding="async"
+      draggable={false}
       className={`si-story-layer ${className}${editMode && selectedLayer === key ? ' is-calibration-selected' : ''}`}
       style={{
         opacity: opacityFor(key),
@@ -342,6 +344,9 @@ function ContinuousVisual({
         <img
           src={storyAssets.brain}
           alt=""
+          decoding="async"
+          fetchPriority="high"
+          draggable={false}
           className="si-story-layer si-story-layer-brain"
           style={{ opacity: brainOpacity }}
         />
@@ -385,6 +390,8 @@ function ContinuousVisual({
       <img
         src={storyAssets.pathway}
         alt=""
+        decoding="async"
+        draggable={false}
         className="si-story-standalone si-story-pathway"
         style={{ opacity: editMode ? 0 : pathwayIn * (1 - platformIn) }}
       />
@@ -392,6 +399,8 @@ function ContinuousVisual({
       <img
         src={storyAssets.platform}
         alt=""
+        decoding="async"
+        draggable={false}
         className="si-story-standalone si-story-platform"
         style={{ opacity: editMode ? 0 : platformIn }}
       />

@@ -247,10 +247,6 @@ select {
     border-radius: 12px;
   }
 
-  .maplibregl-ctrl-top-right .maplibregl-ctrl-group {
-    display: none;
-  }
-
   .playback-row { grid-template-columns: 1fr; }
   .play-button { width: 100%; min-height: 44px; }
 

@@ -215,20 +215,6 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
         <article className="cv-value-kpi"><span>Stage-adjusted rNPV</span><strong>{formatUsd(result.valuation.riskAdjustedNpvUsd)}</strong></article>
       </section>
 
-      <section className="panel cv-levers-panel">
-        <div className="panel-heading">
-          <div><span className="section-kicker">Core assumptions</span><h3>Commercial & valuation levers</h3></div>
-          <span className="chart-context-note">Market selection is controlled from Markets & indications or directly on the globe</span>
-        </div>
-        <div className="cv-lever-grid">
-          <label><span className="cv-lever-name">Treatment price <span className="cv-help" title="Reference price for the United States. Moving it scales each commercial market’s configured price proportionally.">?</span></span><b>{formatUsd(referencePrice)}</b><input type="range" min={25_000} max={150_000} step={1_000} value={Math.round(referencePrice / 1000) * 1000} onChange={(event) => scaleCommercialPortfolio('priceUsd', +event.target.value)} /><small>Core-market reference price; country structure is preserved.</small></label>
-          <label><span className="cv-lever-name">Peak market share <span className="cv-help" title="Steady-state treated share of surgically eligible patients after the configured adoption ramp—not the share achieved in the launch year.">?</span></span><b>{referenceShare.toFixed(0)}%</b><input type="range" min={1} max={100} step={1} value={Math.round(referenceShare)} onChange={(event) => scaleCommercialPortfolio('peakSharePct', +event.target.value)} /><small>Reached gradually over the adoption ramp.</small></label>
-          <label><span className="cv-lever-name">Discount rate <span className="cv-help" title="Annual rate used to translate future modeled cash flows into 2026 present value.">?</span></span><b>{scenario.financial.discountRatePct.toFixed(2)}%</b><input type="range" min={5} max={20} step={0.25} value={scenario.financial.discountRatePct} onChange={(event) => updateFinancial('discountRatePct', +event.target.value)} /><small>Higher rates reduce the present value of later cash flows.</small></label>
-          <label><span className="cv-lever-name">Additional risk sensitivity <span className="cv-help" title="A second scenario haircut applied after the configured clinical commercialization gate. At 100%, no additional haircut is applied.">?</span></span><b>{scenario.financial.riskAdjustmentPct.toFixed(0)}%</b><input type="range" min={20} max={100} step={1} value={scenario.financial.riskAdjustmentPct} onChange={(event) => updateFinancial('riskAdjustmentPct', +event.target.value)} /><small>100% means no extra risk haircut.</small></label>
-          <label><span className="cv-lever-name">Corporate tax <span className="cv-help" title="Applied to positive annual pre-tax model cash flow. Tax-loss carry-forwards are not modeled.">?</span></span><b>{scenario.financial.corporateTaxPct.toFixed(0)}%</b><input type="range" min={0} max={35} step={1} value={scenario.financial.corporateTaxPct} onChange={(event) => updateFinancial('corporateTaxPct', +event.target.value)} /><small>Applied only to positive annual pre-tax cash flow.</small></label>
-        </div>
-      </section>
-
       <section className="cv-market-grid">
         <div className="panel globe-large-panel cv-globe-panel">
           <div className="panel-heading"><div><span className="section-kicker">Market footprint · {mapYear}</span><h3>Global commercial opportunity</h3></div></div>
@@ -301,6 +287,20 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
             <span>{Math.round(yearResult?.treatedPatients ?? 0).toLocaleString()} treated</span>
           </div>
         </aside>
+      </section>
+
+      <section className="panel cv-levers-panel">
+        <div className="panel-heading">
+          <div><span className="section-kicker">Core assumptions</span><h3>Commercial & valuation levers</h3></div>
+          <span className="chart-context-note">Market selection is controlled from Markets & indications or directly on the globe</span>
+        </div>
+        <div className="cv-lever-grid">
+          <label><span className="cv-lever-name">Treatment price <span className="cv-help" title="Reference price for the United States. Moving it scales each commercial market’s configured price proportionally.">?</span></span><b>{formatUsd(referencePrice)}</b><input type="range" min={25_000} max={150_000} step={1_000} value={Math.round(referencePrice / 1000) * 1000} onChange={(event) => scaleCommercialPortfolio('priceUsd', +event.target.value)} /><small>Core-market reference price; country structure is preserved.</small></label>
+          <label><span className="cv-lever-name">Peak market share <span className="cv-help" title="Steady-state treated share of surgically eligible patients after the configured adoption ramp—not the share achieved in the launch year.">?</span></span><b>{referenceShare.toFixed(0)}%</b><input type="range" min={1} max={100} step={1} value={Math.round(referenceShare)} onChange={(event) => scaleCommercialPortfolio('peakSharePct', +event.target.value)} /><small>Reached gradually over the adoption ramp.</small></label>
+          <label><span className="cv-lever-name">Discount rate <span className="cv-help" title="Annual rate used to translate future modeled cash flows into 2026 present value.">?</span></span><b>{scenario.financial.discountRatePct.toFixed(2)}%</b><input type="range" min={5} max={20} step={0.25} value={scenario.financial.discountRatePct} onChange={(event) => updateFinancial('discountRatePct', +event.target.value)} /><small>Higher rates reduce the present value of later cash flows.</small></label>
+          <label><span className="cv-lever-name">Additional risk sensitivity <span className="cv-help" title="A second scenario haircut applied after the configured clinical commercialization gate. At 100%, no additional haircut is applied.">?</span></span><b>{scenario.financial.riskAdjustmentPct.toFixed(0)}%</b><input type="range" min={20} max={100} step={1} value={scenario.financial.riskAdjustmentPct} onChange={(event) => updateFinancial('riskAdjustmentPct', +event.target.value)} /><small>100% means no extra risk haircut.</small></label>
+          <label><span className="cv-lever-name">Corporate tax <span className="cv-help" title="Applied to positive annual pre-tax model cash flow. Tax-loss carry-forwards are not modeled.">?</span></span><b>{scenario.financial.corporateTaxPct.toFixed(0)}%</b><input type="range" min={0} max={35} step={1} value={scenario.financial.corporateTaxPct} onChange={(event) => updateFinancial('corporateTaxPct', +event.target.value)} /><small>Applied only to positive annual pre-tax cash flow.</small></label>
+        </div>
       </section>
 
       <section className="panel chart-panel cv-revenue-panel">

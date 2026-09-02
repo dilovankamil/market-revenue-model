@@ -1,10 +1,8 @@
 /*
  * Single production stylesheet entry point.
  *
- * The order is intentional: older structural layers establish the shared
- * dashboard primitives; current page-level files refine them afterward.
- * Keeping the cascade here makes the live dependency explicit while the
- * remaining legacy selectors are retired incrementally.
+ * The order is intentional: shared primitives and responsive rules load
+ * before page-specific commercial, story and calibration refinements.
  */
 @import './base.css';
 @import './enhancements.css';

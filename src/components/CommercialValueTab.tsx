@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { CountryGlobe } from './CountryGlobe';
+import { RevenueChart } from './RevenueChart';
 import { cloneScenario } from '../model/assumptions';
 import { REGION_COLORS, REGION_ORDER } from '../model/marketRegions';
 import type { CountryAssumption, CountryId, ModelResult, RegionId, Scenario } from '../model/types';
@@ -59,6 +60,15 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   );
   const activeIds = useMemo(() => new Set(activeCountries.map((country) => country.id)), [activeCountries]);
 
+  useEffect(() => {
+    setMapYear((current) => Math.min(scenario.endYear, Math.max(scenario.startYear, current)));
+  }, [scenario.startYear, scenario.endYear]);
+
+  useEffect(() => {
+    if (commercialCountries.some((country) => country.id === selectedCountryId)) return;
+    setSelectedCountryId(activeCountries[0]?.id ?? commercialCountries[0]?.id ?? '');
+  }, [activeCountries, commercialCountries, selectedCountryId]);
+
   const fallbackPrice = average(activeCountries.map((country) => country.priceUsd));
   const fallbackShare = average(activeCountries.map((country) => country.peakSharePct));
   const referencePrice = scenario.countries.USA?.priceUsd ?? (fallbackPrice || 75_000);
@@ -112,14 +122,6 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
 
   const selectCountry = (countryId: CountryId) => {
     setSelectedCountryId(countryId);
-    setScenario((current) => {
-      const country = current.countries[countryId];
-      if (!country || country.accessRoute !== 'commercial') return current;
-      if (country.enabled) return current;
-      const next = cloneScenario(current);
-      next.countries[countryId].enabled = true;
-      return next;
-    });
   };
 
   const setCountryEnabled = (countryId: CountryId, enabled: boolean) => {
@@ -240,16 +242,16 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
           </div>
           <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={selectedCountry?.id ?? null} onSelectCountry={selectCountry} metricByCountry={mapMetricByCountry} autoRotate={isPlaying} />
           <div className="cv-playback-row">
-            <button className={`play-button ${isPlaying ? 'playing' : ''}`} onClick={togglePlayback} aria-label={isPlaying ? 'Pause global rollout' : 'Play global rollout'}><span>{isPlaying ? 'Ⅱ' : '▶'}</span>{isPlaying ? 'Pause' : 'Play rollout'}</button>
+            <button type="button" className={`play-button ${isPlaying ? 'playing' : ''}`} onClick={togglePlayback} aria-label={isPlaying ? 'Pause global rollout' : 'Play global rollout'}><span aria-hidden="true">{isPlaying ? 'Ⅱ' : '▶'}</span>{isPlaying ? 'Pause' : 'Play rollout'}</button>
             <label className="year-slider cv-year-slider">Model year <b>{mapYear}</b><input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => { setIsPlaying(false); setMapYear(+event.target.value); }} /></label>
           </div>
-          <p className="model-note">Select a country to inspect its patient funnel and contribution. Selecting an inactive market adds it to the scenario; removal remains an explicit action in the market card.</p>
+          <p className="model-note">Select a country to inspect it. Inactive markets change the model only after you choose <strong>Add market</strong> in the market card.</p>
         </div>
 
         <aside className="panel cv-market-summary">
           <div className="cv-country-focus-head">
             <div><span className="section-kicker">Selected market · {mapYear}</span><h3>{selectedCountry?.name ?? 'Select a market'}</h3></div>
-            {selectedCountry && <button className={selectedCountry.enabled ? 'cv-market-remove' : 'cv-market-add'} onClick={() => setCountryEnabled(selectedCountry.id, !selectedCountry.enabled)}>{selectedCountry.enabled ? 'Remove' : 'Add market'}</button>}
+            {selectedCountry && <button type="button" className={selectedCountry.enabled ? 'cv-market-remove' : 'cv-market-add'} onClick={() => setCountryEnabled(selectedCountry.id, !selectedCountry.enabled)}>{selectedCountry.enabled ? 'Remove' : 'Add market'}</button>}
           </div>
           {selectedCountry && (
             <>
@@ -259,17 +261,26 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
                 <span>{formatUsd(selectedCountry.priceUsd)} treatment price</span>
                 {selectedCountry.assumptionStatus === 'proxy' && <span className="cv-proxy-chip">Planning proxy</span>}
               </div>
-              <div className="cv-funnel" aria-label={`${selectedCountry.name} patient funnel in ${mapYear}`}>
-                <div><span>Population</span><strong>{formatPopulation(selectedYearRow?.population ?? selectedCountry.populationBase)}</strong></div>
-                <div><span>Incident cases</span><strong>{Math.round(selectedYearRow?.incidentCases ?? 0).toLocaleString()}</strong></div>
-                <div><span>Accessible cases</span><strong>{Math.round(selectedYearRow?.accessibleCases ?? 0).toLocaleString()}</strong></div>
-                <div><span>Surgically eligible</span><strong>{Math.round(selectedYearRow?.eligiblePatients ?? 0).toLocaleString()}</strong></div>
-                <div className="cv-funnel-treated"><span>Modeled treated</span><strong>{Math.round(selectedYearRow?.treatedPatients ?? 0).toLocaleString()}</strong></div>
-              </div>
-              <div className="cv-country-contribution">
-                <div><span>Revenue in {mapYear}</span><strong>{formatUsd(selectedYearRow?.grossRevenueUsd ?? 0)}</strong><small>{selectedRevenueShare.toFixed(1)}% of selected-footprint revenue</small></div>
-                <div><span>Peak country revenue</span><strong>{formatUsd(selectedPeakRow?.grossRevenueUsd ?? 0)}</strong><small>{selectedPeakRow?.year ?? '—'}</small></div>
-              </div>
+              {selectedCountry.enabled ? (
+                <>
+                  <div className="cv-funnel" aria-label={`${selectedCountry.name} patient funnel in ${mapYear}`}>
+                    <div><span>Population</span><strong>{formatPopulation(selectedYearRow?.population ?? selectedCountry.populationBase)}</strong></div>
+                    <div><span>Incident cases</span><strong>{Math.round(selectedYearRow?.incidentCases ?? 0).toLocaleString()}</strong></div>
+                    <div><span>Accessible cases</span><strong>{Math.round(selectedYearRow?.accessibleCases ?? 0).toLocaleString()}</strong></div>
+                    <div><span>Surgically eligible</span><strong>{Math.round(selectedYearRow?.eligiblePatients ?? 0).toLocaleString()}</strong></div>
+                    <div className="cv-funnel-treated"><span>Modeled treated</span><strong>{Math.round(selectedYearRow?.treatedPatients ?? 0).toLocaleString()}</strong></div>
+                  </div>
+                  <div className="cv-country-contribution">
+                    <div><span>Revenue in {mapYear}</span><strong>{formatUsd(selectedYearRow?.grossRevenueUsd ?? 0)}</strong><small>{selectedRevenueShare.toFixed(1)}% of selected-footprint revenue</small></div>
+                    <div><span>Peak country revenue</span><strong>{formatUsd(selectedPeakRow?.grossRevenueUsd ?? 0)}</strong><small>{selectedPeakRow?.year ?? '—'}</small></div>
+                  </div>
+                </>
+              ) : (
+                <div className="cv-inactive-market-note">
+                  <strong>Not included in this scenario</strong>
+                  <span>Add this market to calculate its patient funnel, revenue and portfolio contribution.</span>
+                </div>
+              )}
             </>
           )}
           <div className="cv-contributor-list">
@@ -277,7 +288,7 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
             {topContributors.length ? topContributors.map((row) => {
               const country = scenario.countries[row.countryId];
               return (
-                <button key={row.countryId} className={row.countryId === selectedCountry?.id ? 'active' : ''} onClick={() => setSelectedCountryId(row.countryId)}>
+                <button type="button" key={row.countryId} className={row.countryId === selectedCountry?.id ? 'active' : ''} onClick={() => setSelectedCountryId(row.countryId)}>
                   <span><i style={{ background: REGION_COLORS[country.region] }} />{country.name}</span><strong>{formatUsd(row.grossRevenueUsd)}</strong>
                   <em style={{ width: `${largestContribution ? row.grossRevenueUsd / largestContribution * 100 : 0}%` }} />
                 </button>
@@ -290,6 +301,14 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
             <span>{Math.round(yearResult?.treatedPatients ?? 0).toLocaleString()} treated</span>
           </div>
         </aside>
+      </section>
+
+      <section className="panel chart-panel cv-revenue-panel">
+        <div className="panel-heading">
+          <div><span className="section-kicker">Commercial forecast</span><h3>Global gross revenue</h3></div>
+          <span className="chart-context-note">Selected footprint · annual gross revenue</span>
+        </div>
+        <RevenueChart data={result.years} countryYears={result.countryYears} scenario={scenario} showDevelopmentAnnotations={false} />
       </section>
 
       <details className="panel cv-advanced-panel">
@@ -334,7 +353,7 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
         </div>
       </details>
 
-      <p className="model-note cv-regulatory-note">Core US/Europe GBM launch is modeled for November 2031, after Phase II ends on 31 August 2031. The first two commercial months are prorated in the 2031 annual forecast. Orphan designation does not itself authorize sale; the model assumes a successful applicable accelerated/conditional regulatory pathway.</p>
+      <p className="model-note cv-regulatory-note">Core US/Europe GBM launch is modeled for November 2031, after Phase II ends on 31 August 2031. The first two commercial months are prorated in the 2031 annual forecast. Orphan designation does not itself authorize sale; this is a scenario assumption, not a forecast or regulatory conclusion.</p>
     </div>
   );
 }

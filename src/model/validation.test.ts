@@ -41,6 +41,22 @@ describe('scenario validation', () => {
     expect(() => parseScenario(serializeScenario(scenario))).toThrow(/validation failed/i);
   });
 
+  it('rejects incomplete nested country data before it reaches the calculation engine', () => {
+    const file = JSON.parse(serializeScenario(baseScenario)) as { scenario: { countries: Record<string, Record<string, unknown>> } };
+    delete file.scenario.countries.USA.launchYearByIndication;
+    expect(() => parseScenario(JSON.stringify(file))).toThrow(/incomplete or malformed/i);
+  });
+
+  it('rejects pathological forecast horizons and non-finite private assumptions', () => {
+    const scenario = cloneScenario(baseScenario);
+    scenario.endYear = scenario.startYear + 101;
+    expect(validateScenario(scenario).some((issue) => issue.code === 'invalid-horizon' && issue.level === 'error')).toBe(true);
+
+    scenario.endYear = baseScenario.endYear;
+    scenario.corporateCosts.push({ id: 'bad-growth', label: 'Bad growth', startYear: 2027, endYear: 2028, annualCostUsd: 1, annualGrowthPct: 1_000 });
+    expect(validateScenario(scenario).some((issue) => issue.code === 'invalid-corporate-growth' && issue.level === 'error')).toBe(true);
+  });
+
   it('flags provisional indication epidemiology when expansion indications are active', () => {
     const issues = validateScenario(buildScenarioPresets().expansion);
     const proxyIndications = issues.filter((issue) => issue.code === 'proxy-indication');

@@ -33,7 +33,7 @@ export const methodologySources: MethodologySource[] = [
   },
   {
     id: 'brain-met-surgery', category: 'Surgery eligibility', label: 'Role of surgery in metastatic brain tumors',
-    url: 'https://www.cns.org/guidelines/treatment-adults-metastatic-brain-tumors/practice-guideline-on-role-of-surgery-in-managemen', appliesTo: 'Brain metastases',
+    url: 'https://pubmed.ncbi.nlm.nih.gov/30629227/', appliesTo: 'Brain metastases',
     note: 'Clinical context for resection eligibility. Country-specific surgical access remains a model assumption.', status: 'literature',
   },
   {

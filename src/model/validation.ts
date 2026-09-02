@@ -20,8 +20,15 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
   const add = (level: ValidationLevel, code: string, path: string, message: string) =>
     issues.push({ level, code, path, message });
 
-  if (!Number.isInteger(scenario.startYear) || !Number.isInteger(scenario.endYear) || scenario.startYear > scenario.endYear) {
-    add('error', 'invalid-horizon', 'startYear/endYear', 'Model start/end years must be integers and startYear must not exceed endYear.');
+  if (
+    !Number.isInteger(scenario.startYear) ||
+    !Number.isInteger(scenario.endYear) ||
+    scenario.startYear > scenario.endYear ||
+    scenario.startYear < 1900 ||
+    scenario.endYear > 2200 ||
+    scenario.endYear - scenario.startYear > 100
+  ) {
+    add('error', 'invalid-horizon', 'startYear/endYear', 'Model years must be integers from 1900 to 2200 with a forecast horizon no longer than 100 years.');
   }
   if (!inRange(scenario.erosionPct, 0, 100)) add('error', 'invalid-erosion', 'erosionPct', 'Post-LoE erosion must be between 0% and 100%.');
   if (!inRange(scenario.patentExtensionYears, 0, 30)) add('error', 'invalid-patent-extension', 'patentExtensionYears', 'Patent extension must be between 0 and 30 years.');
@@ -77,6 +84,12 @@ export const validateScenario = (scenario: Scenario): ValidationIssue[] => {
   for (const cost of scenario.corporateCosts) {
     if (!Number.isInteger(cost.startYear) || !Number.isInteger(cost.endYear) || cost.startYear > cost.endYear) add('error', 'invalid-corporate-cost-dates', `corporateCosts.${cost.id}`, `${cost.label}: cost period is invalid.`);
     if (!finite(cost.annualCostUsd) || cost.annualCostUsd < 0) add('error', 'invalid-corporate-cost', `corporateCosts.${cost.id}.annualCostUsd`, `${cost.label}: annual cost cannot be negative.`);
+    if (!finite(cost.annualGrowthPct) || cost.annualGrowthPct <= -100 || cost.annualGrowthPct > 100) add('error', 'invalid-corporate-growth', `corporateCosts.${cost.id}.annualGrowthPct`, `${cost.label}: annual growth is outside the supported range (-100%, 100%].`);
+  }
+
+  for (const event of scenario.financingEvents) {
+    if (!Number.isInteger(event.year)) add('error', 'invalid-financing-year', `financingEvents.${event.id}.year`, `${event.label}: financing year must be an integer.`);
+    if (!finite(event.amountUsd)) add('error', 'invalid-financing-amount', `financingEvents.${event.id}.amountUsd`, `${event.label}: financing amount must be finite.`);
   }
 
   if (!inRange(scenario.financial.cogsPerTreatmentUsd, 0, 1_000_000)) add('error', 'invalid-cogs', 'financial.cogsPerTreatmentUsd', 'COGS per treatment is outside the supported range.');

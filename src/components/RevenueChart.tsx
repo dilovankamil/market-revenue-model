@@ -200,8 +200,8 @@ export function RevenueChart({ data, countryYears = [], scenario, showDevelopmen
           <div className="chart-series-legend">{series.map((item) => <span key={item.id}><i style={{ background: item.color }} />{item.label}</span>)}</div>
           <div className="chart-mode-toggle" role="group" aria-label="Color revenue by">
             <span>Color by</span>
-            <button className={colorMode === 'indication' ? 'active' : ''} onClick={() => setColorMode('indication')}>Indication</button>
-            <button className={colorMode === 'region' ? 'active' : ''} onClick={() => setColorMode('region')}>Region</button>
+            <button type="button" aria-pressed={colorMode === 'indication'} className={colorMode === 'indication' ? 'active' : ''} onClick={() => setColorMode('indication')}>Indication</button>
+            <button type="button" aria-pressed={colorMode === 'region'} className={colorMode === 'region' ? 'active' : ''} onClick={() => setColorMode('region')}>Region</button>
           </div>
         </div>
       )}

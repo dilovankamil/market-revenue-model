@@ -18,8 +18,8 @@ Do not treat a green software build as approval to publish the model. The follow
 - [ ] Validate the modeled Phase-II commercialization gate with current regulatory strategy; do not imply approval is assured.
 - [ ] Validate LoE/patent-extension assumptions with current IP/regulatory advice.
 - [ ] Validate COGS and commercial OpEx assumptions before showing profit/cash metrics publicly.
-- [ ] Replace Canada, Mexico and non-core EU planning proxies with country-specific assumptions where material.
-- [ ] Validate India/China commercial assumptions before enabling them in an external scenario.
+- [ ] Replace Canada, Mexico, non-core European and expansion-market planning proxies with country-specific assumptions where material.
+- [ ] Validate any disabled expansion market before enabling it in an external scenario.
 
 ## 3. Development / valuation
 
@@ -68,6 +68,6 @@ Do not treat a green software build as approval to publish the model. The follow
 ## 8. Deployment
 
 - [ ] Review the draft PR and merge only after modelling/public-content approval.
-- [ ] For GitHub Pages preview/hosting, set **Settings → Pages → Source: GitHub Actions**.
+- [ ] For the current branch-hosted GitHub Pages deployment, run `npm run release:pages` and commit the refreshed stable assets after tests/build pass.
 - [ ] For DBP website hosting, deploy the compiled `dist/` directory under the approved domain/subpath.
 - [ ] Keep a rollback artifact/tag for every public release.

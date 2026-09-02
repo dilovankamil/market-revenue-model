@@ -1,4 +1,5 @@
-import { baseScenario, cloneScenario } from './assumptions';
+import { cloneScenario } from './assumptions';
+import { createDefaultScenario } from './defaultScenario';
 import type { Scenario } from './types';
 
 const mapCountries = (scenario: Scenario, fn: (country: Scenario['countries'][keyof Scenario['countries']]) => void) => {
@@ -8,7 +9,8 @@ const mapCountries = (scenario: Scenario, fn: (country: Scenario['countries'][ke
 export type ScenarioPresetId = 'conservative' | 'base' | 'expansion';
 
 export const buildScenarioPresets = (): Record<ScenarioPresetId, Scenario> => {
-  const conservative = cloneScenario(baseScenario);
+  const base = createDefaultScenario();
+  const conservative = cloneScenario(base);
   conservative.name = 'Conservative';
   conservative.erosionPct = 25;
   conservative.financial.discountRatePct = 12.5;
@@ -21,9 +23,7 @@ export const buildScenarioPresets = (): Record<ScenarioPresetId, Scenario> => {
     country.launchYearByIndication.opbt += 2;
   });
 
-  const base = cloneScenario(baseScenario);
-
-  const expansion = cloneScenario(baseScenario);
+  const expansion = cloneScenario(base);
   expansion.name = 'Expansion';
   expansion.indications.brainMetastasis.enabled = true;
   expansion.indications.opbt.enabled = true;

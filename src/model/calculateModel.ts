@@ -9,6 +9,7 @@ import type {
   Scenario,
   YearResult,
 } from './types';
+import { developmentStageEndIndex, earliestCommercialLaunchIndex } from './timing';
 import { calculateValuation } from './valuation';
 
 const indicationIds: IndicationId[] = ['gbm', 'brainMetastasis', 'opbt'];
@@ -26,9 +27,6 @@ const erosionFactor = (scenario: Scenario, country: CountryAssumption, year: num
 
 const launchMonth = (country: CountryAssumption, indication: IndicationId) =>
   country.launchMonthByIndication?.[indication] ?? 1;
-
-const launchIndex = (country: CountryAssumption, indication: IndicationId) =>
-  country.launchYearByIndication[indication] * 12 + launchMonth(country, indication) - 1;
 
 const commercialAdoption = (country: CountryAssumption, indication: IndicationAssumption, year: number) => {
   const launchYear = country.launchYearByIndication[indication.id];
@@ -69,23 +67,11 @@ const corporateCostForYear = (cost: CorporateCostLine, year: number) => {
 const stagesForIndication = (scenario: Scenario, indication: IndicationId) =>
   scenario.developmentStages.filter((stage) => stage.indication === indication).sort((a, b) => a.startDate.localeCompare(b.startDate));
 
-const earliestCommercialLaunch = (scenario: Scenario, indication: IndicationId) => {
-  const launches = Object.values(scenario.countries)
-    .filter((country) => country.enabled && country.accessRoute === 'commercial')
-    .map((country) => launchIndex(country, indication));
-  return launches.length ? Math.min(...launches) : (scenario.endYear + 1) * 12;
-};
-
-const stageEndIndex = (stage: DevelopmentStage) => {
-  const end = new Date(`${stage.endDate}T00:00:00Z`);
-  return end.getUTCFullYear() * 12 + end.getUTCMonth();
-};
-
 const commercializationSuccessByIndication = (scenario: Scenario): Record<IndicationId, number> => {
   const result = emptyIndicationRecord();
   indicationIds.forEach((indication) => {
-    const launch = earliestCommercialLaunch(scenario, indication);
-    const preLaunchStages = stagesForIndication(scenario, indication).filter((stage) => stageEndIndex(stage) < launch);
+    const launch = earliestCommercialLaunchIndex(scenario, indication);
+    const preLaunchStages = stagesForIndication(scenario, indication).filter((stage) => developmentStageEndIndex(stage) < launch);
     result[indication] = preLaunchStages.length
       ? preLaunchStages.reduce((probability, stage) => probability * (stage.successProbabilityPct / 100), 1)
       : 1;

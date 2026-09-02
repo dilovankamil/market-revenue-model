@@ -3,18 +3,22 @@
  * These transforms intentionally apply only outside calibration mode so the
  * editor remains a neutral workspace for future adjustments.
  */
-.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-tumor {
+.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-tumor,
+.si-mobile-story .si-story-layer-tumor {
   transform: translate(16.326664851091884%, 0.1256431901554933%) rotate(-90.1828939874327deg) scale(0.6) !important;
 }
 
-.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-cavity {
+.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-cavity,
+.si-mobile-story .si-story-layer-cavity {
   transform: translate(5.114552512630852%, -6.518845328743717%) rotate(0deg) scale(0.68) !important;
 }
 
-.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-bbb {
+.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-bbb,
+.si-mobile-story .si-story-layer-bbb {
   transform: translate(0%, 0%) rotate(0deg) scale(1.01) !important;
 }
 
-.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-needle {
+.si-cinema-stage:not(.si-calibration-mode) .si-story-layer-needle,
+.si-mobile-story .si-story-layer-needle {
   transform: translate(17.73292682926829%, -15.107158858730543%) rotate(-3.4563374570547865deg) scale(0.8751676322638674) !important;
 }

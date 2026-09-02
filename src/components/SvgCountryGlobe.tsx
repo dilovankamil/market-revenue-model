@@ -41,10 +41,18 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
   }, []);
 
   useEffect(() => {
-    if (!autoRotate || dragRef.current) return;
+    if (!autoRotate) return;
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const timer = window.setInterval(() => setRotation(([lon, lat]) => [lon + 0.38, lat]), 70);
-    return () => window.clearInterval(timer);
+    let frame = 0;
+    let previous = performance.now();
+    const rotate = (now: number) => {
+      const elapsed = Math.min(64, now - previous);
+      previous = now;
+      if (!dragRef.current) setRotation(([lon, lat]) => [lon + elapsed * 0.0054, lat]);
+      frame = window.requestAnimationFrame(rotate);
+    };
+    frame = window.requestAnimationFrame(rotate);
+    return () => window.cancelAnimationFrame(frame);
   }, [autoRotate]);
 
   const projection = useMemo(() => d3.geoOrthographic().translate([WIDTH / 2, HEIGHT / 2]).scale(342).rotate(rotation).clipAngle(90).precision(0.35), [rotation]);
@@ -118,6 +126,12 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
     selectFeature(feature);
   };
 
+  const handleFeatureKeyDown = (event: React.KeyboardEvent<SVGPathElement>, feature: WorldFeature) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    selectFeature(feature);
+  };
+
   if (loadError) return <div className="country-globe globe-safe-fallback"><div className="globe-fallback" role="status"><strong>World map data unavailable</strong><span>The commercial model remains available, but the bundled country geometry could not be loaded.</span></div></div>;
   if (!world) return <div className="country-globe globe-safe-fallback"><div className="globe-fallback globe-loading" role="status"><div className="globe-loading-orb" aria-hidden="true" /><strong>Loading global opportunity…</strong></div></div>;
 
@@ -149,7 +163,7 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
             const selected = country?.id === selectedCountryId;
             const revenueActive = !!country && (metricByCountry?.[country.id] ?? 0) > 0;
             const title = selectable
-              ? `${country.name} — ${country.enabled ? 'in the selected footprint' : 'available; select to add'}`
+              ? `${country.name} — ${country.enabled ? 'in the selected footprint' : 'available; select to inspect'}`
               : country?.name ?? feature.properties?.name ?? 'Country';
             return (
               <path
@@ -157,7 +171,11 @@ export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry,
                 d={featurePath}
                 className={`globe-country ${selectable ? 'configured selectable' : ''} ${country?.enabled ? 'market-enabled' : ''} ${revenueActive ? 'revenue-active' : ''} ${selected ? 'selected' : ''}`}
                 fill={fillForFeature(feature)}
+                role={selectable ? 'button' : undefined}
+                tabIndex={selectable ? 0 : undefined}
+                aria-label={selectable ? title : undefined}
                 onClick={selectable ? (event) => handleFeatureClick(event, feature) : undefined}
+                onKeyDown={selectable ? (event) => handleFeatureKeyDown(event, feature) : undefined}
               ><title>{title}</title></path>
             );
           })}

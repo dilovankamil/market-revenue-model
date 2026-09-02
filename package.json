@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/create-stable-assets.mjs && node scripts/harden-pages-bootstrap.mjs",
+    "release:pages": "npm run build && node scripts/sync-pages-release.mjs",
     "test": "vitest run",
     "preview": "vite preview"
   },

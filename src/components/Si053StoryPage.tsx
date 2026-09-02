@@ -100,8 +100,11 @@ const getStoryPosition = (progress: number) => {
   return chapter + smooth(0.42, 0.92, chapterProgress);
 };
 
+const runtimeAssetBase = () =>
+  (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
+
 const storyAsset = (filename: string) =>
-  `${import.meta.env.BASE_URL}story/${encodeURIComponent(filename)}`;
+  `${runtimeAssetBase()}story/${encodeURIComponent(filename)}`;
 
 const storyAssets = {
   brain: storyAsset('brain.webp'),

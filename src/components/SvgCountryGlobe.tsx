@@ -20,7 +20,9 @@ const WIDTH = 760;
 const HEIGHT = 760;
 const defaultCountryColor = '#13191d';
 const availableMarketColor = '#2a3035';
-const worldDataUrl = `${import.meta.env.BASE_URL}world.geojson`;
+const runtimeAssetBase =
+  (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
+const worldDataUrl = `${runtimeAssetBase}world.geojson`;
 
 export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry, onInspectCountry, metricByCountry, autoRotate = false }: SvgCountryGlobeProps) {
   const [world, setWorld] = useState<WorldData | null>(null);

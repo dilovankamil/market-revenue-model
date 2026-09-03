@@ -471,6 +471,18 @@
       linear-gradient(180deg, #081723 0%, #07141f 100%);
   }
 
+  /* The closing chapter carries the hand-off actions. Give the copy a little
+     more of the sticky viewport and keep the opportunity diagram fully framed,
+     so the CTA never sits underneath the progress rail on short phones. */
+  .si-cinema-stage.is-final-step-active {
+    grid-template-rows: minmax(176px, 34%) minmax(0, 66%);
+  }
+
+  .si-cinema-stage.is-final-step-active .si-cinema-visual .si-opportunity-map {
+    transform: translate(-50%, -50%) scale(.86);
+    transform-origin: center;
+  }
+
   .si-cinema-stage::after {
     background: linear-gradient(180deg, transparent 0%, transparent 43%, rgba(5, 15, 24, .33) 53%, rgba(5, 15, 24, .74) 100%);
   }
@@ -639,6 +651,18 @@
       linear-gradient(180deg, #081723 0%, #07141f 100%);
   }
 
+  /* The closing chapter carries the hand-off actions. Give the copy a little
+     more of the sticky viewport and keep the opportunity diagram fully framed,
+     so the CTA never sits underneath the progress rail on short phones. */
+  .si-cinema-stage.is-final-step-active {
+    grid-template-rows: minmax(176px, 34%) minmax(0, 66%);
+  }
+
+  .si-cinema-stage.is-final-step-active .si-cinema-visual .si-opportunity-map {
+    transform: translate(-50%, -50%) scale(.86);
+    transform-origin: center;
+  }
+
   .si-cinema-stage::after {
     background: linear-gradient(180deg, transparent 0%, transparent 40%, rgba(5, 15, 24, .35) 52%, rgba(5, 15, 24, .78) 100%);
   }
@@ -658,6 +682,10 @@
 
   .si-story-stack {
     width: min(72vw, 340px);
+  }
+
+  .si-cinema-stage.is-opening-step-active .si-story-stack {
+    width: min(66vw, 310px);
   }
 
   .si-story-diagram {
@@ -765,6 +793,24 @@
   .si-cinema-copy-step.is-final-step p {
     font-size: 13px;
     line-height: 1.4;
+  }
+
+  .si-cinema-stage.is-final-step-active .si-cinema-copy-step {
+    top: 8px;
+  }
+
+  .si-cinema-stage.is-final-step-active .si-cinema-model-bridge {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+
+  .si-cinema-stage.is-final-step-active .si-cinema-actions {
+    margin-top: 8px;
+    gap: 6px;
+  }
+
+  .si-cinema-stage.is-final-step-active .si-cinema-actions button {
+    min-height: 38px;
   }
 
   .si-cinema-eyebrow {

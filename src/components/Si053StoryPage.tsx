@@ -581,7 +581,7 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
   return (
     <>
     <section ref={trackRef} className="si-cinema-track" aria-label="SI-053 treatment story">
-      <div className={`si-cinema-stage${editMode ? ' si-calibration-mode' : ''}`}>
+      <div className={`si-cinema-stage${editMode ? ' si-calibration-mode' : ''}${activeIndex === 0 ? ' is-opening-step-active' : ''}${activeIndex === steps.length - 1 ? ' is-final-step-active' : ''}`}>
         <div className="si-cinema-visual" aria-hidden={!editMode}>
           <ContinuousVisual
             position={position}

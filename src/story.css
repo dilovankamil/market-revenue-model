@@ -617,15 +617,112 @@
 
 @media (max-width: 760px) {
   .si-cinema-track {
-    display: none;
+    display: block;
+    height: 620svh;
+    min-height: 3720px;
+    margin-inline: 0;
   }
 
   .si-mobile-story {
-    display: block;
-    margin-top: -14px;
+    display: none;
+  }
+
+  .si-cinema-stage {
+    --mobile-command-height: calc(69px + max(10px, env(safe-area-inset-top)));
+    top: var(--mobile-command-height);
+    height: calc(100svh - var(--mobile-command-height));
+    height: calc(100dvh - var(--mobile-command-height));
+    min-height: 540px;
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(220px, 44%) minmax(320px, 56%);
     background:
-      radial-gradient(circle at 78% 4%, rgba(50, 126, 143, .15), transparent 24%),
-      linear-gradient(180deg, #081723, #06121c);
+      radial-gradient(circle at 54% 25%, rgba(50, 126, 143, .18), transparent 32%),
+      linear-gradient(180deg, #081723 0%, #07141f 100%);
+  }
+
+  .si-cinema-stage::after {
+    background: linear-gradient(180deg, transparent 0%, transparent 40%, rgba(5, 15, 24, .35) 52%, rgba(5, 15, 24, .78) 100%);
+  }
+
+  .si-cinema-visual {
+    grid-column: 1;
+    grid-row: 1;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .si-cinema-visual-shell {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .si-story-stack {
+    width: min(86vw, 420px);
+  }
+
+  .si-story-diagram {
+    width: min(94%, 620px);
+  }
+
+  .si-cinema-copy {
+    grid-column: 1;
+    grid-row: 2;
+    height: 100%;
+  }
+
+  .si-cinema-copy-step {
+    top: 14px;
+    left: 18px;
+    right: 18px;
+  }
+
+  .si-cinema-copy-step h2 {
+    margin: 9px 0 11px;
+    font-size: clamp(27px, 8.2vw, 36px);
+    line-height: 1.02;
+  }
+
+  .si-cinema-copy-step p {
+    margin-bottom: 7px;
+    font-size: 14px;
+    line-height: 1.47;
+  }
+
+  .si-cinema-eyebrow {
+    font-size: 9px;
+  }
+
+  .si-cinema-callout {
+    margin-top: 9px;
+    font-size: 10px;
+  }
+
+  .si-cinema-model-bridge {
+    margin-top: 11px;
+    padding-top: 10px;
+  }
+
+  .si-cinema-model-bridge > span {
+    font-size: 9px;
+  }
+
+  .si-cinema-actions {
+    margin-top: 10px;
+    gap: 7px;
+  }
+
+  .si-cinema-actions button {
+    min-height: 40px;
+    padding: 0 11px;
+    font-size: 10px;
+  }
+
+  .si-cinema-ui {
+    left: 18px;
+    right: 18px;
+    bottom: 11px;
+    gap: 9px;
   }
 
   .si-mobile-chapter {

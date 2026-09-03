@@ -20,7 +20,7 @@ const HEIGHT = 760;
 const defaultCountryColor = '#13191d';
 // Available markets should read as a neutral, quiet option: clearly distinct
 // from the non-configured countries, without competing with active revenue.
-const availableMarketColor = '#4b565d';
+const availableMarketColor = '#626d73';
 const runtimeAssetBase =
   (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
 const worldDataUrl = `${runtimeAssetBase}world.geojson`;
@@ -31,6 +31,8 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
   const [rotation, setRotation] = useState<[number, number]>([-12, -12]);
   const dragRef = useRef<{ x: number; y: number; rotation: [number, number]; pointerId: number; captured: boolean } | null>(null);
   const draggedRef = useRef(false);
+  const tapRef = useRef<{ feature: WorldFeature; x: number; y: number; pointerId: number } | null>(null);
+  const suppressClickRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -90,7 +92,7 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
     if (id) onInspectCountry?.({ id, name, configured: false });
   };
 
-  const pointerDown = (event: PointerEvent<SVGSVGElement>) => {
+  const pointerDown = (event: PointerEvent<SVGElement>) => {
     draggedRef.current = false;
     dragRef.current = { x: event.clientX, y: event.clientY, rotation, pointerId: event.pointerId, captured: false };
   };
@@ -100,8 +102,9 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
     if (!drag || drag.pointerId !== event.pointerId) return;
     const dx = event.clientX - drag.x;
     const dy = event.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 5) {
+    if (Math.hypot(dx, dy) > 8) {
       draggedRef.current = true;
+      tapRef.current = null;
       if (!drag.captured) {
         try { event.currentTarget.setPointerCapture(event.pointerId); drag.captured = true; } catch { /* no-op */ }
       }
@@ -110,7 +113,7 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
     setRotation([drag.rotation[0] + dx * 0.28, Math.max(-70, Math.min(70, drag.rotation[1] - dy * 0.22))]);
   };
 
-  const pointerUp = (event: PointerEvent<SVGSVGElement>) => {
+  const pointerUp = (event: PointerEvent<SVGElement>) => {
     const drag = dragRef.current;
     if (drag?.captured) {
       try { event.currentTarget.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
@@ -118,8 +121,30 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
     dragRef.current = null;
   };
 
+  const handleFeaturePointerDown = (event: PointerEvent<SVGPathElement>, feature: WorldFeature) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    tapRef.current = { feature, x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  };
+
+  const handleFeaturePointerUp = (event: PointerEvent<SVGPathElement>, feature: WorldFeature) => {
+    const tap = tapRef.current;
+    tapRef.current = null;
+    if (!tap || tap.pointerId !== event.pointerId || tap.feature !== feature || draggedRef.current) return;
+    if (Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 10) return;
+    suppressClickRef.current = performance.now() + 450;
+    selectFeature(feature);
+  };
+
+  const handleFeaturePointerCancel = (event: PointerEvent<SVGPathElement>) => {
+    if (tapRef.current?.pointerId === event.pointerId) tapRef.current = null;
+  };
+
   const handleFeatureClick = (event: React.MouseEvent<SVGPathElement>, feature: WorldFeature) => {
     event.stopPropagation();
+    if (suppressClickRef.current > performance.now()) {
+      suppressClickRef.current = 0;
+      return;
+    }
     if (draggedRef.current) {
       draggedRef.current = false;
       return;
@@ -174,6 +199,9 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
                 role={selectable ? 'button' : undefined}
                 tabIndex={selectable ? 0 : undefined}
                 aria-label={selectable ? title : undefined}
+                onPointerDown={selectable ? (event) => handleFeaturePointerDown(event, feature) : undefined}
+                onPointerUp={selectable ? (event) => handleFeaturePointerUp(event, feature) : undefined}
+                onPointerCancel={selectable ? handleFeaturePointerCancel : undefined}
                 onClick={selectable ? (event) => handleFeatureClick(event, feature) : undefined}
                 onKeyDown={selectable ? (event) => handleFeatureKeyDown(event, feature) : undefined}
               ><title>{title}</title></path>

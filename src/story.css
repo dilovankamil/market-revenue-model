@@ -681,11 +681,10 @@
   }
 
   .si-story-stack {
-    width: min(72vw, 340px);
-  }
-
-  .si-cinema-stage.is-opening-step-active .si-story-stack {
-    width: min(66vw, 310px);
+    /* Keep the clinical visual on one immutable scale across chapters.
+       The opening-only width override made the brain visibly jump larger
+       when the resection chapter became active. */
+    width: min(68vw, 320px);
   }
 
   .si-story-diagram {

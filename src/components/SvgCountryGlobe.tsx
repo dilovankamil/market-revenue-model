@@ -18,7 +18,9 @@ type WorldData = { type: 'FeatureCollection'; features: WorldFeature[] };
 const WIDTH = 760;
 const HEIGHT = 760;
 const defaultCountryColor = '#13191d';
-const availableMarketColor = '#1b2226';
+// Available markets should read as a neutral, quiet option: clearly distinct
+// from the non-configured countries, without competing with active revenue.
+const availableMarketColor = '#4b565d';
 const runtimeAssetBase =
   (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
 const worldDataUrl = `${runtimeAssetBase}world.geojson`;

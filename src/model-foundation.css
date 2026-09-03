@@ -61,7 +61,7 @@
   stroke: rgba(146,164,173,.45);
   stroke-width: .82;
 }
-.globe-country.market-available { opacity: .86; }
+.globe-country.market-available { opacity: .94; }
 .globe-country.market-available:hover,
 .globe-country.market-available:focus-visible { opacity: 1; }
 .globe-country.market-enabled { stroke: rgba(110,215,255,.68); stroke-width: 1.05; }

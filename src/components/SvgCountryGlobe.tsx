@@ -93,6 +93,8 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
   };
 
   const pointerDown = (event: PointerEvent<SVGElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (tapRef.current?.pointerId !== event.pointerId) tapRef.current = null;
     draggedRef.current = false;
     dragRef.current = { x: event.clientX, y: event.clientY, rotation, pointerId: event.pointerId, captured: false };
   };

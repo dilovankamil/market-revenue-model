@@ -221,12 +221,12 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
           <div className="map-region-legend cv-region-legend">
             {REGION_ORDER.map((region) => <span key={region}><i style={{ background: REGION_COLORS[region] }} />{region}</span>)}
           </div>
+          <CountryGlobe countries={Object.values(scenario.countries)} onSelectCountry={selectCountry} metricByCountry={mapMetricByCountry} autoRotate={isPlaying} />
           <div className="cv-rollout-caption" aria-live="polite">
             <span>{rolloutCaption.eyebrow}</span>
             <strong>{rolloutCaption.title}</strong>
             <p>{rolloutCaption.body}</p>
           </div>
-          <CountryGlobe countries={Object.values(scenario.countries)} selectedCountryId={selectedCountry?.id ?? null} onSelectCountry={selectCountry} metricByCountry={mapMetricByCountry} autoRotate={isPlaying} />
           <div className="cv-playback-row">
             <button type="button" className={`play-button ${isPlaying ? 'playing' : ''}`} onClick={togglePlayback} aria-label={isPlaying ? 'Pause global rollout' : 'Play global rollout'}><span aria-hidden="true">{isPlaying ? 'Ⅱ' : '▶'}</span>{isPlaying ? 'Pause' : 'Play rollout'}</button>
             <label className="year-slider cv-year-slider">Model year <b>{mapYear}</b><input type="range" min={scenario.startYear} max={scenario.endYear} value={mapYear} onChange={(event) => { setIsPlaying(false); setMapYear(+event.target.value); }} /></label>

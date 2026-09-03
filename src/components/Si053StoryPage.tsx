@@ -601,7 +601,7 @@ export function Si053StoryPage({ onOpenCommercial, onOpenDevelopment }: Props) {
             return (
               <article
                 key={step.title}
-                className={`si-cinema-copy-step${index === steps.length - 1 ? ' is-final-step' : ''}`}
+                className={`si-cinema-copy-step${index === 0 ? ' is-opening-step' : ''}${index === steps.length - 1 ? ' is-final-step' : ''}`}
                 style={{
                   opacity,
                   transform: `translate3d(0, ${offset}px, 0)`,

@@ -12,6 +12,14 @@
   gap: 16px;
 }
 
+/* Keep the decision surface ahead of its controls at every breakpoint. */
+.commercial-value-page > .cv-kpi-strip { order: 0; }
+.commercial-value-page > .cv-market-grid { order: 1; }
+.commercial-value-page > .cv-revenue-panel { order: 2; }
+.commercial-value-page > .cv-levers-panel { order: 3; }
+.commercial-value-page > .cv-advanced-panel { order: 4; }
+.commercial-value-page > .cv-regulatory-note { order: 5; }
+
 .cv-kpi-strip {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -676,10 +684,6 @@
   .cv-portfolio-foot {
     margin-top: 14px;
   }
-
-  /* On narrow screens, show the visual decision surface before its controls. */
-  .commercial-value-page > .cv-revenue-panel { order: 3; }
-  .commercial-value-page > .cv-levers-panel { order: 4; }
 
   .cv-advanced-content {
     padding: 14px;

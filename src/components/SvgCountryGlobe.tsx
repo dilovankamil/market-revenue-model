@@ -6,7 +6,6 @@ import type { GlobeCountrySelection } from './CountryGlobe';
 
 interface SvgCountryGlobeProps {
   countries: CountryAssumption[];
-  selectedCountryId: CountryId | null;
   onSelectCountry: (countryId: CountryId) => void;
   onInspectCountry?: (selection: GlobeCountrySelection) => void;
   metricByCountry?: Partial<Record<CountryId, number>>;
@@ -19,12 +18,12 @@ type WorldData = { type: 'FeatureCollection'; features: WorldFeature[] };
 const WIDTH = 760;
 const HEIGHT = 760;
 const defaultCountryColor = '#13191d';
-const availableMarketColor = '#303538';
+const availableMarketColor = '#1b2226';
 const runtimeAssetBase =
   (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
 const worldDataUrl = `${runtimeAssetBase}world.geojson`;
 
-export function SvgCountryGlobe({ countries, selectedCountryId, onSelectCountry, onInspectCountry, metricByCountry, autoRotate = false }: SvgCountryGlobeProps) {
+export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, metricByCountry, autoRotate = false }: SvgCountryGlobeProps) {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [rotation, setRotation] = useState<[number, number]>([-12, -12]);

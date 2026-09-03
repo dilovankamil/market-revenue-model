@@ -9,7 +9,6 @@ export interface GlobeCountrySelection {
 
 interface CountryGlobeProps {
   countries: CountryAssumption[];
-  selectedCountryId: CountryId | null;
   onSelectCountry: (countryId: CountryId) => void;
   onInspectCountry?: (selection: GlobeCountrySelection) => void;
   metricByCountry?: Partial<Record<CountryId, number>>;

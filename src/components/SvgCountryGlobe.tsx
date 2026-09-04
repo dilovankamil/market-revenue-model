@@ -210,7 +210,7 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
         </g>
         <path className="globe-rim" d={spherePath} />
       </svg>
-      <div className="globe-drag-hint">Drag to rotate · dark grey = available · brighter colour = revenue active</div>
+      <div className="globe-drag-hint">Drag to rotate · light grey = available · region colour = active</div>
     </div>
   );
 }

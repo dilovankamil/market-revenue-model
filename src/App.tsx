@@ -135,7 +135,7 @@ export default function App() {
     <div className="app-shell">
       <aside className="sidebar desktop-sidebar">
         <div className="brand-block">
-          <div className="brand-logo-frame"><img className="brand-logo" src={`${import.meta.env.BASE_URL}DBP_Logo_New.png`} alt="Double Bond Pharmaceutical" /></div>
+          <div className="brand-logo-frame"><img className="brand-logo" src={`${import.meta.env.BASE_URL}public/DBP_Logo_New.png`} alt="Double Bond Pharmaceutical" /></div>
           <div className="brand-product"><div className="eyebrow">STRATEGIC MODEL</div><div className="brand-title">SI-053 Strategic Model</div></div>
         </div>
         <nav className="nav-list" aria-label="Model sections">

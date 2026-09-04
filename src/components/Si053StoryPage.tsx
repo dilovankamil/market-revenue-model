@@ -59,9 +59,9 @@ const steps: StoryStep[] = [
     title: 'Designed to release temozolomide locally over time.',
     body: [
       'The objective is sustained local exposure at and around the cavity margin, with the aim of limiting the need to drive local concentration through systemic dosing.',
-      'Delivery, anatomy and recurrence biology are addressed in one local intervention.',
+      'In a small Temodex cohort, benefit was reported across MGMT promoter methylation groups. This supports a hypothesis for SI-053—not a confirmed SI-053 clinical result.',
     ],
-    callout: 'Sustained exposure at the surgical margin',
+    callout: 'A hypothesis of MGMT-independent activity',
   },
   {
     eyebrow: 'CARE PATHWAY',

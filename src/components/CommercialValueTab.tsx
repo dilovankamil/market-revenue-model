@@ -147,9 +147,6 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
   const selectedRevenueShare = yearResult?.grossRevenueUsd
     ? (selectedYearRow?.grossRevenueUsd ?? 0) / yearResult.grossRevenueUsd * 100
     : 0;
-  const mapMetricByCountry = useMemo(() => Object.fromEntries(
-    yearCountryRows.map((row) => [row.countryId, row.grossRevenueUsd]),
-  ), [yearCountryRows]);
   const topContributors = [...yearCountryRows]
     .filter((row) => row.grossRevenueUsd > 0)
     .sort((a, b) => b.grossRevenueUsd - a.grossRevenueUsd)
@@ -221,7 +218,7 @@ export function CommercialValueTab({ scenario, result, setScenario }: Props) {
           <div className="map-region-legend cv-region-legend">
             {REGION_ORDER.map((region) => <span key={region}><i style={{ background: REGION_COLORS[region] }} />{region}</span>)}
           </div>
-          <CountryGlobe countries={Object.values(scenario.countries)} onSelectCountry={selectCountry} metricByCountry={mapMetricByCountry} autoRotate={isPlaying} />
+          <CountryGlobe countries={Object.values(scenario.countries)} onSelectCountry={selectCountry} autoRotate={isPlaying} />
           <div className="cv-rollout-caption" aria-live="polite">
             <span>{rolloutCaption.eyebrow}</span>
             <strong>{rolloutCaption.title}</strong>

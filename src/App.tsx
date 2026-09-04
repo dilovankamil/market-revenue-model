@@ -134,7 +134,10 @@ export default function App() {
   return (
     <div className="app-shell">
       <aside className="sidebar desktop-sidebar">
-        <div className="brand-block"><div className="brand-mark">SI</div><div><div className="eyebrow">DOUBLE BOND PHARMACEUTICAL</div><div className="brand-title">SI-053 Strategic Model</div></div></div>
+        <div className="brand-block">
+          <div className="brand-logo-frame"><img className="brand-logo" src={`${import.meta.env.BASE_URL}DBP_Logo_New.png`} alt="Double Bond Pharmaceutical" /></div>
+          <div className="brand-product"><div className="eyebrow">STRATEGIC MODEL</div><div className="brand-title">SI-053 Strategic Model</div></div>
+        </div>
         <nav className="nav-list" aria-label="Model sections">
           {visibleTabs.map((tab) => <button type="button" key={tab.id} className={`nav-button ${activeTab === tab.id ? 'active' : ''}`} aria-current={activeTab === tab.id ? 'page' : undefined} onClick={() => changeTab(tab.id)}><span>{tab.label}</span>{tab.private && <small>PRIVATE</small>}</button>)}
         </nav>

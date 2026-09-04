@@ -66,18 +66,21 @@ select, input[type="number"] {
   backdrop-filter: blur(20px);
 }
 
-.brand-block { display: flex; gap: 12px; align-items: center; padding: 0 8px 24px; }
-.brand-mark {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(145deg,#63d3fb,#78f0ca);
-  box-shadow: 0 10px 28px rgba(67,192,227,.18);
-  color: #06111d;
-  font-weight: 800;
+.brand-block { display: grid; gap: 16px; padding: 0 8px 24px; }
+.brand-logo-frame {
+  width: min(100%, 228px);
+  padding: 6px 7px;
+  border-radius: 9px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18);
 }
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.brand-product { padding-top: 14px; border-top: 1px solid var(--line); }
 .eyebrow, .section-kicker { color: #75b9d7; font-size: 10px; font-weight: 750; letter-spacing: .16em; text-transform: uppercase; }
 .brand-title { margin: 4px 0 0; font-size: 15px; font-weight: 650; }
 

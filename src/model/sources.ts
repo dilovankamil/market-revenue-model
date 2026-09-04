@@ -57,6 +57,11 @@ export const methodologySources: MethodologySource[] = [
     note: 'Coarse cost aggregates are transcribed from SI053_Finance_Model_v8.xlsx. The current public planning calendar begins Phase I in June 2027 and ends GBM Phase II on 31 August 2031.', status: 'workbook',
   },
   {
+    id: 'temodex-mgmt-analysis', category: 'Development', label: 'Local Temodex delivery and MGMT analysis (Karlsson et al., 2019)',
+    url: 'https://doi.org/10.4149/neo_2018_180613N393', appliesTo: 'Prior Temodex clinical evidence · MGMT subgroup analysis',
+    note: 'A small cohort analysis reported overall-survival benefit across MGMT promoter methylation groups. This is supportive precedent for a local-exposure hypothesis, not a confirmed SI-053 clinical result; prospective SI-053 data are required.', status: 'literature',
+  },
+  {
     id: 'fda-orphan-separate-approval', category: 'Development', label: 'FDA orphan designation is separate from approval',
     url: 'https://www.fda.gov/industry/medical-products-rare-diseases-and-conditions/designating-orphan-product-drugs-and-biological-products', appliesTo: 'US regulatory pathway',
     note: 'FDA states that orphan designation is a separate process from approval/licensing. The model therefore does not treat ODD itself as authority to sell after Phase II.', status: 'literature',

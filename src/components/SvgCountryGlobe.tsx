@@ -8,7 +8,6 @@ interface SvgCountryGlobeProps {
   countries: CountryAssumption[];
   onSelectCountry: (countryId: CountryId) => void;
   onInspectCountry?: (selection: GlobeCountrySelection) => void;
-  metricByCountry?: Partial<Record<CountryId, number>>;
   autoRotate?: boolean;
 }
 
@@ -25,7 +24,7 @@ const runtimeAssetBase =
   (window as Window & { __SI053_ASSET_ROOT__?: string }).__SI053_ASSET_ROOT__ ?? import.meta.env.BASE_URL;
 const worldDataUrl = `${runtimeAssetBase}world.geojson`;
 
-export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, metricByCountry, autoRotate = false }: SvgCountryGlobeProps) {
+export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, autoRotate = false }: SvgCountryGlobeProps) {
   const [world, setWorld] = useState<WorldData | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [rotation, setRotation] = useState<[number, number]>([-12, -12]);
@@ -186,7 +185,6 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
             if (!featurePath) return null;
             const country = countryByFeature(feature);
             const selectable = country?.accessRoute === 'commercial';
-            const revenueActive = !!country && (metricByCountry?.[country.id] ?? 0) > 0;
             const title = selectable
               ? `${country.name} — ${country.enabled ? 'in the selected footprint' : 'available; select to inspect'}`
               : country?.name ?? feature.properties?.name ?? 'Country';
@@ -194,7 +192,7 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
               <path
                 key={String(feature.id ?? feature.properties?.name ?? index)}
                 d={featurePath}
-                className={`globe-country ${selectable ? 'configured selectable' : ''} ${selectable && !country?.enabled ? 'market-available' : ''} ${country?.enabled ? 'market-enabled' : ''} ${revenueActive ? 'revenue-active' : ''}`}
+                className={`globe-country ${selectable ? 'configured selectable' : ''} ${selectable && !country?.enabled ? 'market-available' : ''} ${country?.enabled ? 'market-enabled' : ''}`}
                 fill={fillForFeature(feature)}
                 role={selectable ? 'button' : undefined}
                 tabIndex={selectable ? 0 : undefined}

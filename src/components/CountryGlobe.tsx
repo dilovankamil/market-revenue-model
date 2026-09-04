@@ -11,7 +11,6 @@ interface CountryGlobeProps {
   countries: CountryAssumption[];
   onSelectCountry: (countryId: CountryId) => void;
   onInspectCountry?: (selection: GlobeCountrySelection) => void;
-  metricByCountry?: Partial<Record<CountryId, number>>;
   autoRotate?: boolean;
 }
 

@@ -62,8 +62,6 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
   const path = useMemo(() => d3.geoPath(projection), [projection]);
   const spherePath = path({ type: 'Sphere' } as d3.GeoPermissibleObjects) ?? '';
   const graticulePath = path(d3.geoGraticule10()) ?? '';
-  const maxMetric = Math.max(0, ...Object.values(metricByCountry ?? {}).filter((value): value is number => Number.isFinite(value)));
-
   const countryByFeature = (feature: WorldFeature) => {
     const id = String(feature.id ?? '');
     const name = feature.properties?.name ?? '';
@@ -74,10 +72,10 @@ export function SvgCountryGlobe({ countries, onSelectCountry, onInspectCountry, 
     const country = countryByFeature(feature);
     if (!country || country.accessRoute !== 'commercial') return defaultCountryColor;
     if (!country.enabled) return availableMarketColor;
-    const base = d3.color(regionColor(country.region, true));
-    const metric = metricByCountry?.[country.id] ?? 0;
-    if (!base || !maxMetric || metric <= 0) return base?.darker(.4).formatHex() ?? regionColor(country.region, true);
-    return base.brighter(.25 + Math.sqrt(metric / maxMetric) * .8).formatHex();
+    // Keep active markets visually consistent with the region legend. Revenue
+    // is communicated by the surrounding metrics and contributor list, not by
+    // turning otherwise identical countries into competing neon shades.
+    return regionColor(country.region, true);
   };
 
   const selectFeature = (feature: WorldFeature) => {
